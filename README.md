@@ -1,4 +1,4 @@
-  <img src="./readme-assets/ui.png" alt="Otofy Main Interface" width="100%" />
+<img src="./readme-assets/preview.png" alt="Otofy Main Interface" width="100%" />
 <div align="center">
 
   <h1>音 · Otofy</h1>
