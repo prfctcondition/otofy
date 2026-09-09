@@ -367,6 +367,9 @@ export default function App() {
         try {
           const details = await window.electronAPI.getArtistDetails(cleanName, source);
           if (details) {
+            if (!details.avatarUrl && details.topTracks && details.topTracks.length > 0) {
+              details.avatarUrl = details.topTracks[0].artworkUrl;
+            }
             detailsResult = details;
             libraryStore.setCurrentArtistDetails(details);
 
@@ -409,6 +412,9 @@ export default function App() {
           if (res.ok) {
             const details = await res.json();
             if (details) {
+              if (!details.avatarUrl && details.topTracks && details.topTracks.length > 0) {
+                details.avatarUrl = details.topTracks[0].artworkUrl;
+              }
               detailsResult = details;
               libraryStore.setCurrentArtistDetails(details);
               if (details.topTracks && details.topTracks.length > 0) {

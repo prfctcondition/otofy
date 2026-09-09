@@ -336,14 +336,31 @@ export async function getArtistDetails(artistNameOrId: string) {
   if (albumsRes.status === 'fulfilled' && albumsRes.value.ok) {
     const aData: any = await albumsRes.value.json();
     for (const item of aData.collection || []) {
-      const rawArt = item.artwork_url || (item.tracks?.[0]?.artwork_url) || avatarUrl || '';
+      const rawArt = item.artwork_url || (item.tracks?.[0]?.artwork_url) || avatarUrl || topTracks[0]?.artworkUrl || '';
       albums.push({
         title: item.title || 'Album',
         year: item.release_date ? new Date(item.release_date).getFullYear().toString() : '',
-        artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : avatarUrl,
+        artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : (avatarUrl || topTracks[0]?.artworkUrl),
         browseId: String(item.id),
         type: 'Album',
       });
+    }
+  }
+
+  // Fallback: If no albums from user/albums, check topTracks
+  if (albums.length === 0 && topTracks.length > 0) {
+    const seenAlbums = new Set<string>();
+    for (const t of topTracks) {
+      if (t.album && !t.album.includes('Top Track') && !seenAlbums.has(t.album.toLowerCase())) {
+        seenAlbums.add(t.album.toLowerCase());
+        albums.push({
+          title: t.album,
+          year: '',
+          artworkUrl: t.artworkUrl || avatarUrl,
+          browseId: t.album,
+          type: 'Album',
+        });
+      }
     }
   }
 

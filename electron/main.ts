@@ -77,6 +77,9 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }
           }
         } catch {}
       }
+      if (!ytDetails.avatarUrl && ytDetails.topTracks.length > 0) {
+        ytDetails.avatarUrl = ytDetails.topTracks[0].artworkUrl;
+      }
       return ytDetails;
     }
   } catch (err) {

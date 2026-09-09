@@ -55,14 +55,23 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
     return undefined;
   }, [source, sourceId]);
 
+  const normalizedImgUrl = React.useMemo(() => {
+    if (!imageUrl || typeof imageUrl !== 'string') return undefined;
+    let clean = imageUrl.trim();
+    if (clean.startsWith('//')) {
+      clean = `https:${clean}`;
+    }
+    return clean;
+  }, [imageUrl]);
+
   const [currentImgUrl, setCurrentImgUrl] = React.useState<string | undefined>(
-    imageUrl || ytFallbackUrl
+    normalizedImgUrl || ytFallbackUrl
   );
 
   React.useEffect(() => {
     setImageError(false);
-    setCurrentImgUrl(imageUrl || ytFallbackUrl);
-  }, [imageUrl, ytFallbackUrl]);
+    setCurrentImgUrl(normalizedImgUrl || ytFallbackUrl);
+  }, [normalizedImgUrl, ytFallbackUrl]);
 
   const handleImageError = () => {
     if (currentImgUrl !== ytFallbackUrl && ytFallbackUrl) {

@@ -205,6 +205,9 @@ function musicApiPlugin(): Plugin {
                   }
                 } catch {}
               }
+              if (!details.avatarUrl && details.topTracks?.length > 0) {
+                details.avatarUrl = details.topTracks[0].artworkUrl;
+              }
             }
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(details));
