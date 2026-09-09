@@ -41,41 +41,44 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {details.albums.map((album, idx) => (
-              <div
-                key={album.browseId || `album-${idx}`}
-                onClick={() => onSelectAlbum(album.browseId, album.title, details.artist)}
-                className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
-              >
-                {/* Album Cover Art */}
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-2.5">
-                  <PlaceholderArtwork
-                    icon="disc"
-                    imageUrl={album.artworkUrl || defaultArtistArt}
-                    gradientFrom="#3B82F6"
-                    gradientTo="#1E1B4B"
-                    size="100%"
-                    rounded="rounded-none"
-                    className="w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
+            {details.albums.map((album, idx) => {
+              const albumSource = album.source || (album.browseId && /^\d+$/.test(album.browseId) ? 'SC' : details.source || 'YT');
+              return (
+                <div
+                  key={album.browseId || `album-${idx}`}
+                  onClick={() => onSelectAlbum(album.browseId, album.title, details.artist, albumSource)}
+                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
+                >
+                  {/* Album Cover Art */}
+                  <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-2.5">
+                    <PlaceholderArtwork
+                      icon="disc"
+                      imageUrl={album.artworkUrl || defaultArtistArt}
+                      gradientFrom="#3B82F6"
+                      gradientTo="#1E1B4B"
+                      size="100%"
+                      rounded="rounded-none"
+                      className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
 
-                  {/* Play Button Overlay */}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white text-[#0F172A] flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                      <Play size={16} fill="currentColor" className="ml-0.5" />
+                    {/* Play Button Overlay */}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-white text-[#0F172A] flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                        <Play size={16} fill="currentColor" className="ml-0.5" />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Album Info */}
-                <span className="text-xs font-bold text-[#0F172A] truncate leading-tight group-hover:text-violet-700 transition-colors" title={album.title}>
-                  {album.title}
-                </span>
-                <span className="text-[11px] text-[#64748B] mt-0.5">
-                  {album.year ? album.year : 'Album'}
-                </span>
-              </div>
-            ))}
+                  {/* Album Info */}
+                  <span className="text-xs font-bold text-[#0F172A] truncate leading-tight group-hover:text-violet-700 transition-colors" title={album.title}>
+                    {album.title}
+                  </span>
+                  <span className="text-[11px] text-[#64748B] mt-0.5">
+                    {album.year ? album.year : 'Album'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -94,12 +97,14 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {details.singles!.map((single, idx) => (
-              <div
-                key={single.browseId || `single-${idx}`}
-                onClick={() => onSelectAlbum(single.browseId, single.title, details.artist)}
-                className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
-              >
+            {details.singles!.map((single, idx) => {
+              const singleSource = single.source || (single.browseId && /^\d+$/.test(single.browseId) ? 'SC' : details.source || 'YT');
+              return (
+                <div
+                  key={single.browseId || `single-${idx}`}
+                  onClick={() => onSelectAlbum(single.browseId, single.title, details.artist, singleSource)}
+                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
+                >
                 <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-2.5">
                   <PlaceholderArtwork
                     icon="sparkles"
@@ -124,7 +129,8 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                   {single.year ? single.year : 'Single'}
                 </span>
               </div>
-            ))}
+            );
+          })}
           </div>
         </section>
       )}

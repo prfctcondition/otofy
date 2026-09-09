@@ -14,6 +14,7 @@ export interface SCSearchResult {
   duration: string;
   durationSec: number;
   source: 'SC';
+  sourceLabel?: string;
   artworkUrl?: string;
   sourceId: string;
 }
@@ -300,51 +301,102 @@ export async function getArtistDetails(artistNameOrId: string) {
   const bio = user.description;
   const subscribers = user.followers_count ? `${user.followers_count.toLocaleString()} followers` : undefined;
 
-  const [tracksRes, albumsRes] = await Promise.allSettled([
+  const [tracksRes, albumsRes, playlistsRes] = await Promise.allSettled([
     fetchSC(`https://api-v2.soundcloud.com/users/${user.id}/tracks`, { limit: 100 }),
-    fetchSC(`https://api-v2.soundcloud.com/users/${user.id}/albums`, { limit: 20 }),
+    fetchSC(`https://api-v2.soundcloud.com/users/${user.id}/albums`, { limit: 50 }),
+    fetchSC(`https://api-v2.soundcloud.com/users/${user.id}/playlists`, { limit: 50 }),
   ]);
 
   const topTracks: SCSearchResult[] = [];
+  let trackCollection: any[] = [];
+
   if (tracksRes.status === 'fulfilled' && tracksRes.value.ok) {
     const tData: any = await tracksRes.value.json();
-    for (const item of tData.collection || []) {
-      if (item.policy === 'SNIP' || item.snipped === true) continue;
-      const durSec = Math.round((item.duration || 0) / 1000);
-      if (durSec <= 35 && item.full_duration > 60000) continue;
-
-      const rawArt = item.artwork_url || item.user?.avatar_url || '';
-      topTracks.push({
-        id: String(item.id),
-        title: item.title || 'Untitled',
-        artist: item.user?.username || artistName,
-        album: `${artistName} Top Tracks`,
-        duration: formatDuration(durSec),
-        durationSec: durSec,
-        source: 'SC',
-        artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : avatarUrl,
-        sourceId: String(item.id),
-      });
+    if (tData.collection && Array.isArray(tData.collection)) {
+      trackCollection.push(...tData.collection);
     }
+
+    // Follow continuation / pagination up to 10 pages (up to 1,000 tracks)
+    let nextUrl = tData.next_href;
+    let pages = 0;
+    while (nextUrl && pages < 9) {
+      try {
+        const nextRes = await fetchSC(nextUrl);
+        if (!nextRes.ok) break;
+        const nextData: any = await nextRes.json();
+        if (nextData.collection && Array.isArray(nextData.collection)) {
+          trackCollection.push(...nextData.collection);
+        }
+        nextUrl = nextData.next_href;
+        pages++;
+      } catch {
+        break;
+      }
+    }
+  }
+
+  for (const item of trackCollection) {
+    if (!item || !item.id) continue;
+    if (item.policy === 'SNIP' || item.snipped === true) continue;
+    const durSec = Math.round((item.duration || 0) / 1000);
+    if (durSec <= 35 && item.full_duration > 60000) continue;
+
+    const rawArt = item.artwork_url || item.user?.avatar_url || '';
+    const rawArtist =
+      item.publisher_metadata?.artist ||
+      item.publisher_metadata?.album_artist ||
+      item.user?.username ||
+      artistName;
+    const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+
+    topTracks.push({
+      id: String(item.id),
+      title,
+      artist,
+      album: item.publisher_metadata?.album_title || `${artistName} Top Tracks`,
+      duration: formatDuration(durSec),
+      durationSec: durSec,
+      source: 'SC',
+      sourceLabel: 'SoundCloud',
+      artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : avatarUrl,
+      sourceId: String(item.id),
+    });
   }
 
   if (!avatarUrl && topTracks.length > 0 && topTracks[0].artworkUrl) {
     avatarUrl = topTracks[0].artworkUrl;
   }
 
-  const albums: Array<{ title: string; year?: string; artworkUrl?: string; browseId?: string; type?: string }> = [];
-  if (albumsRes.status === 'fulfilled' && albumsRes.value.ok) {
-    const aData: any = await albumsRes.value.json();
-    for (const item of aData.collection || []) {
+  const albums: Array<{ title: string; year?: string; artworkUrl?: string; browseId?: string; type?: string; source?: 'SC' }> = [];
+  const seenAlbumIds = new Set<string>();
+
+  const processAlbumItems = (collection: any[]) => {
+    for (const item of collection || []) {
+      if (!item || !item.id) continue;
+      const idStr = String(item.id);
+      if (seenAlbumIds.has(idStr)) continue;
+      seenAlbumIds.add(idStr);
+
       const rawArt = item.artwork_url || (item.tracks?.[0]?.artwork_url) || avatarUrl || topTracks[0]?.artworkUrl || '';
       albums.push({
         title: item.title || 'Album',
         year: item.release_date ? new Date(item.release_date).getFullYear().toString() : '',
         artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : (avatarUrl || topTracks[0]?.artworkUrl),
-        browseId: String(item.id),
-        type: 'Album',
+        browseId: idStr,
+        type: item.set_type === 'ep' ? 'EP' : item.set_type === 'single' ? 'Single' : 'Album',
+        source: 'SC',
       });
     }
+  };
+
+  if (albumsRes.status === 'fulfilled' && albumsRes.value.ok) {
+    const aData: any = await albumsRes.value.json();
+    processAlbumItems(aData.collection || []);
+  }
+
+  if (playlistsRes.status === 'fulfilled' && playlistsRes.value.ok) {
+    const pData: any = await playlistsRes.value.json();
+    processAlbumItems(pData.collection || []);
   }
 
   // Fallback: If no albums from user/albums, check topTracks
@@ -359,6 +411,7 @@ export async function getArtistDetails(artistNameOrId: string) {
           artworkUrl: t.artworkUrl || avatarUrl,
           browseId: t.album,
           type: 'Album',
+          source: 'SC',
         });
       }
     }
@@ -373,6 +426,7 @@ export async function getArtistDetails(artistNameOrId: string) {
     topTracks,
     albums,
     singles: [],
+    source: 'SC' as const,
   };
 }
 
@@ -406,7 +460,44 @@ export async function getAlbum(playlistId: string) {
   const rawArt = data.artwork_url || (data.tracks?.[0]?.artwork_url) || '';
   const artworkUrl = rawArt ? rawArt.replace('-large.', '-t500x500.') : undefined;
 
-  const validTracks = (data.tracks || []).filter((t: any) => {
+  let rawTracks: any[] = data.tracks || [];
+
+  // Batch resolve stub tracks (SoundCloud returns full track objects only for first 5 tracks)
+  const stubIds = rawTracks
+    .filter((t: any) => t && t.id && (!t.title || !t.duration))
+    .map((t: any) => String(t.id));
+
+  if (stubIds.length > 0) {
+    try {
+      const resolvedTrackMap = new Map<string, any>();
+      for (let i = 0; i < stubIds.length; i += 50) {
+        const chunk = stubIds.slice(i, i + 50);
+        const tracksRes = await fetchSC('https://api-v2.soundcloud.com/tracks', {
+          ids: chunk.join(','),
+        });
+        if (tracksRes.ok) {
+          const resolvedTracks: any[] = await tracksRes.json();
+          for (const rt of resolvedTracks) {
+            if (rt && rt.id) {
+              resolvedTrackMap.set(String(rt.id), rt);
+            }
+          }
+        }
+      }
+
+      rawTracks = rawTracks.map((t: any) => {
+        if (t && t.id && resolvedTrackMap.has(String(t.id))) {
+          return { ...t, ...resolvedTrackMap.get(String(t.id)) };
+        }
+        return t;
+      });
+    } catch (err) {
+      console.warn('[scResolver] Failed to resolve stub tracks in playlist:', err);
+    }
+  }
+
+  const validTracks = rawTracks.filter((t: any) => {
+    if (!t || !t.id) return false;
     if (t.policy === 'SNIP' || t.snipped === true) return false;
     const durSec = Math.round((t.duration || 0) / 1000);
     if (durSec <= 35 && t.full_duration > 60000) return false;
@@ -416,14 +507,22 @@ export async function getAlbum(playlistId: string) {
   const tracks: SCSearchResult[] = validTracks.map((t: any) => {
     const durSec = Math.round((t.duration || 0) / 1000);
     const tArt = t.artwork_url || t.user?.avatar_url || '';
+    const rawArtist =
+      t.publisher_metadata?.artist ||
+      t.publisher_metadata?.album_artist ||
+      t.user?.username ||
+      artist;
+    const { title: cleanTitle, artist: cleanArtist } = cleanArtistAndTitle(t.title || 'Untitled', rawArtist);
+
     return {
       id: String(t.id),
-      title: t.title || 'Untitled',
-      artist: t.user?.username || artist,
+      title: cleanTitle,
+      artist: cleanArtist,
       album: title,
       duration: formatDuration(durSec),
       durationSec: durSec,
       source: 'SC' as const,
+      sourceLabel: 'SoundCloud',
       artworkUrl: tArt ? tArt.replace('-large.', '-t500x500.') : artworkUrl,
       sourceId: String(t.id),
     };

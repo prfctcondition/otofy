@@ -225,7 +225,7 @@ function musicApiPlugin(): Plugin {
           const source = urlObj.searchParams.get('source') || 'YT';
           try {
             let album;
-            if (source === 'SC') {
+            if (source === 'SC' || /^\d+$/.test(browseId)) {
               const scModule = await import('./dist-electron/services/scResolver.js');
               album = await scModule.default.getAlbum(browseId);
             } else {

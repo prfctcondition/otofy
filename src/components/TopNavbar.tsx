@@ -141,33 +141,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <Compass size={16} />
           </button>
         </div>
-
-        {/* Source Filter Selector (MIXED, YT, SC) */}
-        <div className="hidden sm:flex items-center p-0.5 rounded-full bg-white/60 backdrop-blur-xl border border-white/90 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.95)] text-[11px] font-bold">
-          {(
-            [
-              { id: 'ALL', label: 'MIXED' },
-              { id: 'YT', label: 'YT' },
-              { id: 'SC', label: 'SC' },
-            ] as const
-          ).map((item) => {
-            const isActive = searchStore.sourceFilter === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => searchStore.setSourceFilter(item.id)}
-                className={`px-2.5 py-1 rounded-full transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[#0F172A] text-white shadow-xs scale-[1.02]'
-                    : 'text-[#64748B] hover:text-[#0F172A] hover:bg-white/60'
-                }`}
-                title={`Search ${item.label}`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <div className="flex items-center gap-2">

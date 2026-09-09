@@ -83,6 +83,7 @@ export interface ArtistAlbum {
   artworkUrl?: string;
   browseId?: string;
   type?: string;
+  source?: 'YT' | 'SC';
 }
 
 export interface ArtistDetails {
@@ -91,6 +92,7 @@ export interface ArtistDetails {
   bio?: string;
   browseId?: string;
   subscribers?: string;
+  source?: 'YT' | 'SC';
   topTracks: SearchResult[];
   albums: ArtistAlbum[];
   singles?: ArtistAlbum[];

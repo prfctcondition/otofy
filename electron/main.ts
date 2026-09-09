@@ -89,7 +89,7 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }
 });
 
 ipcMain.handle('music:get-album', async (_event, { browseId, source }: { browseId: string; source?: 'YT' | 'SC' }) => {
-  if (source === 'SC') {
+  if (source === 'SC' || /^\d+$/.test(browseId)) {
     return await scResolver.getAlbum(browseId);
   }
   try {

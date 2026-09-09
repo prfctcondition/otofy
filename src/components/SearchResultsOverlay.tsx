@@ -157,7 +157,12 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
               <div className="flex items-center gap-3 min-w-0">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-violet-900 border-2 border-white/90 shadow-md">
                   {artistCard.avatarUrl ? (
-                    <img src={artistCard.avatarUrl} alt={artistCard.name} className="w-full h-full object-cover" />
+                    <img
+                      src={artistCard.avatarUrl}
+                      alt={artistCard.name}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white">
                       <User size={20} />
