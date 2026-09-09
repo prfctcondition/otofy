@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +8,9 @@ import {
   PanelRightClose,
   Cloud,
   X,
+  Minus,
+  Square,
+  Copy,
 } from 'lucide-react';
 import { ViewportMode } from '../types';
 import { useSearchStore } from '../store/searchStore';
@@ -44,6 +47,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 }) => {
   const searchStore = useSearchStore();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMaximized, setIsMaximized] = useState<boolean>(false);
+
+  const isElectron = typeof window !== 'undefined' && Boolean(window.electronAPI);
+
+  useEffect(() => {
+    if (isElectron && window.electronAPI?.isMaximized) {
+      window.electronAPI.isMaximized().then((max) => setIsMaximized(Boolean(max)));
+    }
+    if (isElectron && window.electronAPI?.onWindowState) {
+      return window.electronAPI.onWindowState((max) => setIsMaximized(max));
+    }
+  }, [isElectron]);
+
+  const handleMinimize = () => window.electronAPI?.windowControl('minimize');
+  const handleMaximize = () => window.electronAPI?.windowControl('maximize');
+  const handleClose = () => window.electronAPI?.windowControl('close');
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -58,8 +77,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   };
 
   return (
-    <header className="h-14 shrink-0 px-4 flex items-center justify-between gap-3 select-none bg-white/40 backdrop-blur-[35px] border-b border-white/80 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1.2px_1.5px_rgba(255,255,255,0.95)] z-30">
-      <div className="flex items-center gap-2">
+    <header
+      className="h-14 shrink-0 px-4 flex items-center justify-between gap-3 select-none bg-white/40 backdrop-blur-[35px] border-b border-white/80 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1.2px_1.5px_rgba(255,255,255,0.95)] z-30"
+      style={{ WebkitAppRegion: 'drag' as any }}
+    >
+      <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
         <div className="flex items-center gap-1 text-[#64748B]">
           <button
             id="nav-back-button"
@@ -106,7 +128,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 max-w-xl mx-auto flex items-center gap-2">
+      <div className="flex-1 max-w-xl mx-auto flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
         <div className="relative flex items-center flex-1 h-10 px-3.5 rounded-full bg-white/60 hover:bg-white/75 focus-within:bg-white/90 backdrop-blur-xl border border-white/90 focus-within:border-[#0F172A]/30 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
           <Search size={17} className="text-[#64748B] shrink-0 mr-2.5" />
           <input
@@ -134,7 +156,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
         {/* Account Sync (YouTube / SoundCloud) */}
         <button
           id="account-sync-btn"
@@ -171,6 +193,39 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             A
           </div>
         </div>
+
+        {/* Windows Desktop Control Buttons */}
+        {isElectron && (
+          <div className="flex items-center gap-0.5 ml-1.5 pl-1.5 border-l border-black/10">
+            <button
+              id="window-minimize-btn"
+              onClick={handleMinimize}
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-black/5 active:bg-black/10 transition-colors"
+              title="Minimize"
+              aria-label="Minimize"
+            >
+              <Minus size={15} />
+            </button>
+            <button
+              id="window-maximize-btn"
+              onClick={handleMaximize}
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-black/5 active:bg-black/10 transition-colors"
+              title={isMaximized ? 'Restore' : 'Maximize'}
+              aria-label={isMaximized ? 'Restore' : 'Maximize'}
+            >
+              {isMaximized ? <Copy size={13} /> : <Square size={13} />}
+            </button>
+            <button
+              id="window-close-btn"
+              onClick={handleClose}
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] hover:text-white hover:bg-rose-500 active:bg-rose-600 transition-colors"
+              title="Close"
+              aria-label="Close"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -18,13 +18,22 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
     titleBarStyle: 'hidden',
     frame: false,
     backgroundColor: '#E2E8F0',
+  });
+
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window:state-change', true);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window:state-change', false);
   });
 
   if (process.env.NODE_ENV === 'development') {
@@ -322,6 +331,10 @@ ipcMain.handle('auth:login', async (_event, { platform }: { platform: 'youtube' 
 
 ipcMain.handle('auth:sync-library', async (_event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {
   return { playlists: [] };
+});
+
+ipcMain.handle('window:is-maximized', () => {
+  return mainWindow?.isMaximized() ?? false;
 });
 
 ipcMain.handle('window:control', (_event, action: 'minimize' | 'maximize' | 'close') => {

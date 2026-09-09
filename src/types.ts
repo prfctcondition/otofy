@@ -171,8 +171,9 @@ declare global {
       getGenreTracks?: (query: string) => Promise<Track[]>;
       importRemotePlaylist: (source: string, url: string) => Promise<{ title: string; tracks: Track[] }>;
       loginAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; username?: string; error?: string }>;
-      syncAccountLibrary?: (platform: 'youtube' | 'soundcloud') => Promise<{ playlists: Array<{ title: string; tracks: Track[] }> }>;
       windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
+      isMaximized?: () => Promise<boolean>;
+      onWindowState?: (callback: (isMaximized: boolean) => void) => () => void;
       onMediaKey: (callback: (key: string) => void) => () => void;
     };
   }

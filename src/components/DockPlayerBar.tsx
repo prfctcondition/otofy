@@ -120,9 +120,9 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   return (
     <footer
       id="dock-player-bar"
-      className="h-[84px] w-full shrink-0 px-5 flex items-center justify-between gap-4 select-none liquid-glass-panel rounded-2xl relative z-40"
+      className="h-[84px] w-full shrink-0 px-4 sm:px-5 flex items-center justify-between gap-2 sm:gap-4 select-none liquid-glass-panel rounded-2xl relative z-40"
     >
-      <div className="flex items-center gap-3.5 w-1/4 min-w-[200px]">
+      <div className="flex items-center gap-3 flex-1 min-w-0 max-w-[260px]">
         <div className="relative group shrink-0 rounded-lg p-0.5 bg-white/70 border border-white shadow-sm">
           <PlaceholderArtwork
             icon={activeTrack.iconName}
@@ -162,7 +162,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         <button
           id="player-like-btn"
           onClick={() => toggleLike(activeTrack.id, activeTrack)}
-          className={`p-1.5 rounded-full transition-all active:scale-125 ${
+          className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
             isLiked
               ? 'text-rose-500 hover:text-rose-600'
               : 'text-[#64748B] hover:text-[#0F172A]'
@@ -173,7 +173,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         </button>
       </div>
 
-      <div className="flex flex-col items-center gap-1.5 w-2/4 max-w-2xl">
+      <div className="flex flex-col items-center gap-1.5 flex-1 min-w-[220px] max-w-xl mx-2">
         <div className="flex items-center gap-5">
           <button
             id="player-shuffle-btn"
@@ -260,11 +260,11 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 w-1/4 min-w-[200px] text-[#64748B]">
+      <div className="flex items-center justify-end gap-2 flex-1 min-w-0 text-[#64748B]">
         <button
           id="player-lyrics-btn"
           onClick={toggleLyricsModal}
-          className={`p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors ${
+          className={`p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors shrink-0 ${
             isLyricsModalOpen ? 'text-violet-600 bg-violet-100/70 font-bold shadow-xs' : ''
           }`}
           title={isLyricsModalOpen ? 'Hide Lyrics' : 'Show Lyrics'}
@@ -275,7 +275,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         <button
           id="player-eq-btn"
           onClick={toggleEqModal}
-          className="p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors"
+          className="p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors shrink-0"
           title="Equalizer"
         >
           <SlidersHorizontal size={16} />
@@ -284,7 +284,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         <button
           id="player-queue-btn"
           onClick={toggleQueue}
-          className={`p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors ${
+          className={`p-1.5 rounded-full hover:text-[#0F172A] hover:bg-white/60 transition-colors shrink-0 ${
             isQueueOpen ? 'text-violet-600 bg-violet-100/70 font-bold shadow-xs' : ''
           }`}
           title={isQueueOpen ? 'Close Queue' : 'Open Queue'}
@@ -292,11 +292,11 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           <ListMusic size={17} />
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             id="player-mute-btn"
             onClick={toggleMute}
-            className="hover:text-[#0F172A] transition-colors"
+            className="hover:text-[#0F172A] transition-colors p-1"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
             {isMuted || volume === 0 ? (
@@ -308,7 +308,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             )}
           </button>
 
-          <div className="relative w-24 flex items-center group h-6 cursor-pointer">
+          <div className="relative w-16 sm:w-20 md:w-24 flex items-center group h-6 cursor-pointer">
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
                 className="h-full bg-gradient-to-r from-violet-600 to-[#0F172A] rounded-full transition-colors"

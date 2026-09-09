@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('auth:sync-library', { platform }),
   windowControl: (action: 'minimize' | 'maximize' | 'close') =>
     ipcRenderer.invoke('window:control', action),
+  isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  onWindowState: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_event: unknown, isMax: boolean) => callback(isMax);
+    ipcRenderer.on('window:state-change', handler);
+    return () => ipcRenderer.removeListener('window:state-change', handler);
+  },
   onMediaKey: (callback: (key: string) => void) => {
     const handler = (_event: unknown, key: string) => callback(key);
     ipcRenderer.on('media-key', handler);

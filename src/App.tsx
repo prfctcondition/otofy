@@ -96,14 +96,7 @@ export default function App() {
         if (mixes.length === 0 || (await shouldRefreshMixes())) {
           mixes = await generateDailyMixes();
         }
-
-        // Preload first track of first mix if no active track
-        if (!playerStore.activeTrack && mixes.length > 0) {
-          const firstMixTracks = await getDailyMixTracks(mixes[0]);
-          if (firstMixTracks.length > 0) {
-            playerStore.setActiveTrackOnly(firstMixTracks[0]);
-          }
-        }
+        // Mixes are refreshed/loaded without auto-selecting any track on startup
       } catch (err) {
         console.warn('[App] Daily mixes init error:', err);
       }

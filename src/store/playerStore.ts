@@ -60,6 +60,11 @@ export const toPlayableStreamUrl = (url: string): string => {
   if (url.startsWith('/api/music/') || url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
   }
+  // In Electron or file:// protocol, local proxy endpoint does not exist and Electron's
+  // main process session already attaches CORS bypass headers to all CDN audio requests.
+  if (typeof window !== 'undefined' && (Boolean(window.electronAPI) || window.location.protocol.startsWith('file'))) {
+    return url;
+  }
   // Any googlevideo CDN url lacks CORS headers; proxying through local streaming proxy
   // ensures standard CORS headers, range requests, and eliminates browser format/source errors.
   if (url.includes('googlevideo.com')) {

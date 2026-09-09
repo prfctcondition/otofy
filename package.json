@@ -9,11 +9,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "electron:dev": "tsc -p tsconfig.electron.json && concurrently \"vite --port=3000\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
-    "electron:build": "vite build && tsc -p tsconfig.electron.json",
+    "build:preload": "esbuild electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist-electron/preload.cjs",
+    "electron:dev": "npm run build:preload && tsc -p tsconfig.electron.json && concurrently \"vite --port=3000\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "vite build && tsc -p tsconfig.electron.json && npm run build:preload",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
-    "dist": "npm run build && tsc -p tsconfig.electron.json && electron-builder --win"
+    "dist": "npm run build && tsc -p tsconfig.electron.json && npm run build:preload && electron-builder --win"
   },
   "build": {
     "appId": "com.zenmusic.desktop",

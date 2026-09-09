@@ -291,7 +291,7 @@ export async function fetchGenreTracks(query: string): Promise<Track[]> {
   if (window.electronAPI?.getGenreTracks) {
     try {
       const tracks = await window.electronAPI.getGenreTracks(query);
-      if (tracks && tracks.length >= 20) {
+      if (tracks && tracks.length > 0) {
         return tracks.map((t: any) => {
           const { title, artist } = cleanArtistAndTitle(t.title, t.artist);
           return { ...t, title, artist };
@@ -302,40 +302,7 @@ export async function fetchGenreTracks(query: string): Promise<Track[]> {
     }
   }
 
-  // 2. Direct web API fetch fallback
-  try {
-    const res = await fetch(`/api/music/genre-tracks?query=${encodeURIComponent(query)}`);
-    if (res.ok) {
-      const data: any = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data.map((t: any, idx: number) => {
-          const { title, artist } = cleanArtistAndTitle(t.title || 'Untitled', t.artist);
-          return {
-            id: `dm-${idx}-${t.id || t.sourceId}`,
-            number: idx + 1,
-            title,
-            artist,
-            album: t.album || query,
-            duration: t.duration || '0:00',
-            durationSec: t.durationSec || 0,
-            dateAdded: 'Today',
-            source: (t.source || 'YT') as 'YT' | 'SC',
-            sourceLabel: t.sourceLabel || 'YouTube Music',
-            artworkUrl: t.artworkUrl,
-            sourceId: t.sourceId || t.id,
-            iconName: 'sparkles' as const,
-            gradientFrom: '#1E1B4B',
-            gradientTo: '#09090B',
-            isLiked: false,
-          };
-        });
-      }
-    }
-  } catch (err) {
-    console.warn('[DailyMix] Web API genre tracks fetch error:', err);
-  }
-
-  // 3. Fallback to searchMusic if available
+  // 2. If running in Electron, fallback to searchMusic before web API
   if (window.electronAPI?.searchMusic) {
     try {
       const resp = await window.electronAPI.searchMusic(query);
@@ -363,7 +330,45 @@ export async function fetchGenreTracks(query: string): Promise<Track[]> {
           };
         });
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[DailyMix] searchMusic fallback error:', err);
+    }
+  }
+
+  // 3. Direct web API fetch fallback (only for browser dev/preview server)
+  const isElectronOrFile = typeof window !== 'undefined' && (Boolean(window.electronAPI) || window.location.protocol.startsWith('file'));
+  if (!isElectronOrFile) {
+    try {
+      const res = await fetch(`/api/music/genre-tracks?query=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((t: any, idx: number) => {
+            const { title, artist } = cleanArtistAndTitle(t.title || 'Untitled', t.artist);
+            return {
+              id: `dm-${idx}-${t.id || t.sourceId}`,
+              number: idx + 1,
+              title,
+              artist,
+              album: t.album || query,
+              duration: t.duration || '0:00',
+              durationSec: t.durationSec || 0,
+              dateAdded: 'Today',
+              source: (t.source || 'YT') as 'YT' | 'SC',
+              sourceLabel: t.sourceLabel || 'YouTube Music',
+              artworkUrl: t.artworkUrl,
+              sourceId: t.sourceId || t.id,
+              iconName: 'sparkles' as const,
+              gradientFrom: '#1E1B4B',
+              gradientTo: '#09090B',
+              isLiked: false,
+            };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[DailyMix] Web API genre tracks fetch error:', err);
+    }
   }
 
   return [];
