@@ -492,7 +492,14 @@ export function computeMixMeta(
   return { title, subtitle };
 }
 
+const stationTracksCache = new Map<string, Track[]>();
+const dailyMixTracksCache = new Map<string, Track[]>();
+let storedMixesCache: DailyMixConfig[] | null = null;
+let storedMixesCacheTime = 0;
+
 export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
+  dailyMixTracksCache.clear();
+  storedMixesCache = null;
   const mixes: DailyMixConfig[] = [];
 
   for (let i = 0; i < GENRE_PRESETS.length; i++) {
@@ -564,21 +571,33 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
       trackIds: JSON.stringify(config.trackIds),
     });
 
+    dailyMixTracksCache.set(config.id, mixTracks);
     mixes.push(config);
   }
 
   await repo.setSetting('dailyMixLastRefresh', Date.now().toString());
+  storedMixesCache = mixes;
+  storedMixesCacheTime = Date.now();
   return mixes;
 }
 
 export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Track[]> {
-  const allTracks = await repo.getAllTracks();
-  const trackMap = new Map(allTracks.map((t) => [t.id, t]));
-  let tracks = (mixConfig.trackIds || [])
-    .map((id) => trackMap.get(id))
-    .filter((t): t is Track => t !== undefined);
+  // 1. In-memory fast cache hit (0ms)
+  if (dailyMixTracksCache.has(mixConfig.id)) {
+    const cached = dailyMixTracksCache.get(mixConfig.id)!;
+    if (cached.length >= 40) {
+      return cached;
+    }
+  }
 
-  // If fewer than 40 tracks were retrieved, fetch fresh full set of 40-50 tracks
+  // 2. Fast indexed bulk read from Dexie instead of dumping whole table
+  let tracks: Track[] = [];
+  const trackIds = mixConfig.trackIds || [];
+  if (trackIds.length > 0) {
+    tracks = await repo.getTracksByIds(trackIds);
+  }
+
+  // 3. If fewer than 40 tracks were retrieved, fetch fresh full set of 40-50 tracks
   if (tracks.length < 40) {
     const query = getDailyQueryForMix(mixConfig.mixNumber) || mixConfig.genre || 'chart';
     const freshTracks = await fetchGenreTracks(query);
@@ -596,11 +615,20 @@ export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Trac
     }
   }
 
-  // Renumber tracks nicely
-  return tracks.map((t, idx) => ({ ...t, number: idx + 1 }));
+  const result = tracks.map((t, idx) => ({ ...t, number: idx + 1 }));
+  dailyMixTracksCache.set(mixConfig.id, result);
+  return result;
 }
 
 export async function getStationTracks(station: StationItem): Promise<Track[]> {
+  // 1. In-memory fast cache hit (0ms)
+  if (stationTracksCache.has(station.id)) {
+    const cached = stationTracksCache.get(station.id)!;
+    if (cached.length > 0) {
+      return cached;
+    }
+  }
+
   const query = station.searchQuery || `${station.title} music`;
   let stationTracks = await fetchGenreTracks(query);
 
@@ -628,24 +656,34 @@ export async function getStationTracks(station: StationItem): Promise<Track[]> {
     await repo.putTrack(t);
   }
 
+  stationTracksCache.set(station.id, stationTracks);
   return stationTracks;
 }
 
 export async function getStoredDailyMixes(): Promise<DailyMixConfig[]> {
+  // Return cached mixes if recent (within 5 minutes)
+  if (storedMixesCache && Date.now() - storedMixesCacheTime < 5 * 60 * 1000) {
+    return storedMixesCache;
+  }
+
   try {
     const rawMixes = await db.dailyMixes.toArray();
     if (rawMixes.length === 0) {
       return await generateDailyMixes();
     }
-    const allTracks = await repo.getAllTracks();
-    const trackMap = new Map(allTracks.map((t) => [t.id, t]));
 
-    const parsed = rawMixes.map((r) => {
-      const trackIds = typeof r.trackIds === 'string' ? JSON.parse(r.trackIds) : r.trackIds;
-      const tracks = (trackIds || []).map((id: string) => trackMap.get(id)).filter((t): t is Track => !!t);
-      const meta = computeMixMeta(tracks, r.mixNumber, r.genre);
+    const parsed: DailyMixConfig[] = [];
+    for (const r of rawMixes) {
+      const trackIds: string[] = typeof r.trackIds === 'string' ? JSON.parse(r.trackIds) : r.trackIds;
+      // Use sample of first 10 tracks to fast compute meta without scanning the whole database
+      const sampleIds = (trackIds || []).slice(0, 10);
+      let sampleTracks: Track[] = [];
+      if (sampleIds.length > 0) {
+        sampleTracks = await repo.getTracksByIds(sampleIds);
+      }
+      const meta = computeMixMeta(sampleTracks, r.mixNumber, r.genre);
 
-      return {
+      parsed.push({
         id: r.id,
         genre: r.genre,
         mixNumber: r.mixNumber,
@@ -653,12 +691,16 @@ export async function getStoredDailyMixes(): Promise<DailyMixConfig[]> {
         subtitle: meta.subtitle || r.subtitle,
         lastGeneratedAt: r.lastGeneratedAt,
         trackIds,
-      };
-    });
+      });
+    }
+
     // If any mix has fewer than 40 tracks, regenerate them so user gets 40+ tracks
     if (parsed.some((m) => !m.trackIds || m.trackIds.length < 40)) {
       return await generateDailyMixes();
     }
+
+    storedMixesCache = parsed;
+    storedMixesCacheTime = Date.now();
     return parsed;
   } catch {
     return await generateDailyMixes();

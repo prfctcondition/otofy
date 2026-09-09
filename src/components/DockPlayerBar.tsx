@@ -140,20 +140,20 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         <div className="flex flex-col min-w-0 pr-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <span
-              className="text-sm font-semibold text-[#0F172A] dark:text-[#F1F5F9] truncate hover:underline cursor-pointer"
+              className="text-sm font-semibold text-[#0F172A] dark:text-white truncate hover:underline cursor-pointer"
               title={activeTrack.title}
             >
               {activeTrack.title}
             </span>
             {playbackError && (
-              <span title={`Ошибка: ${playbackError}`} className="shrink-0 text-rose-500">
+              <span title={`Error: ${playbackError}`} className="shrink-0 text-rose-500">
                 <AlertCircle size={14} />
               </span>
             )}
           </div>
           <span
             onClick={() => onSelectArtist?.(activeTrack.artist)}
-            className="text-xs text-[#64748B] truncate hover:underline hover:text-violet-700 cursor-pointer mt-0.5"
+            className="text-xs text-[#64748B] dark:text-[#A1A1AA] truncate hover:underline hover:text-violet-700 dark:hover:text-violet-400 cursor-pointer mt-0.5"
             title={`View ${activeTrack.artist}`}
           >
             {activeTrack.artist}
@@ -166,7 +166,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
             isLiked
               ? 'text-rose-500 hover:text-rose-600'
-              : 'text-[#64748B] hover:text-[#0F172A]'
+              : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white'
           }`}
           title={isLiked ? 'Remove from Liked' : 'Save to Liked'}
         >
@@ -181,7 +181,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-shuffle-btn"
             onClick={toggleShuffle}
             className={`transition-colors ${
-              isShuffle ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-white'
+              isShuffle ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#A1A1AA] dark:hover:text-white'
             }`}
             title="Shuffle"
           >
@@ -201,15 +201,15 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-play-toggle-btn"
             onClick={togglePlay}
             disabled={isBuffering}
-            className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white/10 dark:text-white dark:border dark:border-white/20 dark:hover:bg-white/20 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] border border-[#0F172A] hover:scale-105 active:scale-95 transition-all disabled:opacity-90"
-            title={isBuffering ? 'Загрузка аудио...' : isPlaying ? 'Pause' : 'Play'}
+            className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:border dark:border-white dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] border border-[#0F172A] hover:scale-105 active:scale-95 transition-all disabled:opacity-90"
+            title={isBuffering ? 'Loading audio...' : isPlaying ? 'Pause' : 'Play'}
           >
             {isBuffering ? (
-              <Loader2 size={18} className="animate-spin text-white" />
+              <Loader2 size={18} className="animate-spin text-white dark:text-black" />
             ) : isPlaying ? (
-              <Pause size={18} fill="currentColor" />
+              <Pause size={18} fill="currentColor" className="text-white dark:text-black" />
             ) : (
-              <Play size={18} fill="currentColor" className="ml-0.5" />
+              <Play size={18} fill="currentColor" className="ml-0.5 text-white dark:text-black" />
             )}
           </button>
 

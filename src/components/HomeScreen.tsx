@@ -130,7 +130,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {item.title}
               </span>
 
-              {/* Smooth Hover Play Action Button */}
+              {/* Smooth Hover Play Action Button - MATCHED with bottom player */}
               <div className="pr-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
                 <button
                   id={`play-qa-${item.id}`}
@@ -142,11 +142,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       onSelectCollection(item.title, item.playlistId);
                     }
                   }}
-                  className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 transition-transform"
+                  className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform"
                   title={`Play ${item.title}`}
                   aria-label={`Play ${item.title}`}
                 >
-                  <Play size={15} className="fill-white translate-x-0.5" />
+                  <Play size={14} className="fill-white dark:fill-black translate-x-0.5" />
                 </button>
               </div>
             </div>
@@ -158,17 +158,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <section id="recommended-stations-section" className="relative z-10 mb-9">
         <div className="flex items-end justify-between mb-3.5">
           <div>
-            <p className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#64748B] dark:text-[#A1A1AA] tracking-wide mb-1">
               Non-stop music based on your favorite songs and artists.
             </p>
-            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
+            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
               Recommended Stations
             </h2>
           </div>
           <button
             id="show-all-stations-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/40 dark:bg-[#1E293B]/70 hover:bg-white/70 dark:hover:bg-[#27354A] border border-white/70 dark:border-[#27354A] transition-all"
+            className="text-xs font-bold text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
           >
             Show all
           </button>
@@ -181,7 +181,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={station.id}
               id={`station-card-${station.id}`}
               onClick={() => onOpenStation(station)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/40 dark:bg-[#111827]/70 hover:bg-white/75 dark:hover:bg-[#161F30]/90 active:bg-white/85 dark:active:bg-[#1E293B] backdrop-blur-xl border border-white/80 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-[#111116]/80 hover:bg-white/80 dark:hover:bg-[#181820] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200"
             >
               {/* Authentic Spotify-style Radio Graphic Artwork */}
               <div
@@ -213,7 +213,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </span>
                 </div>
 
-                {/* Hover Floating Play Button */}
+                {/* Hover Floating Play Button - MATCHED with bottom player */}
                 <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
                   <button
                     id={`play-station-btn-${station.id}`}
@@ -221,17 +221,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       e.stopPropagation();
                       onPlayStation(station);
                     }}
-                    className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 transition-transform"
+                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
                     title={`Play ${station.title} Radio`}
                   >
-                    <Play size={17} className="fill-white translate-x-0.5" />
+                    <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                   </button>
                 </div>
               </div>
 
               {/* Station Artists Subtitle */}
               <div className="mt-2.5 px-0.5">
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
+                <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
                   {station.artistsSummary}
                 </p>
               </div>
@@ -243,13 +243,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* 3. SECTION: MADE FOR YOU */}
       <section id="made-for-you-section" className="relative z-10">
         <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
+          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
             Made For You
           </h2>
           <button
             id="show-all-made-for-you-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/40 dark:bg-[#1E293B]/70 hover:bg-white/70 dark:hover:bg-[#27354A] border border-white/70 dark:border-[#27354A] transition-all"
+            className="text-xs font-bold text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
           >
             Show all
           </button>
@@ -262,7 +262,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={item.id}
               id={`made-for-you-card-${item.id}`}
               onClick={() => onOpenMix(item)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/40 dark:bg-[#111827]/70 hover:bg-white/75 dark:hover:bg-[#161F30]/90 active:bg-white/85 dark:active:bg-[#1E293B] backdrop-blur-xl border border-white/80 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-[#111116]/80 hover:bg-white/80 dark:hover:bg-[#181820] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200"
             >
               {/* Artwork Box */}
               <div
@@ -271,7 +271,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {item.cardVariant === 'discover' ? (
                   /* Discover Weekly Geometric Style */
                   <div className="w-full h-full flex flex-col justify-between p-3 relative overflow-hidden bg-black">
-                    {/* Spotify-style logo icon top */}
+                    {/* Logo icon top */}
                     <div className="flex items-center gap-1.5 z-10">
                       <Sparkles size={14} className="text-cyan-400" />
                     </div>
@@ -316,7 +316,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </div>
                 )}
 
-                {/* Hover Play Button */}
+                {/* Hover Play Button - MATCHED with bottom player */}
                 <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
                   <button
                     id={`play-mix-btn-${item.id}`}
@@ -324,17 +324,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       e.stopPropagation();
                       onPlayMix(item);
                     }}
-                    className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 transition-transform"
+                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
                     title={`Play ${item.title}`}
                   >
-                    <Play size={17} className="fill-white translate-x-0.5" />
+                    <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                   </button>
                 </div>
               </div>
 
               {/* Subtitle / Description */}
               <div className="mt-2.5 px-0.5">
-                <p className="text-xs text-[#64748B] group-hover:text-[#475569] leading-snug line-clamp-2 transition-colors">
+                <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
                   {item.subtitle}
                 </p>
               </div>

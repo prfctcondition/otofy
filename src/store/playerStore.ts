@@ -269,19 +269,19 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           }
         }, 1500);
       } else {
-        const errMsg = error || 'Аудиопоток не найден. Трек может быть ограничен или заблокирован правообладателем.';
+        const errMsg = error || 'Audio stream not found. The track may be restricted by the copyright owner.';
         set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
         useToastStore.getState().error(
-          `Не удалось воспроизвести "${track.title}"`,
+          `Failed to play "${track.title}"`,
           errMsg
         );
       }
     } catch (err: any) {
       console.error('[Player] Playback failed:', err);
-      const errMsg = err?.message || 'Не удалось декодировать или запустить аудиопоток.';
+      const errMsg = err?.message || 'Failed to decode or start audio stream.';
       set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
       useToastStore.getState().error(
-        `Ошибка воспроизведения "${track.title}"`,
+        `Playback error: "${track.title}"`,
         errMsg
       );
     }
@@ -319,8 +319,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     } catch (err: any) {
       set({ isPlaying: false, isBuffering: false });
       useToastStore.getState().error(
-        'Ошибка воспроизведения',
-        err?.message || 'Браузер заблокировал автовоспроизведение или поток недоступен.'
+        'Playback Error',
+        err?.message || 'Browser blocked autoplay or stream is unavailable.'
       );
     }
   },
@@ -333,107 +333,90 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     if (isShuffle) {
       nextIdx = Math.floor(Math.random() * queue.length);
     } else {
-      nextIdx = queueIndex + 1;
-      if (nextIdx >= queue.length) {
-        if (repeatMode === 'all') nextIdx = 0;
-        else return;
-      }
+      nextIdx = (queueIndex + 1) % queue.length;
     }
-
-    const next = queue[nextIdx];
-    if (next) {
-      set({ queueIndex: nextIdx });
-      await get().playTrack(next);
-    }
+    await get().jumpToQueueIndex(nextIdx);
   },
 
   prevTrack: async () => {
-    const { queue, queueIndex, currentTime } = get();
+    const { queue, queueIndex } = get();
     if (queue.length === 0) return;
 
-    if (currentTime > 3) {
-      get().seek(0);
-      return;
-    }
-
-    let prevIdx = queueIndex - 1;
-    if (prevIdx < 0) prevIdx = queue.length - 1;
-
-    const prev = queue[prevIdx];
-    if (prev) {
-      set({ queueIndex: prevIdx });
-      await get().playTrack(prev);
-    }
+    const prevIdx = queueIndex === 0 ? queue.length - 1 : queueIndex - 1;
+    await get().jumpToQueueIndex(prevIdx);
   },
 
-  seek: (time) => {
+  seek: (time: number) => {
     audioEngine.seek(time);
     set({ currentTime: time });
   },
 
-  setVolume: (volume) => {
-    audioEngine.setVolume(volume);
-    set({ volume, isMuted: false });
+  setVolume: (volume: number) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    audioEngine.setVolume(clamped);
+    set({ volume: clamped, isMuted: clamped === 0 });
   },
 
   toggleMute: () => {
-    const { isMuted } = get();
-    audioEngine.setMuted(!isMuted);
-    set({ isMuted: !isMuted });
+    const { isMuted, volume } = get();
+    if (isMuted) {
+      audioEngine.setVolume(volume || 0.5);
+      set({ isMuted: false });
+    } else {
+      audioEngine.setVolume(0);
+      set({ isMuted: true });
+    }
   },
 
-  toggleShuffle: () => set((s) => ({ isShuffle: !s.isShuffle })),
+  toggleShuffle: () => {
+    set((s) => ({ isShuffle: !s.isShuffle }));
+  },
 
-  cycleRepeat: () =>
-    set((s) => ({
-      repeatMode: s.repeatMode === 'off' ? 'all' : s.repeatMode === 'all' ? 'one' : 'off',
-    })),
+  cycleRepeat: () => {
+    const modes: Array<'off' | 'all' | 'one'> = ['off', 'all', 'one'];
+    const next = modes[(modes.indexOf(get().repeatMode) + 1) % modes.length];
+    set({ repeatMode: next });
+  },
 
-  setCurrentTime: (time) => set({ currentTime: time }),
-  setDuration: (duration) => set({ duration }),
-  setIsPlaying: (playing) => set({ isPlaying: playing }),
-  setIsBuffering: (buffering) => set({ isBuffering: buffering }),
+  setCurrentTime: (time: number) => set({ currentTime: time }),
+  setDuration: (duration: number) => set({ duration: duration }),
+  setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
+  setIsBuffering: (buffering: boolean) => set({ isBuffering: buffering }),
 
   jumpToQueueIndex: async (index: number) => {
     const { queue } = get();
     if (index >= 0 && index < queue.length) {
-      await get().playTrack(queue[index], queue);
+      await get().playTrack(queue[index]);
     }
   },
 
   removeFromQueue: (index: number) => {
-    const { queue, queueIndex } = get();
-    if (index < 0 || index >= queue.length) return;
-    const newQueue = [...queue];
-    newQueue.splice(index, 1);
-    let newIndex = queueIndex;
-    if (index < queueIndex) {
-      newIndex--;
-    } else if (index === queueIndex) {
-      newIndex = Math.min(queueIndex, newQueue.length - 1);
-    }
-    set({ queue: newQueue, queueIndex: Math.max(0, newIndex) });
+    set((s) => {
+      const nextQ = s.queue.filter((_, idx) => idx !== index);
+      const nextIdx =
+        index < s.queueIndex
+          ? s.queueIndex - 1
+          : index === s.queueIndex
+          ? Math.min(s.queueIndex, nextQ.length - 1)
+          : s.queueIndex;
+      return { queue: nextQ, queueIndex: nextIdx };
+    });
   },
 
   clearQueue: () => {
-    const { activeTrack } = get();
-    set({
-      queue: activeTrack ? [activeTrack] : [],
-      queueIndex: 0,
-    });
+    set({ queue: [], queueIndex: -1, activeTrack: null, isPlaying: false });
+    audioEngine.pause();
   },
 
   initAudioListeners: () => {
     const el = audioEngine.element;
 
     const onTimeUpdate = () => {
-      const time = el.currentTime;
-      set({ currentTime: time });
-      audioEngine.updateMediaSessionPosition(time, el.duration || 0);
+      set({ currentTime: el.currentTime });
     };
 
     const onDurationChange = () => {
-      if (isFinite(el.duration) && el.duration > 0) set({ duration: el.duration });
+      set({ duration: el.duration || 0 });
     };
 
     const onEnded = () => {
@@ -454,19 +437,19 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const onError = (e: Event) => {
       const target = e.target as HTMLAudioElement;
       const errorCode = target.error?.code;
-      let errorMsg = 'Не удалось загрузить аудиопоток.';
+      let errorMsg = 'Failed to load audio stream.';
       if (errorCode === 4) {
-        errorMsg = 'Формат не поддерживается или ссылка на поток устарела.';
+        errorMsg = 'Format not supported or audio stream URL has expired.';
       } else if (errorCode === 2) {
-        errorMsg = 'Сетевая ошибка при загрузке аудиопотока.';
+        errorMsg = 'Network error while loading audio stream.';
       } else if (errorCode === 3) {
-        errorMsg = 'Ошибка декодирования аудио.';
+        errorMsg = 'Audio decoding error.';
       }
       const currentTrack = get().activeTrack;
-      const trackTitle = currentTrack ? `"${currentTrack.title}"` : 'трека';
+      const trackTitle = currentTrack ? `"${currentTrack.title}"` : 'track';
       set({ isPlaying: false, isBuffering: false, playbackError: errorMsg });
       useToastStore.getState().error(
-        `Сбой воспроизведения ${trackTitle}`,
+        `Playback failure: ${trackTitle}`,
         errorMsg
       );
     };

@@ -256,6 +256,14 @@ export default function App() {
 
   const handleOpenStation = async (station: StationItem) => {
     libraryStore.setSelectedFilter('All');
+    // Instant optimistic navigation
+    libraryStore.setCustomPlaylistView(`${station.title} Radio`, [], {
+      creator: 'Otofy',
+      description: station.artistsSummary,
+      iconName: 'radio',
+      gradientFrom: '#047857',
+      gradientTo: '#064E3B',
+    });
     try {
       const stationTracks = await getStationTracks(station);
       libraryStore.setCustomPlaylistView(`${station.title} Radio`, stationTracks, {
@@ -292,6 +300,14 @@ export default function App() {
 
   const handleOpenMix = async (mix: MadeForYouItem) => {
     libraryStore.setSelectedFilter('All');
+    // Instant optimistic navigation
+    libraryStore.setCustomPlaylistView(mix.title, [], {
+      creator: 'Otofy',
+      description: mix.subtitle,
+      iconName: 'sparkles',
+      gradientFrom: '#1E1B4B',
+      gradientTo: '#09090B',
+    });
     try {
       const mixes = await getStoredDailyMixes();
       const targetNumber = mix.cardVariant === 'discover' ? 0 : parseInt(mix.mixNumber || '1', 10);
@@ -351,6 +367,14 @@ export default function App() {
   const handleOpenArtistView = async (artistName: string, source?: 'YT' | 'SC') => {
     if (!artistName || artistName.trim().length === 0) return;
     const cleanName = artistName.trim();
+
+    // Instant optimistic navigation
+    libraryStore.setCustomPlaylistView(cleanName, [], {
+      type: 'Artist',
+      creator: cleanName,
+      description: `${cleanName} Discography`,
+      iconName: 'user',
+    });
 
     try {
       let artistTracks: Track[] = [];
@@ -530,6 +554,14 @@ export default function App() {
     const targetId = browseId || (albumTitle && artistName ? `${artistName} ${albumTitle}` : albumTitle);
     if (!targetId) return;
 
+    // Instant optimistic navigation
+    libraryStore.setCustomPlaylistView(albumTitle || 'Album', [], {
+      type: 'Album',
+      creator: artistName || 'Artist',
+      iconName: 'disc',
+      description: 'Loading album tracks...',
+    });
+
     try {
       if (window.electronAPI?.getAlbum) {
         const albumData = await window.electronAPI.getAlbum(targetId, source);
@@ -620,25 +652,25 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-[#E2E8F0] text-[#0F172A] font-sans antialiased select-none">
+    <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-[#E2E8F0] dark:bg-[#000000] text-[#0F172A] dark:text-white font-sans antialiased select-none">
       {/* Background Ambient Lighting (Static, 0% GPU load) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div
-          className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full pointer-events-none"
+          className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full pointer-events-none opacity-80 dark:opacity-20"
           style={{
-            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, rgba(56, 189, 248, 0.10) 50%, transparent 70%)',
           }}
         />
         <div
-          className="absolute top-1/4 left-1/3 w-[520px] h-[500px] rounded-full pointer-events-none"
+          className="absolute top-1/4 left-1/3 w-[520px] h-[500px] rounded-full pointer-events-none opacity-70 dark:opacity-15"
           style={{
-            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, rgba(129, 140, 248, 0.06) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(129, 140, 248, 0.08) 50%, transparent 70%)',
           }}
         />
         <div
-          className="absolute -bottom-28 -right-20 w-[560px] h-[560px] rounded-full pointer-events-none"
+          className="absolute -bottom-28 -right-20 w-[560px] h-[560px] rounded-full pointer-events-none opacity-80 dark:opacity-20"
           style={{
-            background: 'radial-gradient(circle, rgba(232, 121, 249, 0.18) 0%, rgba(192, 132, 252, 0.06) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(232, 121, 249, 0.25) 0%, rgba(192, 132, 252, 0.08) 50%, transparent 70%)',
           }}
         />
       </div>
@@ -686,7 +718,7 @@ export default function App() {
               id="center-canvas"
               className="flex-1 min-w-0 h-full flex flex-col liquid-glass-panel rounded-2xl overflow-hidden relative"
             >
-              <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/[0.50] via-white/[0.10] to-transparent z-10" />
+              <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/[0.50] dark:from-black/40 via-white/[0.10] dark:via-black/10 to-transparent z-10" />
 
               {currentView === 'home' ? (
                 <HomeScreen

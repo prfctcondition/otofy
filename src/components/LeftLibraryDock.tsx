@@ -68,34 +68,34 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
           isCollapsed ? 'w-[72px] min-w-[72px]' : 'w-[270px] min-w-[270px]'
         }`}
       >
-        <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 to-transparent" />
+        <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 dark:from-white/[0.05] to-transparent" />
 
         {/* Header */}
         <div
           className={`flex items-center ${
             isCollapsed ? 'justify-center p-2.5' : 'justify-between p-3.5'
-          } border-b border-black/[0.06] dark:border-white/[0.06] relative z-10`}
+          } border-b border-black/[0.06] dark:border-white/10 relative z-10`}
         >
           <button
             id="toggle-library-collapse-btn"
             onClick={onToggleCollapse}
             className={`flex items-center ${
               isCollapsed ? 'justify-center w-11 h-11 p-0' : 'gap-3'
-            } text-[#0F172A] dark:text-[#F1F5F9] hover:opacity-80 transition-opacity group`}
+            } text-[#0F172A] dark:text-white hover:opacity-80 transition-opacity group`}
             title={isCollapsed ? 'Expand library dock' : 'Collapse library dock'}
           >
             <div className="p-1.5 rounded-lg group-hover:bg-white/50 dark:group-hover:bg-white/10 transition-colors flex items-center justify-center">
-              <Library size={20} className="text-[#0F172A] dark:text-[#F1F5F9] group-hover:scale-105 transition-transform" />
+              <Library size={20} className="text-[#0F172A] dark:text-white group-hover:scale-105 transition-transform" />
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-sm tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
+              <span className="font-bold text-sm tracking-tight text-[#0F172A] dark:text-white">
                 Your Library
               </span>
             )}
           </button>
 
           {!isCollapsed && (
-            <div className="flex items-center gap-1 text-[#64748B] dark:text-[#94A3B8]">
+            <div className="flex items-center gap-1 text-[#64748B] dark:text-[#A1A1AA]">
               <button
                 id="account-sync-dock-btn"
                 onClick={() => useLibraryStore.getState().toggleSyncModal()}
@@ -144,8 +144,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 onClick={() => setFilterTag(filterTag === 'playlists' ? 'all' : 'playlists')}
                 className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                   filterTag === 'playlists'
-                    ? 'bg-[#0F172A] dark:bg-[#F1F5F9] text-white dark:text-[#0F172A] font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
-                    : 'bg-white/65 dark:bg-[#1E293B] hover:bg-white/85 dark:hover:bg-[#27354A] text-[#334155] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-[#27354A] shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
                 Playlists
@@ -154,8 +154,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 onClick={() => setFilterTag(filterTag === 'artists' ? 'all' : 'artists')}
                 className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                   filterTag === 'artists'
-                    ? 'bg-[#0F172A] dark:bg-[#F1F5F9] text-white dark:text-[#0F172A] font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
-                    : 'bg-white/65 dark:bg-[#1E293B] hover:bg-white/85 dark:hover:bg-[#27354A] text-[#334155] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-[#27354A] shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
                 Artists
@@ -164,24 +164,24 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 onClick={() => setFilterTag(filterTag === 'albums' ? 'all' : 'albums')}
                 className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                   filterTag === 'albums'
-                    ? 'bg-[#0F172A] dark:bg-[#F1F5F9] text-white dark:text-[#0F172A] font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
-                    : 'bg-white/65 dark:bg-[#1E293B] hover:bg-white/85 dark:hover:bg-[#27354A] text-[#334155] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-[#27354A] shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
                 Albums
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[#64748B] dark:text-[#94A3B8] text-xs px-1">
+            <div className="flex items-center justify-between text-[#64748B] dark:text-[#A1A1AA] text-xs px-1">
               {isSearchActive ? (
-                <div className="flex items-center w-full bg-white/70 dark:bg-[#1E293B] px-2 py-1 rounded-md border border-white/90 dark:border-[#27354A] shadow-[inset_0_1px_1px_rgba(0,0,0,0.04)]">
-                  <Search size={13} className="text-[#64748B] dark:text-[#94A3B8] mr-1.5 shrink-0" />
+                <div className="flex items-center w-full bg-white/70 dark:bg-white/10 px-2 py-1 rounded-md border border-white/90 dark:border-white/15 shadow-[inset_0_1px_1px_rgba(0,0,0,0.04)]">
+                  <Search size={13} className="text-[#64748B] dark:text-[#A1A1AA] mr-1.5 shrink-0" />
                   <input
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder="Search in Your Library"
-                    className="w-full bg-transparent text-xs text-[#0F172A] dark:text-[#F1F5F9] placeholder:text-[#94A3B8] focus:outline-none"
+                    className="w-full bg-transparent text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#71717A] focus:outline-none"
                     autoFocus
                     onBlur={() => {
                       if (!searchFilter) setIsSearchActive(false);
@@ -199,7 +199,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               )}
 
               {!isSearchActive && (
-                <div className="flex items-center gap-1 hover:text-[#0F172A] dark:hover:text-white cursor-pointer transition-colors text-[#64748B] dark:text-[#94A3B8]">
+                <div className="flex items-center gap-1 hover:text-[#0F172A] dark:hover:text-white cursor-pointer transition-colors text-[#64748B] dark:text-[#A1A1AA]">
                   <span>Recents</span>
                   <ListFilter size={13} />
                 </div>
@@ -228,8 +228,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     : 'gap-3 p-2 rounded-xl w-full'
                 } cursor-pointer transition-all duration-150 ${
                   isSelected
-                    ? 'bg-white/85 dark:bg-[#1E293B] border border-white dark:border-[#27354A] shadow-[0_4px_14px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-[#F1F5F9]'
-                    : 'hover:bg-white/45 dark:hover:bg-white/5 hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white border border-transparent'
+                    ? 'bg-white/85 dark:bg-white/15 border border-white dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
+                    : 'hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white border border-transparent'
                 }`}
                 title={`${pl.title} • ${pl.type} (${pl.songCount} songs)`}
               >
@@ -249,15 +249,15 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`text-sm font-semibold truncate ${
-                            isSelected ? 'text-[#0F172A] dark:text-[#F1F5F9] font-bold' : 'text-[#0F172A] dark:text-[#F1F5F9]'
+                            isSelected ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
                           }`}
                         >
                           {pl.title}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#94A3B8] truncate mt-0.5">
+                      <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-[#A1A1AA] truncate mt-0.5">
                         {pl.isPinned && (
-                          <span className="text-[#0F172A] dark:text-[#F1F5F9] font-medium flex items-center gap-0.5">
+                          <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5">
                             <Pin size={10} className="rotate-45" />
                             Pinned •
                           </span>

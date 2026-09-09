@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -14,14 +14,6 @@
     color: #F1F5F9;
     overflow: hidden;
   }
-}
-
-/* Smooth theme transition ~280ms */
-body, header, aside, main, footer, .liquid-glass-panel, .liquid-glass-panel-subtle, .liquid-glass-highlight, input, button {
-  transition: background-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
-              color 280ms cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light Theme Aesthetics */
@@ -74,54 +66,55 @@ body, header, aside, main, footer, .liquid-glass-panel, .liquid-glass-panel-subt
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
 }
 
-/* Dark Slate Navy Palette */
+/* OLED Pure Black & Obsidian Glass Palette */
 .dark body {
-  background-color: #0B0F19;
-  color: #F1F5F9;
+  background-color: #000000;
+  color: #FFFFFF;
 }
 
 .dark .liquid-glass-panel {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(35px) saturate(180%);
-  -webkit-backdrop-filter: blur(35px) saturate(180%);
-  border: 1.2px solid #27354A;
+  background: rgba(12, 12, 16, 0.80);
+  backdrop-filter: blur(35px) saturate(190%);
+  -webkit-backdrop-filter: blur(35px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: 
-    0 10px 24px -4px rgba(0, 0, 0, 0.50),
-    0 2px 6px 0 rgba(0, 0, 0, 0.30),
-    inset 0 1.2px 1.5px 0 rgba(255, 255, 255, 0.05);
+    0 14px 36px -6px rgba(0, 0, 0, 0.85),
+    0 4px 12px 0 rgba(0, 0, 0, 0.50),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .liquid-glass-panel-subtle {
-  background: rgba(22, 31, 48, 0.70);
+  background: rgba(18, 18, 24, 0.72);
   backdrop-filter: blur(32px) saturate(180%);
   -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1.2px solid #27354A;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 
-    0 6px 18px -3px rgba(0, 0, 0, 0.35),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.04);
+    0 8px 24px -4px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .dark .liquid-glass-highlight {
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: 1.2px solid #334155;
+  background: rgba(28, 28, 38, 0.88);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 
-    0 8px 20px -2px rgba(0, 0, 0, 0.40),
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.08);
+    0 10px 28px -2px rgba(0, 0, 0, 0.70),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.20);
 }
 
 .dark .liquid-glass-pill {
-  background: rgba(22, 31, 48, 0.75);
-  border: 1.2px solid #27354A;
-  box-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.06), 0 3px 10px rgba(0, 0, 0, 0.3);
+  background: rgba(22, 22, 30, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.08), 0 3px 10px rgba(0, 0, 0, 0.5);
+  color: #FFFFFF;
 }
 
 .dark .liquid-glass-pill-active {
-  background: #F1F5F9;
-  color: #0F172A;
-  border: 1.2px solid #FFFFFF;
-  box-shadow: 0 4px 14px rgba(241, 245, 249, 0.25);
+  background: #FFFFFF;
+  color: #000000;
+  border: 1px solid #FFFFFF;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35);
 }
 
 /* Glass Scrollbar */

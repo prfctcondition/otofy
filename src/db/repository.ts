@@ -117,6 +117,14 @@ export const repo = {
     return all.map(dbTrackToTrack);
   },
 
+  async getTracksByIds(ids: string[]): Promise<Track[]> {
+    if (!ids || ids.length === 0) return [];
+    const rawList = await db.tracks.bulkGet(ids);
+    return rawList
+      .filter((t): t is DbTrack => t !== undefined)
+      .map(dbTrackToTrack);
+  },
+
   async putTrack(track: Track): Promise<void> {
     const dt: DbTrack = {
       id: track.id,

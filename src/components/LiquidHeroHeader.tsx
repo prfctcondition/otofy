@@ -336,11 +336,11 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
         {/* Action Bar: Spotify Controls */}
         <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
           <div className="flex items-center gap-3">
-            {/* Big Green Play / Pause Button */}
+            {/* Main Play / Pause Button - MATCHED with bottom player */}
             <button
               id="hero-play-button"
               onClick={onPlayToggle}
-              className="w-14 h-14 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black flex items-center justify-center shadow-[0_8px_24px_rgba(29,185,84,0.35)] hover:scale-105 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer"
+              className="w-14 h-14 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_8px_24px_rgba(15,23,42,0.35)] dark:shadow-[0_8px_24px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer border border-[#0F172A] dark:border-white"
               title={isCurrentlyPlayingThisPlaylist ? 'Pause' : 'Play'}
               aria-label={isCurrentlyPlayingThisPlaylist ? 'Pause' : 'Play'}
             >
@@ -370,15 +370,15 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               onClick={onShuffleToggle}
               className={`p-2.5 rounded-full transition-all relative cursor-pointer ${
                 isShuffle
-                  ? 'text-[#1DB954] bg-white/90 dark:bg-[#1E293B] border border-white dark:border-white/10 shadow-xs'
-                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
+                  ? 'text-violet-600 dark:text-white bg-white/90 dark:bg-white/10 border border-white dark:border-white/10 shadow-xs'
+                  : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
               }`}
               title="Shuffle collection"
               aria-label="Shuffle"
             >
               <Shuffle size={20} />
               {isShuffle && (
-                <span className="absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-[#1DB954] shadow-[0_0_6px_rgba(29,185,84,0.8)]" />
+                <span className="absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-violet-600 dark:bg-white shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
               )}
             </button>
 
@@ -389,15 +389,15 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 onClick={onToggleSaveToLibrary}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
                   isSavedInLibrary
-                    ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black shadow-[0_4px_14px_rgba(29,185,84,0.35)]'
-                    : 'bg-white/85 dark:bg-[#1E293B] hover:bg-white dark:hover:bg-[#27354A] text-[#0F172A] dark:text-[#F1F5F9] border border-white/95 dark:border-[#27354A] shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-[0_4px_14px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_14px_rgba(255,255,255,0.2)]'
+                    : 'bg-white/85 dark:bg-white/[0.08] hover:bg-white dark:hover:bg-white/[0.14] text-[#0F172A] dark:text-white border border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md'
                 }`}
                 title={isSavedInLibrary ? 'In My Playlists (click to remove)' : 'Save to My Playlists'}
                 aria-label={isSavedInLibrary ? 'In My Playlists' : 'Save to My Playlists'}
               >
                 {isSavedInLibrary ? (
                   <>
-                    <Check size={16} strokeWidth={2.5} className="text-black" />
+                    <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
                     <span>In My Playlists</span>
                   </>
                 ) : (

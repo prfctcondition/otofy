@@ -27,7 +27,7 @@ function createWindow() {
     },
     titleBarStyle: 'hidden',
     frame: false,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#000000',
   });
 
   mainWindow.on('maximize', () => {
@@ -47,6 +47,28 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+// In-Memory IPC Cache with 1-hour TTL
+const IPC_CACHE = new Map<string, { data: any; timestamp: number }>();
+const IPC_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function getIpcCache<T>(key: string): T | null {
+  const item = IPC_CACHE.get(key);
+  if (!item) return null;
+  if (Date.now() - item.timestamp > IPC_CACHE_TTL) {
+    IPC_CACHE.delete(key);
+    return null;
+  }
+  return item.data as T;
+}
+
+function setIpcCache<T>(key: string, data: T): void {
+  if (IPC_CACHE.size > 500) {
+    const oldest = IPC_CACHE.keys().next().value;
+    if (oldest) IPC_CACHE.delete(oldest);
+  }
+  IPC_CACHE.set(key, { data, timestamp: Date.now() });
 }
 
 ipcMain.handle(
@@ -69,8 +91,14 @@ ipcMain.handle('music:search', async (_event, { query, source }: { query: string
 });
 
 ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }: { artistName: string; source?: 'YT' | 'SC' }) => {
+  const cacheKey = `artist:${artistName.toLowerCase().trim()}:${source || 'ALL'}`;
+  const cached = getIpcCache(cacheKey);
+  if (cached) return cached;
+
   if (source === 'SC') {
-    return await scResolver.getArtistDetails(artistName);
+    const res = await scResolver.getArtistDetails(artistName);
+    if (res) setIpcCache(cacheKey, res);
+    return res;
   }
   try {
     const ytDetails = await innertubeService.getArtist(artistName);
@@ -91,34 +119,61 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }
       if (!ytDetails.avatarUrl && ytDetails.topTracks.length > 0) {
         ytDetails.avatarUrl = ytDetails.topTracks[0].artworkUrl;
       }
+      setIpcCache(cacheKey, ytDetails);
       return ytDetails;
     }
   } catch (err) {
     console.warn('[main] innertube getArtist failed, falling back to soundcloud:', err);
   }
-  return await scResolver.getArtistDetails(artistName);
+  const fallback = await scResolver.getArtistDetails(artistName);
+  if (fallback) setIpcCache(cacheKey, fallback);
+  return fallback;
 });
 
 ipcMain.handle('music:get-album', async (_event, { browseId, source }: { browseId: string; source?: 'YT' | 'SC' }) => {
+  const cacheKey = `album:${browseId}:${source || 'ALL'}`;
+  const cached = getIpcCache(cacheKey);
+  if (cached) return cached;
+
   if (source === 'SC' || /^\d+$/.test(browseId)) {
-    return await scResolver.getAlbum(browseId);
+    const res = await scResolver.getAlbum(browseId);
+    if (res) setIpcCache(cacheKey, res);
+    return res;
   }
   try {
-    return await innertubeService.getAlbum(browseId);
+    const ytAlbum = await innertubeService.getAlbum(browseId);
+    if (ytAlbum) {
+      setIpcCache(cacheKey, ytAlbum);
+      return ytAlbum;
+    }
   } catch (e) {
-    return await scResolver.getAlbum(browseId);
+    // fallback
   }
+  const fallback = await scResolver.getAlbum(browseId);
+  if (fallback) setIpcCache(cacheKey, fallback);
+  return fallback;
 });
 
 ipcMain.handle('music:get-lyrics', async (_event, { videoId }: { videoId: string }) => {
-  return await innertubeService.getLyrics(videoId);
+  const cacheKey = `lyrics:${videoId}`;
+  const cached = getIpcCache(cacheKey);
+  if (cached) return cached;
+
+  const lyrics = await innertubeService.getLyrics(videoId);
+  if (lyrics) setIpcCache(cacheKey, lyrics);
+  return lyrics;
 });
 
 ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: string }) => {
+  const cacheKey = `genre:${query.toLowerCase().trim()}`;
+  const cached = getIpcCache(cacheKey);
+  if (cached) return cached;
+
   try {
     // 1. Try official YouTube Music playlist curation via InnerTube
     const ytTracks = await innertubeService.getGenreTracks(query);
     if (ytTracks && ytTracks.length >= 35) {
+      setIpcCache(cacheKey, ytTracks);
       return ytTracks;
     }
 
@@ -148,6 +203,9 @@ ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: stri
       console.warn('[main] scResolver getGenreTracks fallback error:', scErr);
     }
 
+    if (ytTracks && ytTracks.length > 0) {
+      setIpcCache(cacheKey, ytTracks);
+    }
     return ytTracks;
   } catch (err) {
     console.warn('[main] getGenreTracks error:', err);

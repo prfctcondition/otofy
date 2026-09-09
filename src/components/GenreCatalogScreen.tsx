@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Flame,
   Coffee,
@@ -25,7 +25,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
-import type { Track, Playlist } from '../types';
+import type { Track } from '../types';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
@@ -34,7 +34,7 @@ import { PlaceholderArtwork } from './PlaceholderArtwork';
 export interface GenreDef {
   id: string;
   name: string;
-  russianName: string;
+  category: string;
   tagline: string;
   description: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -49,9 +49,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'phonk',
     name: 'Phonk & Drift',
-    russianName: 'Фонк и Дрифт',
+    category: 'Bass & Drift',
     tagline: 'Aggressive 808 bass, cowbells & Memphis tapes',
-    description: 'Атмосферный и драйвовый фонк: от классического Memphis underground до скоростного дрифта и brazilian phonk.',
+    description: 'Atmospheric and heavy phonk: from classic underground Memphis tapes to high-octane drift beats and brazilian phonk.',
     icon: Flame,
     gradient: 'from-rose-600 via-red-600 to-amber-700',
     cardGradient: 'from-rose-700 to-red-950',
@@ -62,9 +62,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'lofi',
     name: 'Lo-Fi Chill & Beats',
-    russianName: 'Лоу-Фай и Чилл',
+    category: 'Focus & Study',
     tagline: 'Mellow vinyl beats to study, code and unwind',
-    description: 'Теплый аналоговый шум винила, мягкие джазовые аккорды и размеренный ритм для работы, отдыха и ночного кодинга.',
+    description: 'Warm analog vinyl crackle, lush jazz chords, and downtempo rhythms curated for deep work, study, and late-night coding.',
     icon: Coffee,
     gradient: 'from-amber-500 via-orange-500 to-stone-700',
     cardGradient: 'from-amber-600 to-orange-950',
@@ -75,9 +75,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'synthwave',
     name: 'Synthwave & Retrowave',
-    russianName: 'Синтвейв и Ретро',
+    category: 'Retro Electro',
     tagline: 'Neon 80s analog nostalgia & driving arpeggios',
-    description: 'Неоновые закаты, ночные автострады Майами и аналоговые синтезаторы в духе фантастики 80-х.',
+    description: 'Neon sunsets, 80s arcade nostalgia, analog synthesizers, and driving outrun arpeggios.',
     icon: Zap,
     gradient: 'from-fuchsia-600 via-purple-600 to-indigo-800',
     cardGradient: 'from-fuchsia-700 to-purple-950',
@@ -88,9 +88,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'hiphop',
     name: 'Underground Hip-Hop',
-    russianName: 'Хип-Хоп и Рэп',
+    category: 'Boom Bap & Rap',
     tagline: 'Boom bap drums, raw lyricism & street soul',
-    description: 'Честный уличный звук: хлесткий бум-бэп, тяжелые сэмплы и поэзия ночных переулков.',
+    description: 'Raw street lyricism, gritty vinyl chops, crisp boom bap drums, and soulful conscious rap.',
     icon: Mic,
     gradient: 'from-orange-600 via-amber-600 to-yellow-800',
     cardGradient: 'from-orange-700 to-amber-950',
@@ -101,9 +101,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'ambient',
     name: 'Ambient Flow & Space',
-    russianName: 'Эмбиент и Медитация',
+    category: 'Mind & Space',
     tagline: 'Endless horizons, generative soundscapes & deep focus',
-    description: 'Глубокие медитативные звуковые текстуры, космические дроны и минималистичные полотна для полного погружения.',
+    description: 'Infinite sonic horizons, ethereal space drones, binaural focus frequencies, and generative meditative soundscapes.',
     icon: Waves,
     gradient: 'from-teal-500 via-emerald-600 to-cyan-800',
     cardGradient: 'from-teal-700 to-emerald-950',
@@ -114,9 +114,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'indierock',
     name: 'Indie Rock & Alt',
-    russianName: 'Инди-Рок и Альтернатива',
+    category: 'Indie & Alt',
     tagline: 'Jangle guitars, sincere vibes & garage attitude',
-    description: 'Живые гитарные риффы, искренние тексты и независимый дух от бедрум-попа до шугейза.',
+    description: 'Authentic guitar chords, bedroom pop melodies, melancholic shoegaze textures, and raw indie spirit.',
     icon: Guitar,
     gradient: 'from-emerald-600 via-green-600 to-teal-800',
     cardGradient: 'from-emerald-700 to-teal-950',
@@ -127,9 +127,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'edm',
     name: 'Electronic & EDM',
-    russianName: 'Электроника и EDM',
+    category: 'Electronic & Dance',
     tagline: 'Massive festival drops, euphoria & peak energy',
-    description: 'Мощная танцевальная энергетика: от мелодичного progressive house до взрывного bass music.',
+    description: 'Massive festival drops, melodic progressive house, euphoric builds, and peak-energy dance anthems.',
     icon: Activity,
     gradient: 'from-cyan-500 via-blue-600 to-indigo-800',
     cardGradient: 'from-cyan-700 to-blue-950',
@@ -140,9 +140,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'cyberpunk',
     name: 'Cyberpunk & Midtempo',
-    russianName: 'Киберпанк и Dark Electro',
+    category: 'Dark Electro',
     tagline: 'High tech, low life, glitch beats & industrial bass',
-    description: 'Музыка мрачного футуризма: перегруженные басы, темный индастриал и хромированный ритм мегаполиса будущего.',
+    description: 'Dystopian futurism: distorted industrial bass, glitch electronics, and dark midtempo beats for neon megacities.',
     icon: Cpu,
     gradient: 'from-violet-600 via-indigo-700 to-zinc-900',
     cardGradient: 'from-violet-800 to-zinc-950',
@@ -153,9 +153,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'jazz',
     name: 'Jazz & Soul Classics',
-    russianName: 'Джаз и Нео-Соул',
+    category: 'Jazz & Soul',
     tagline: 'Warm Rhodes, brass improvisation & velvet vocals',
-    description: 'Бессмертная классика и современный нео-соул: бархатный саксофон, мягкий контрабас и уютное тепло.',
+    description: 'Timeless cool jazz, warm Rhodes keys, velvet saxophone solos, and modern neo-soul grooves.',
     icon: Disc,
     gradient: 'from-yellow-600 via-amber-600 to-stone-800',
     cardGradient: 'from-yellow-700 to-stone-950',
@@ -166,9 +166,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'pop',
     name: 'Pop Hits & Charts',
-    russianName: 'Поп-Хиты и Чарты',
+    category: 'Global Hits',
     tagline: 'Catchy melodies, global anthems & trending sound',
-    description: 'Главные мировые треки, запоминающиеся припевы и кристальный современный продакшн.',
+    description: 'The biggest global chart-toppers, infectious hooks, sparkling vocal production, and trending viral hits.',
     icon: Sparkles,
     gradient: 'from-pink-500 via-rose-500 to-purple-700',
     cardGradient: 'from-pink-600 to-rose-950',
@@ -179,9 +179,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'classical',
     name: 'Cinematic & Classical',
-    russianName: 'Классика и Саундтреки',
+    category: 'Cinematic & Piano',
     tagline: 'Epic orchestral heights & intimate solo piano',
-    description: 'Величественные симфонические партитуры, эмоциональное соло на рояле и эпическая музыка из любимого кино.',
+    description: 'Majestic orchestral scores, emotive solo piano, Hans Zimmer cinematic power, and modern symphonic masterworks.',
     icon: BookOpen,
     gradient: 'from-indigo-600 via-slate-700 to-blue-900',
     cardGradient: 'from-indigo-700 to-slate-950',
@@ -192,9 +192,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'metal',
     name: 'Metal & Hard Rock',
-    russianName: 'Метал и Тяжелый Рок',
+    category: 'Metal & Rock',
     tagline: 'Distorted guitars, relentless power & crushing drums',
-    description: 'Убойная тяжесть: от классического хэви-метала до современного металкора и прогрессивного джента.',
+    description: 'Heavy distortion, blistering riffs, crushing breakdowns, double-kick drums, and pure adrenaline.',
     icon: Skull,
     gradient: 'from-stone-700 via-zinc-800 to-black',
     cardGradient: 'from-stone-800 to-black',
@@ -205,9 +205,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'gaming',
     name: 'Gaming & Chiptune',
-    russianName: 'Гейминг и OST',
+    category: 'Gaming & OST',
     tagline: 'Boss battles, 8-bit nostalgia & high-octane hype',
-    description: 'Энергичные саундтреки видеоигр, ретро-чиптюн и взрывные треки для победных игровых сессий.',
+    description: 'High-octane game soundtracks, retro 8-bit chiptunes, epic boss battle anthems, and speedrun beats.',
     icon: Gamepad2,
     gradient: 'from-purple-600 via-fuchsia-600 to-blue-900',
     cardGradient: 'from-purple-700 to-indigo-950',
@@ -218,9 +218,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'deephouse',
     name: 'Deep House & Sunset',
-    russianName: 'Дип-Хаус и Лаунж',
+    category: 'House & Lounge',
     tagline: 'Warm bass grooves & hypnotic 4/4 beats',
-    description: 'Умиротворяющий грув заката, глубокий бас и стильный саунд европейских пляжных клубов.',
+    description: 'Warm hypnotic basslines, rolling four-on-the-floor rhythms, and sophisticated sunset lounge aesthetics.',
     icon: Sunset,
     gradient: 'from-blue-600 via-indigo-600 to-violet-900',
     cardGradient: 'from-blue-700 to-indigo-950',
@@ -231,9 +231,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'acoustic',
     name: 'Acoustic & Folk',
-    russianName: 'Акустика и Фолк',
+    category: 'Acoustic & Folk',
     tagline: 'Intimate guitars, warm wooden tones & storytelling',
-    description: 'Теплые акустические гитары, душевные баллады у костра и искренние инди-фолк гармонии.',
+    description: 'Intimate fingerstyle acoustic guitar, heartfelt indie folk storytelling, and warm campfire harmonies.',
     icon: Feather,
     gradient: 'from-amber-600 via-yellow-700 to-stone-800',
     cardGradient: 'from-amber-700 to-stone-950',
@@ -244,9 +244,9 @@ export const GENRE_CATALOG: GenreDef[] = [
   {
     id: 'latin',
     name: 'Latin & Reggaeton',
-    russianName: 'Латина и Реггетон',
+    category: 'Latin & Urbano',
     tagline: 'Dembow bounce, tropical fire & irresistible dance rhythm',
-    description: 'Зажигательные карибские ритмы, дембоу-бит и солнечная латиноамериканская энергия.',
+    description: 'Irresistible dembow bounce, tropical heat, urbano anthems, and sensual Latin dance rhythms.',
     icon: Sun,
     gradient: 'from-red-500 via-orange-500 to-yellow-600',
     cardGradient: 'from-red-600 to-yellow-950',
@@ -260,6 +260,9 @@ interface GenreCatalogScreenProps {
   onBack: () => void;
   onSelectGenre?: (genre: GenreDef) => void;
 }
+
+// In-memory cache for genre tracks so switching between genres is instantaneous
+const genreTracksCache = new Map<string, Track[]>();
 
 export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }) => {
   const [selectedGenre, setSelectedGenre] = useState<GenreDef | null>(null);
@@ -277,13 +280,21 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
     const q = searchFilter.toLowerCase().trim();
     return (
       genre.name.toLowerCase().includes(q) ||
-      genre.russianName.toLowerCase().includes(q) ||
+      genre.category.toLowerCase().includes(q) ||
       genre.description.toLowerCase().includes(q) ||
       genre.subgenres.some((s) => s.toLowerCase().includes(q))
     );
   });
 
   const loadTracksForGenre = async (genre: GenreDef) => {
+    // Check in-memory cache first for 0ms load
+    if (genreTracksCache.has(genre.id)) {
+      setGenreTracks(genreTracksCache.get(genre.id)!);
+      setIsLoadingTracks(false);
+      setIsSaved(false);
+      return;
+    }
+
     setIsLoadingTracks(true);
     setGenreTracks([]);
     setIsSaved(false);
@@ -315,10 +326,11 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
         artworkUrl: r.artworkUrl,
         iconName: 'music' as const,
         gradientFrom: genre.accentColor,
-        gradientTo: '#1E1B4B',
+        gradientTo: '#000000',
         isLiked: false,
       }));
 
+      genreTracksCache.set(genre.id, mapped);
       setGenreTracks(mapped);
     } catch (err) {
       console.warn('[GenreCatalog] Error fetching tracks:', err);
@@ -352,6 +364,15 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   const handleQuickPlayGenre = async (genre: GenreDef, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      if (genreTracksCache.has(genre.id)) {
+        const cached = genreTracksCache.get(genre.id)!;
+        if (cached.length > 0) {
+          playerStore.playTrack(cached[0], cached);
+          toastStore.success(`Playing ${genre.name}`, `Loaded ${cached.length} tracks.`);
+          return;
+        }
+      }
+
       const primaryQuery = genre.searchQueries[0];
       let results: any[] = [];
       if (window.electronAPI?.searchMusic) {
@@ -378,9 +399,10 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           artworkUrl: r.artworkUrl,
           iconName: 'music' as const,
           gradientFrom: genre.accentColor,
-          gradientTo: '#1E1B4B',
+          gradientTo: '#000000',
           isLiked: false,
         }));
+        genreTracksCache.set(genre.id, mapped);
         playerStore.playTrack(mapped[0], mapped);
         toastStore.success(`Playing ${genre.name}`, `Loaded ${mapped.length} tracks.`);
       }
@@ -411,17 +433,17 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
               <div className="flex items-center gap-3 mb-1.5">
                 <button
                   onClick={onBack}
-                  className="p-2 rounded-xl bg-white/50 dark:bg-[#1E293B]/70 hover:bg-white/80 dark:hover:bg-[#27354A] border border-white/60 dark:border-[#27354A] text-[#0F172A] dark:text-[#F1F5F9] transition-all shadow-xs flex items-center justify-center"
+                  className="p-2 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white transition-all shadow-xs flex items-center justify-center"
                   title="Back to Home"
                 >
                   <ArrowLeft size={18} />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
-                  Каталог Жанров и Настроений
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-white">
+                  Genre & Mood Catalog
                 </h1>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-[#64748B] dark:text-[#94A3B8]">
-                16 тщательно подобранных музыкальных направлений с динамическими станциями и подборками
+              <p className="text-xs sm:text-sm font-medium text-[#64748B] dark:text-[#A1A1AA]">
+                16 curated musical realms with dynamic radio stations and auto-mixes
               </p>
             </div>
 
@@ -429,14 +451,14 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
             <div className="relative w-full sm:w-72">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] dark:text-[#71717A] pointer-events-none"
               />
               <input
                 type="text"
-                placeholder="Фильтр по жанрам..."
+                placeholder="Filter genres..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/60 dark:bg-[#1E293B] border border-white/80 dark:border-[#27354A] text-[#0F172A] dark:text-[#F1F5F9] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all shadow-xs"
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-[#121218] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all shadow-xs"
               />
             </div>
           </div>
@@ -449,7 +471,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 <div
                   key={genre.id}
                   onClick={() => handleOpenGenre(genre)}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/40 dark:bg-[#111827]/70 hover:bg-white/70 dark:hover:bg-[#161F30]/90 backdrop-blur-xl border border-white/80 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.8)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 overflow-hidden min-h-[170px]"
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/50 dark:bg-[#111116]/80 hover:bg-white/80 dark:hover:bg-[#181820] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.8)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 overflow-hidden min-h-[170px]"
                 >
                   {/* Decorative Gradient Background Glow */}
                   <div
@@ -464,17 +486,17 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                       <IconComp size={20} />
                     </div>
 
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[#475569] dark:text-[#94A3B8]">
-                      {genre.russianName}
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[#475569] dark:text-[#A1A1AA]">
+                      {genre.category}
                     </span>
                   </div>
 
                   {/* Title and Tagline */}
                   <div className="z-10 mt-3">
-                    <h3 className="text-base font-extrabold text-[#0F172A] dark:text-[#F1F5F9] tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 className="text-base font-extrabold text-[#0F172A] dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {genre.name}
                     </h3>
-                    <p className="text-xs text-[#64748B] dark:text-[#94A3B8] line-clamp-2 mt-1 leading-snug">
+                    <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] line-clamp-2 mt-1 leading-snug">
                       {genre.description}
                     </p>
                   </div>
@@ -484,21 +506,21 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                     {genre.subgenres.slice(0, 2).map((sg) => (
                       <span
                         key={sg}
-                        className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-[#64748B] dark:text-[#94A3B8]"
+                        className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-[#64748B] dark:text-[#A1A1AA]"
                       >
                         {sg}
                       </span>
                     ))}
                   </div>
 
-                  {/* Quick Play Floating Button on Hover */}
+                  {/* Quick Play Floating Button on Hover - MATCHED with bottom player */}
                   <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
                     <button
                       onClick={(e) => handleQuickPlayGenre(genre, e)}
-                      className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(16,185,129,0.45)] hover:scale-105 active:scale-95 transition-transform"
+                      className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
                       title={`Play ${genre.name}`}
                     >
-                      <Play size={16} className="fill-white translate-x-0.5" />
+                      <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                     </button>
                   </div>
                 </div>
@@ -513,10 +535,10 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           <div>
             <button
               onClick={() => setSelectedGenre(null)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/50 dark:bg-[#1E293B]/70 hover:bg-white/80 dark:hover:bg-[#27354A] border border-white/60 dark:border-[#27354A] text-xs font-bold text-[#0F172A] dark:text-[#F1F5F9] transition-all shadow-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-xs font-bold text-[#0F172A] dark:text-white transition-all shadow-xs"
             >
               <ArrowLeft size={14} />
-              Назад ко всем жанрам
+              Back to all genres
             </button>
           </div>
 
@@ -531,7 +553,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                     {React.createElement(selectedGenre.icon, { size: 24, className: 'text-white' })}
                   </div>
                   <span className="text-xs font-bold uppercase tracking-widest text-white/80 bg-black/25 px-2.5 py-1 rounded-full backdrop-blur-xs">
-                    {selectedGenre.russianName}
+                    {selectedGenre.category}
                   </span>
                 </div>
                 <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
@@ -554,42 +576,42 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - MATCHED with bottom player */}
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <button
                   onClick={handlePlayAll}
                   disabled={isLoadingTracks || genreTracks.length === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black font-extrabold hover:bg-white/90 hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 text-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 font-extrabold hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 text-sm"
                 >
-                  <Play size={17} className="fill-black" />
-                  Включить всё
+                  <Play size={17} className="fill-white dark:fill-black" />
+                  Play All
                 </button>
 
                 <button
                   onClick={handleShufflePlay}
                   disabled={isLoadingTracks || genreTracks.length === 0}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold backdrop-blur-md transition-all active:scale-95 disabled:opacity-50 text-sm"
-                  title="Перемешать и воспроизвести"
+                  title="Shuffle and play"
                 >
                   <Shuffle size={16} />
-                  Перемешать
+                  Shuffle
                 </button>
 
                 <button
                   onClick={handleSaveToLibrary}
                   disabled={isLoadingTracks || genreTracks.length === 0 || isSaved}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold backdrop-blur-md transition-all active:scale-95 disabled:opacity-75 text-sm"
-                  title="Сохранить подборку в свои плейлисты"
+                  title="Save collection to your library"
                 >
                   {isSaved ? (
                     <>
                       <Check size={16} className="text-emerald-300" />
-                      Сохранено
+                      Saved
                     </>
                   ) : (
                     <>
                       <BookmarkPlus size={16} />
-                      В плейлисты
+                      Save to Library
                     </>
                   )}
                 </button>
@@ -600,29 +622,29 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           {/* Tracks List */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F1F5F9]">
-                Треки жанра ({genreTracks.length})
+              <h2 className="text-base font-bold text-[#0F172A] dark:text-white">
+                Genre Tracks ({genreTracks.length})
               </h2>
               {isLoadingTracks && (
-                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#94A3B8]">
-                  <Loader2 size={14} className="animate-spin" />
-                  Загрузка лучших треков...
+                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#A1A1AA]">
+                  <Loader2 size={14} className="animate-spin text-indigo-400" />
+                  Curating the best tracks...
                 </div>
               )}
             </div>
 
             {isLoadingTracks ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#64748B] dark:text-[#94A3B8]">
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#64748B] dark:text-[#A1A1AA]">
                 <Loader2 size={32} className="animate-spin text-indigo-500" />
-                <p className="text-sm font-medium">Подбираем лучшие композиции жанра...</p>
+                <p className="text-sm font-medium">Curating the best tracks for this genre...</p>
               </div>
             ) : genreTracks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-[#64748B] dark:text-[#94A3B8]">
+              <div className="flex flex-col items-center justify-center py-16 text-[#64748B] dark:text-[#A1A1AA]">
                 <Music size={36} className="mb-2 opacity-50" />
-                <p className="text-sm">Нет найденных треков по данному жанру</p>
+                <p className="text-sm">No tracks found for this genre</p>
               </div>
             ) : (
-              <div className="flex flex-col rounded-2xl bg-white/40 dark:bg-[#111827]/70 border border-white/80 dark:border-[#27354A]/80 backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
+              <div className="flex flex-col rounded-2xl bg-white/50 dark:bg-[#111116]/80 border border-white/80 dark:border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
                 {genreTracks.map((track, idx) => {
                   const isCurrent = playerStore.activeTrack?.id === track.id;
                   return (
@@ -636,7 +658,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 text-center text-xs font-mono font-bold text-[#94A3B8] group-hover:hidden">
+                        <span className="w-6 text-center text-xs font-mono font-bold text-[#94A3B8] dark:text-[#71717A] group-hover:hidden">
                           {idx + 1}
                         </span>
                         <button
@@ -664,18 +686,18 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                             className={`text-xs sm:text-sm font-bold truncate leading-tight ${
                               isCurrent
                                 ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-[#0F172A] dark:text-[#F1F5F9]'
+                                : 'text-[#0F172A] dark:text-white'
                             }`}
                           >
                             {track.title}
                           </p>
-                          <p className="text-[11px] sm:text-xs text-[#64748B] dark:text-[#94A3B8] truncate leading-tight mt-0.5">
+                          <p className="text-[11px] sm:text-xs text-[#64748B] dark:text-[#A1A1AA] truncate leading-tight mt-0.5">
                             {track.artist}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs font-mono text-[#64748B] dark:text-[#94A3B8] shrink-0">
+                      <div className="flex items-center gap-4 text-xs font-mono text-[#64748B] dark:text-[#A1A1AA] shrink-0">
                         <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] bg-black/5 dark:bg-white/5 font-sans">
                           {track.sourceLabel || 'YT'}
                         </span>
