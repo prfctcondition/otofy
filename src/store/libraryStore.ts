@@ -68,6 +68,7 @@ interface LibraryState {
   mobileActiveTab: 'home' | 'search' | 'library';
   isDbReady: boolean;
   currentArtistDetails: ArtistDetails | null;
+  isLoadingTracks: boolean;
 
   // Navigation History
   history: NavigationSnapshot[];
@@ -106,6 +107,7 @@ interface LibraryActions {
   refreshPlaylistTracks: () => Promise<void>;
   setCustomPlaylistView: (title: string, tracks: Track[], options?: Partial<Playlist>) => void;
   setCurrentArtistDetails: (details: ArtistDetails | null) => void;
+  setIsLoadingTracks: (loading: boolean) => void;
   saveViewingPlaylistToLibrary: () => Promise<void>;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
@@ -139,6 +141,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   mobileActiveTab: 'home',
   isDbReady: false,
   currentArtistDetails: null,
+  isLoadingTracks: false,
+  setIsLoadingTracks: (isLoadingTracks) => set({ isLoadingTracks }),
 
   history: [
     {

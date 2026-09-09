@@ -95,35 +95,33 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
   return (
     <div
       ref={overlayRef}
-      className="absolute top-16 left-4 right-4 md:left-64 md:right-64 z-50 max-h-[500px] overflow-y-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12),inset_0_1.5px_1.5px_#FFFFFF] p-3.5 bg-white/92 backdrop-blur-3xl border border-white/90 text-[#0F172A] animate-in fade-in zoom-in-95 duration-150 select-none"
+      className="absolute top-16 left-4 right-4 md:left-64 md:right-64 z-50 max-h-[500px] overflow-y-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-3.5 bg-white/95 dark:bg-[#0C0C10]/95 backdrop-blur-3xl border border-white/90 dark:border-white/10 text-[#0F172A] dark:text-white animate-in fade-in zoom-in-95 duration-150 select-none custom-scrollbar"
     >
       {isSearching && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155]">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-violet-600 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2.5 h-2.5 rounded-full bg-violet-600 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2.5 h-2.5 rounded-full bg-violet-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-zinc-400">
+          <div className="w-10 h-10 rounded-full bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+            <span className="inline-block w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#0F172A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#0F172A] dark:text-white">
             Searching YouTube Music & SoundCloud...
           </p>
         </div>
       )}
 
       {!isSearching && hasSearched && results.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155]">
-          <Search size={32} className="opacity-50 text-[#64748B]" />
-          <p className="text-sm font-bold text-[#0F172A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">No ad-free streams found</p>
-          <p className="text-xs text-[#475569] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">Try searching by song title, artist, or album</p>
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-zinc-400">
+          <Search size={32} className="opacity-40 text-[#64748B] dark:text-zinc-500" />
+          <p className="text-sm font-bold text-[#0F172A] dark:text-white">No ad-free streams found</p>
+          <p className="text-xs text-[#475569] dark:text-zinc-400">Try searching by song title, artist, or album</p>
         </div>
       )}
 
       {!isSearching && results.length > 0 && (
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold text-[#475569] uppercase tracking-wider border-b border-black/[0.06] mb-1.5">
+          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold text-[#475569] dark:text-zinc-400 uppercase tracking-wider border-b border-black/[0.06] dark:border-white/[0.08] mb-1.5">
             <div className="flex items-center gap-2">
-              <span className="drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">Results ({results.length})</span>
-              <div className="inline-flex items-center p-0.5 rounded-lg bg-black/[0.05] border border-black/[0.05] text-[10px] font-bold lowercase">
+              <span>Results ({results.length})</span>
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-black/[0.05] dark:bg-white/10 border border-black/[0.05] dark:border-white/10 text-[10px] font-bold lowercase">
                 {(
                   [
                     { id: 'ALL', label: 'MIXED' },
@@ -134,10 +132,10 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                   <button
                     key={item.id}
                     onClick={() => setSourceFilter(item.id)}
-                    className={`px-2 py-0.5 rounded-md uppercase font-bold tracking-tight transition-all ${
+                    className={`px-2 py-0.5 rounded-md uppercase font-bold tracking-tight transition-all cursor-pointer ${
                       sourceFilter === item.id
-                        ? 'bg-[#0F172A] text-white shadow-xs'
-                        : 'text-[#64748B] hover:text-[#0F172A]'
+                        ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-xs'
+                        : 'text-[#64748B] dark:text-zinc-400 hover:text-[#0F172A] dark:hover:text-white'
                     }`}
                   >
                     {item.label}
@@ -145,7 +143,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                 ))}
               </div>
             </div>
-            <span className="text-violet-700 font-bold drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">Ad-Free Streams</span>
+            <span className="text-violet-700 dark:text-violet-400 font-bold">Ad-Free Streams</span>
           </div>
 
           {/* Official Artist Card Banner */}
@@ -197,12 +195,12 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
           {results.map((result) => (
             <div
               key={result.id}
-              className="group flex items-center justify-between p-2.5 hover:bg-white/65 active:bg-white/85 rounded-xl transition-all cursor-pointer"
+              className="group flex items-center justify-between p-2.5 hover:bg-white/65 dark:hover:bg-white/10 active:bg-white/85 dark:active:bg-white/15 rounded-xl transition-all cursor-pointer"
               onClick={() => handlePlay(result)}
             >
               <div className="flex items-center gap-3 overflow-hidden min-w-0">
                 {/* Artwork with specular highlight */}
-                <div className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-slate-900 border border-white/80 shadow-xs">
+                <div className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-slate-900 border border-white/80 dark:border-white/10 shadow-xs">
                   {result.artworkUrl ? (
                     <img src={result.artworkUrl} alt={result.title} className="w-full h-full object-cover" />
                   ) : (
@@ -217,7 +215,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
 
                 <div className="flex flex-col overflow-hidden min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="truncate font-bold text-sm text-[#0F172A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
+                    <span className="truncate font-bold text-sm text-[#0F172A] dark:text-white">
                       {result.title}
                     </span>
                     <span
@@ -229,7 +227,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                     </span>
                   </div>
                   <span
-                    className="truncate text-xs font-semibold text-[#1E293B] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)] hover:text-violet-700 hover:underline transition-colors mt-0.5"
+                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-zinc-400 hover:text-violet-700 dark:hover:text-violet-400 hover:underline transition-colors mt-0.5"
                     onClick={(e) => handleArtistClick(result.artist, e, result.source)}
                     title={`View ${result.artist} discography`}
                   >
@@ -239,15 +237,15 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
               </div>
 
               <div className="flex items-center gap-2.5 pl-2 flex-shrink-0">
-                <span className="text-xs font-mono font-bold text-[#334155] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
+                <span className="text-xs font-mono font-bold text-[#334155] dark:text-zinc-400">
                   {result.duration}
                 </span>
                 <button
                   onClick={(e) => handleAdd(result, e)}
-                  className={`p-2 rounded-full transition-all ${
+                  className={`p-2 rounded-full transition-all cursor-pointer ${
                     addedIds[result.id]
                       ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'hover:bg-white/80 text-[#334155] hover:text-[#0F172A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]'
+                      : 'hover:bg-white/80 dark:hover:bg-white/15 text-[#334155] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white'
                   }`}
                   title={addedIds[result.id] ? 'Added to playlist!' : 'Add to current playlist'}
                 >

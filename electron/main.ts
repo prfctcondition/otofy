@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, globalShortcut, session } from 'electron';
 import path from 'path';
+import fs from 'fs';
+import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
 import ytResolver from './services/ytResolver.js';
 import scResolver from './services/scResolver.js';
@@ -410,6 +412,48 @@ ipcMain.handle('window:control', (_event, action: 'minimize' | 'maximize' | 'clo
   } else if (action === 'close') {
     mainWindow.close();
   }
+});
+
+let cachedUserProfile: { username: string; avatarUrl: string | null } | null = null;
+
+ipcMain.handle('app:get-user-profile', async () => {
+  if (cachedUserProfile) return cachedUserProfile;
+
+  const username = process.env.USERNAME || 'Alex';
+  const bmpPath = path.join(process.env.LOCALAPPDATA || '', 'Temp.bmp');
+
+  if (fs.existsSync(bmpPath)) {
+    try {
+      const buf = fs.readFileSync(bmpPath);
+      if (buf.length > 1000) {
+        cachedUserProfile = {
+          username,
+          avatarUrl: `data:image/bmp;base64,${buf.toString('base64')}`,
+        };
+        return cachedUserProfile;
+      }
+    } catch {}
+  }
+
+  try {
+    const psCmd = `powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; using System.Text; public class UserPic { [DllImport(\\\"shell32.dll\\\", EntryPoint=\\\"#261\\\", CharSet=CharSet.Unicode)] public static extern void GetUserTilePath(string u, uint f, StringBuilder p, int m); }'; \\$s=New-Object System.Text.StringBuilder 260; [UserPic]::GetUserTilePath(\\$null,[Convert]::ToUInt32(\\\"80000000\\\",16),\\$s,260);"`;
+    await new Promise<void>((resolve) => {
+      exec(psCmd, { timeout: 3000 }, () => resolve());
+    });
+    if (fs.existsSync(bmpPath)) {
+      const buf = fs.readFileSync(bmpPath);
+      if (buf.length > 1000) {
+        cachedUserProfile = {
+          username,
+          avatarUrl: `data:image/bmp;base64,${buf.toString('base64')}`,
+        };
+        return cachedUserProfile;
+      }
+    }
+  } catch {}
+
+  cachedUserProfile = { username, avatarUrl: null };
+  return cachedUserProfile;
 });
 
 app.whenReady().then(() => {

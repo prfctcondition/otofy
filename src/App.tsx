@@ -254,6 +254,29 @@ export default function App() {
     }
   };
 
+  // Spacebar Play/Pause shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable ||
+            target.getAttribute('role') === 'textbox')
+        ) {
+          return;
+        }
+        e.preventDefault();
+        playerStore.togglePlay();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleOpenStation = async (station: StationItem) => {
     libraryStore.setSelectedFilter('All');
     // Instant optimistic navigation
@@ -264,6 +287,7 @@ export default function App() {
       gradientFrom: '#047857',
       gradientTo: '#064E3B',
     });
+    libraryStore.setIsLoadingTracks(true);
     try {
       const stationTracks = await getStationTracks(station);
       libraryStore.setCustomPlaylistView(`${station.title} Radio`, stationTracks, {
@@ -275,6 +299,8 @@ export default function App() {
       });
     } catch (e) {
       console.warn('[App] Open station error:', e);
+    } finally {
+      libraryStore.setIsLoadingTracks(false);
     }
   };
 
@@ -308,6 +334,7 @@ export default function App() {
       gradientFrom: '#1E1B4B',
       gradientTo: '#09090B',
     });
+    libraryStore.setIsLoadingTracks(true);
     try {
       const mixes = await getStoredDailyMixes();
       const targetNumber = mix.cardVariant === 'discover' ? 0 : parseInt(mix.mixNumber || '1', 10);
@@ -325,6 +352,8 @@ export default function App() {
       }
     } catch (e) {
       console.warn('[App] Open mix error:', e);
+    } finally {
+      libraryStore.setIsLoadingTracks(false);
     }
   };
 
@@ -375,6 +404,7 @@ export default function App() {
       description: `${cleanName} Discography`,
       iconName: 'user',
     });
+    libraryStore.setIsLoadingTracks(true);
 
     try {
       let artistTracks: Track[] = [];
@@ -542,6 +572,8 @@ export default function App() {
       });
     } catch (e) {
       console.warn('[App] handleOpenArtistView error:', e);
+    } finally {
+      libraryStore.setIsLoadingTracks(false);
     }
   };
 
@@ -561,6 +593,7 @@ export default function App() {
       iconName: 'disc',
       description: 'Loading album tracks...',
     });
+    libraryStore.setIsLoadingTracks(true);
 
     try {
       if (window.electronAPI?.getAlbum) {
@@ -648,6 +681,8 @@ export default function App() {
       }
     } catch (err) {
       console.error('[App] handleOpenAlbumView error:', err);
+    } finally {
+      libraryStore.setIsLoadingTracks(false);
     }
   };
 
@@ -765,6 +800,7 @@ export default function App() {
                       tracks={filteredTracks}
                       activeTrackId={activeTrack?.id || ''}
                       isPlaying={isPlaying}
+                      isLoading={libraryStore.isLoadingTracks}
                       onTrackSelect={handleSelectTrack}
                       onPlayToggle={playerStore.togglePlay}
                       onToggleLike={libraryStore.toggleLike}
@@ -837,6 +873,7 @@ export default function App() {
                     tracks={filteredTracks}
                     activeTrackId={activeTrack?.id || ''}
                     isPlaying={isPlaying}
+                    isLoading={libraryStore.isLoadingTracks}
                     onTrackSelect={handleSelectTrack}
                     onPlayToggle={playerStore.togglePlay}
                     onToggleLike={libraryStore.toggleLike}

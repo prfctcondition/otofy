@@ -52,8 +52,23 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const { theme, toggleTheme } = useThemeStore();
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('User');
 
   const isElectron = typeof window !== 'undefined' && Boolean(window.electronAPI);
+
+  useEffect(() => {
+    if (isElectron && window.electronAPI?.getUserProfile) {
+      window.electronAPI.getUserProfile().then((profile) => {
+        if (profile?.avatarUrl) {
+          setUserAvatar(profile.avatarUrl);
+        }
+        if (profile?.username) {
+          setUserName(profile.username);
+        }
+      }).catch(() => {});
+    }
+  }, [isElectron]);
 
   useEffect(() => {
     if (isElectron && window.electronAPI?.isMaximized) {
@@ -232,12 +247,20 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
         <div
           id="user-profile-avatar-btn"
-          className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(99,102,241,0.25)]"
-          title="Profile (alex.stream)"
+          className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(99,102,241,0.25)] shrink-0 overflow-hidden"
+          title={`Profile (${userName})`}
         >
-          <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#0F172A] dark:text-white">
-            A
-          </div>
+          {userAvatar ? (
+            <img
+              src={userAvatar}
+              alt={userName}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#0F172A] dark:text-white uppercase">
+              {userName ? userName.charAt(0) : 'U'}
+            </div>
+          )}
         </div>
 
         {/* Windows Desktop Control Buttons */}

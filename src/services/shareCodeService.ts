@@ -1,7 +1,7 @@
 import pako from 'pako';
 import type { ShareCodeData, Track } from '../types';
 
-const SHARE_PREFIX = 'ZEN';
+const SHARE_PREFIX = 'OTO';
 const CODE_VERSION = 1;
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -23,7 +23,7 @@ function base64ToUint8(base64: string): Uint8Array {
   return bytes;
 }
 
-// Format into CS2-style hyphenated groups: ZEN-xxxx-xxxx-xxxx
+// Format into hyphenated groups: OTO-xxxx-xxxx-xxxx
 function formatCode(payload: string): string {
   const chunks: string[] = [];
   for (let i = 0; i < payload.length; i += 4) {
@@ -61,8 +61,8 @@ export function generateShareCode(
 export function parseShareCode(code: string): ShareCodeData | null {
   try {
     const raw = code.trim();
-    // Remove ZEN- prefix and all chunk-separator hyphens
-    const clean = raw.replace(/^ZEN-/, '').replace(/-/g, '');
+    // Remove OTO- or ZEN- prefix and all chunk-separator hyphens
+    const clean = raw.replace(/^(OTO|ZEN)-/i, '').replace(/-/g, '');
     let restoredB64 = clean.replace(/\./g, '+').replace(/_/g, '/');
     while (restoredB64.length % 4) {
       restoredB64 += '=';

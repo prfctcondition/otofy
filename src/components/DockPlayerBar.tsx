@@ -96,18 +96,38 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
 
   const isLiked = activeTrack.isLiked || false;
 
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState<number | null>(null);
+
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
     const remainingSecs = Math.floor(secs % 60);
     return `${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const activePercent = isSeeking && seekValue !== null
+    ? seekValue
+    : duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const percent = parseFloat(e.target.value);
-    const newTime = (percent / 100) * duration;
-    seek(newTime);
+  const displayCurrentTime = isSeeking && seekValue !== null
+    ? (seekValue / 100) * duration
+    : currentTime;
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSeekValue(parseFloat(e.target.value));
+  };
+
+  const handleSeekStart = () => {
+    setIsSeeking(true);
+  };
+
+  const handleSeekCommit = () => {
+    if (seekValue !== null && duration > 0) {
+      const targetTime = (seekValue / 100) * duration;
+      seek(targetTime);
+    }
+    setIsSeeking(false);
+    setSeekValue(null);
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,31 +254,38 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </button>
         </div>
 
-        <div className="w-full flex items-center gap-2.5 text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono select-none">
-          <span className="w-10 text-right tabular-nums font-medium text-[#475569] dark:text-[#94A3B8]">{formatTime(currentTime)}</span>
+        <div className="w-full flex items-center gap-2.5 text-[11px] text-[#64748B] dark:text-[#A1A1AA] font-mono select-none">
+          <span className="w-10 text-right tabular-nums font-medium text-[#475569] dark:text-[#A1A1AA]">{formatTime(displayCurrentTime)}</span>
           <div className="relative flex-1 flex items-center group h-6 cursor-pointer">
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] dark:bg-white/[0.12] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
-                className="h-full bg-gradient-to-r from-violet-600 via-indigo-600 to-[#0F172A] dark:to-indigo-400 rounded-full transition-[width] duration-75"
-                style={{ width: `${progressPercent}%` }}
+                className="h-full bg-gradient-to-r from-violet-600 via-indigo-600 to-[#0F172A] dark:to-indigo-400 rounded-full"
+                style={{ width: `${activePercent}%` }}
               />
             </div>
             <div
-              className="absolute w-3.5 h-3.5 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_6px_rgba(79,70,229,0.35)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 -translate-x-1/2"
-              style={{ left: `${progressPercent}%` }}
+              className={`absolute w-3.5 h-3.5 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_6px_rgba(79,70,229,0.35)] pointer-events-none transition-opacity duration-150 -translate-x-1/2 ${
+                isSeeking ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'
+              }`}
+              style={{ left: `${activePercent}%` }}
             />
             <input
               type="range"
               min="0"
               max="100"
-              step="0.1"
-              value={progressPercent}
-              onChange={handleScrub}
+              step="0.05"
+              value={activePercent}
+              onMouseDown={handleSeekStart}
+              onTouchStart={handleSeekStart}
+              onChange={handleSeekChange}
+              onMouseUp={handleSeekCommit}
+              onTouchEnd={handleSeekCommit}
+              onKeyUp={handleSeekCommit}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               title="Seek"
             />
           </div>
-          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-[#94A3B8]">{formatTime(duration)}</span>
+          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-[#A1A1AA]">{formatTime(duration)}</span>
         </div>
       </div>
 

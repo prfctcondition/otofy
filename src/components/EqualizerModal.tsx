@@ -75,30 +75,33 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
             border-radius: 9999px;
             margin: auto;
           }
+          .dark .eq-slider::-webkit-slider-runnable-track {
+            background: rgba(255, 255, 255, 0.15);
+          }
           .eq-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: #7C3AED;
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.6);
+            background: #8B5CF6;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
             cursor: grab;
             margin-left: 8px;
           }
         `}
       </style>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="bg-white/92 backdrop-blur-3xl border border-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 m-4 overflow-hidden relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/80 dark:border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col p-6 m-4 overflow-hidden relative shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl text-white shadow-md">
                 <Sliders size={22} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-[#0F172A] leading-tight">10-Band Equalizer</h2>
-                <p className="text-xs text-[#64748B] flex items-center gap-1.5 mt-0.5">
-                  <Activity size={12} className="text-violet-600 animate-pulse" />
+                <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">10-Band Equalizer</h2>
+                <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] flex items-center gap-1.5 mt-0.5">
+                  <Activity size={12} className="text-violet-600 dark:text-violet-400 animate-pulse" />
                   Web Audio Parametric Engine (-12dB to +12dB)
                 </p>
               </div>
@@ -113,13 +116,13 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                     checked={isEnabled}
                     onChange={() => toggleEnabled()}
                   />
-                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-violet-600' : 'bg-[#94A3B8]'}`} />
+                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-violet-600' : 'bg-[#94A3B8] dark:bg-zinc-700'}`} />
                   <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm ${isEnabled ? 'transform translate-x-6' : ''}`} />
                 </div>
               </label>
               <button
                 onClick={onClose}
-                className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
                 title="Close Equalizer"
               >
                 <X size={20} />
@@ -128,9 +131,9 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           </div>
 
           {/* Real-time Spectrum Canvas */}
-          <div className="w-full h-14 mb-5 rounded-2xl bg-slate-100/90 border border-slate-200/80 overflow-hidden relative flex items-end px-2 py-1 shadow-inner">
+          <div className="w-full h-14 mb-5 rounded-2xl bg-slate-100/90 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 overflow-hidden relative flex items-end px-2 py-1 shadow-inner">
             <canvas ref={canvasRef} width={580} height={48} className="w-full h-full" />
-            <div className="absolute top-1.5 right-2.5 text-[10px] font-mono font-bold text-[#64748B] uppercase tracking-wider">
+            <div className="absolute top-1.5 right-2.5 text-[10px] font-mono font-bold text-[#64748B] dark:text-zinc-400 uppercase tracking-wider">
               {isEnabled ? 'Live Spectrum' : 'EQ Bypass'}
             </div>
           </div>
@@ -143,7 +146,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           >
             {EQ_BANDS.map((bandConfig, i) => (
               <div key={bandConfig.frequency} className="flex flex-col items-center gap-2">
-                <div className="text-[11px] font-mono font-bold text-[#0F172A] bg-white border border-slate-200 px-1.5 py-0.5 rounded-md min-w-[2.8rem] text-center shadow-xs">
+                <div className="text-[11px] font-mono font-bold text-[#0F172A] dark:text-white bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded-md min-w-[2.8rem] text-center shadow-xs">
                   {bands[i] > 0 ? '+' : ''}
                   {bands[i].toFixed(1)}
                 </div>
@@ -157,29 +160,29 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                   className="eq-slider"
                   style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
                 />
-                <div className="text-[11px] font-bold text-[#334155] mt-1">
+                <div className="text-[11px] font-bold text-[#334155] dark:text-zinc-400 mt-1">
                   {bandConfig.label}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Presets Row */}
-          <div className="mt-auto pt-3 border-t border-slate-200/80">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2.5">
+          {/* Presets (Wrapped Grid - All visible at once!) */}
+          <div className="mt-auto pt-4 border-t border-slate-200/80 dark:border-white/10">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#A1A1AA] mb-2.5">
               Audio Presets
             </h3>
-            <div className="flex overflow-x-auto pb-1 gap-2 no-scrollbar">
+            <div className="flex flex-wrap gap-2">
               {EQ_PRESETS.map((preset) => {
                 const isActive = selectedPreset === preset.name && isEnabled;
                 return (
                   <button
                     key={preset.name}
                     onClick={() => applyPreset(preset.name)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#0F172A] text-white shadow-md'
-                        : 'bg-slate-100 hover:bg-white text-[#334155] hover:text-[#0F172A] border border-slate-200 shadow-xs'
+                        ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-md'
+                        : 'bg-slate-100 dark:bg-white/[0.06] hover:bg-white dark:hover:bg-white/[0.12] text-[#334155] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs'
                     }`}
                   >
                     {preset.name}

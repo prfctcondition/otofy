@@ -175,6 +175,7 @@ declare global {
       isMaximized?: () => Promise<boolean>;
       onWindowState?: (callback: (isMaximized: boolean) => void) => () => void;
       onMediaKey: (callback: (key: string) => void) => () => void;
+      getUserProfile?: () => Promise<{ username: string; avatarUrl?: string | null }>;
     };
   }
 }

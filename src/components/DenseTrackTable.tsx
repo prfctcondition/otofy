@@ -17,6 +17,7 @@ interface DenseTrackTableProps {
   tracks: Track[];
   activeTrackId: string;
   isPlaying: boolean;
+  isLoading?: boolean;
   onTrackSelect: (track: Track, queue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
@@ -219,6 +220,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   tracks,
   activeTrackId,
   isPlaying,
+  isLoading = false,
   onTrackSelect,
   onPlayToggle,
   onToggleLike,
@@ -264,14 +266,22 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       </div>
 
       <div className="space-y-1 mt-1.5">
-        {tracks.length === 0 ? (
+        {isLoading ? (
+          <div className="py-20 px-4 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 dark:bg-white/10 border border-violet-500/20 dark:border-white/15 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-3 shadow-xs">
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+            <h4 className="text-sm font-bold text-[#0F172A] dark:text-white mb-0.5">Loading tracks...</h4>
+            <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">Fetching songs and metadata</p>
+          </div>
+        ) : tracks.length === 0 ? (
           <div className="py-16 px-4 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-[#111827]/60 border border-white/80 dark:border-[#27354A] flex items-center justify-center text-violet-500 mb-3 shadow-xs">
               <Clock size={28} className="opacity-80" />
             </div>
             <h4 className="text-base font-bold text-[#0F172A] dark:text-[#F1F5F9] mb-1">No songs in this collection</h4>
             <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-sm leading-relaxed">
-              Use the top search bar to find and add ad-free songs from YouTube Music & SoundCloud, or import a CS2 share code.
+              Use the top search bar to find and add ad-free songs from YouTube Music & SoundCloud, or import an Otofy share code.
             </p>
           </div>
         ) : (

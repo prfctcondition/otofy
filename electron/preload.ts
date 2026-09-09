@@ -32,4 +32,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('media-key', handler);
     return () => ipcRenderer.removeListener('media-key', handler);
   },
+  getUserProfile: () => ipcRenderer.invoke('app:get-user-profile'),
 });
