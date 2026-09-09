@@ -81,7 +81,7 @@ Streaming platforms have become heavy, bloated with podcasts and algorithmic clu
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/prfctcondition/otofy.git](https://github.com/prfctcondition/otofy.git)
+git clone https://github.com/prfctcondition/otofy.git
 cd otofy
 
 # 2. Install dependencies
