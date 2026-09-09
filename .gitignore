@@ -8,5 +8,6 @@ coverage/
 *.tsbuildinfo
 release/
 dist-builder/
-.env*
-!.env.example
+.env
+.env.local
+metadata.json
