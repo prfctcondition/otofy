@@ -182,7 +182,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
     if (list.length > 0) {
       return `With ${list.join(', ')}`;
     }
-    return playlist.creator || 'Zen Music collection';
+    return playlist.creator || 'Otofy collection';
   }, [tracks, playlist.creator, playlist.type]);
 
   // Duration & song count stats
@@ -304,21 +304,31 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             )}
 
             {/* Creator & Stats Row */}
-            <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] font-normal">
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
-                  {creatorInitial}
-                </div>
-                <span className="font-bold text-[#0F172A] hover:underline cursor-pointer">
-                  {playlist.creator || 'Zen Music'}
+            <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] dark:text-[#94A3B8] font-normal">
+              {playlist.type === 'Artist' ? (
+                <span className="font-bold text-[#0F172A] dark:text-[#F1F5F9]">
+                  {playlist.creator}
                 </span>
-              </div>
-              <span>•</span>
-              <span>Public Playlist</span>
-              <span>•</span>
-              <span className="font-semibold text-[#0F172A]">
-                {totalSongCount} songs, {formattedDuration}
-              </span>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full bg-[#0F172A] dark:bg-white text-white dark:text-[#0F172A] flex items-center justify-center text-[10px] font-bold shadow-xs">
+                    {creatorInitial}
+                  </div>
+                  <span className="font-bold text-[#0F172A] dark:text-[#F1F5F9] hover:underline cursor-pointer">
+                    {playlist.creator || 'Otofy'}
+                  </span>
+                </div>
+              )}
+              {playlist.type !== 'Artist' && (
+                <>
+                  <span>•</span>
+                  <span>Public Playlist</span>
+                  <span>•</span>
+                  <span className="font-semibold text-[#0F172A] dark:text-[#F1F5F9]">
+                    {totalSongCount} songs, {formattedDuration}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -342,7 +352,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             </button>
 
             {/* Mini Cover Preview Thumbnail next to Play */}
-            <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-xs border border-white/60 hidden sm:flex items-center justify-center bg-slate-900">
+            <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-xs border border-white/60 dark:border-white/20 hidden sm:flex items-center justify-center bg-slate-900">
               {topTrackArtworks[0]?.artworkUrl || playlist.artworkUrl ? (
                 <img
                   src={topTrackArtworks[0]?.artworkUrl || playlist.artworkUrl}
@@ -360,8 +370,8 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               onClick={onShuffleToggle}
               className={`p-2.5 rounded-full transition-all relative cursor-pointer ${
                 isShuffle
-                  ? 'text-[#1DB954] bg-white/90 border border-white shadow-xs'
-                  : 'text-[#64748B] hover:text-[#0F172A] hover:bg-white/60'
+                  ? 'text-[#1DB954] bg-white/90 dark:bg-[#1E293B] border border-white dark:border-white/10 shadow-xs'
+                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
               }`}
               title="Shuffle collection"
               aria-label="Shuffle"
@@ -380,7 +390,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
                   isSavedInLibrary
                     ? 'bg-[#1DB954] hover:bg-[#1ed760] text-black shadow-[0_4px_14px_rgba(29,185,84,0.35)]'
-                    : 'bg-white/85 hover:bg-white text-[#0F172A] border border-white/95 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] hover:shadow-md'
+                    : 'bg-white/85 dark:bg-[#1E293B] hover:bg-white dark:hover:bg-[#27354A] text-[#0F172A] dark:text-[#F1F5F9] border border-white/95 dark:border-[#27354A] shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md'
                 }`}
                 title={isSavedInLibrary ? 'In My Playlists (click to remove)' : 'Save to My Playlists'}
                 aria-label={isSavedInLibrary ? 'In My Playlists' : 'Save to My Playlists'}
@@ -392,7 +402,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                   </>
                 ) : (
                   <>
-                    <Plus size={16} strokeWidth={2.5} className="text-violet-600" />
+                    <Plus size={16} strokeWidth={2.5} className="text-violet-600 dark:text-violet-400" />
                     <span>Save to My Playlists</span>
                   </>
                 )}
@@ -402,22 +412,11 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* Download Button */}
             <button
               id="hero-download-button"
-              className="p-2.5 rounded-full text-[#64748B] hover:text-[#0F172A] hover:bg-white/60 transition-colors cursor-pointer"
+              className="p-2.5 rounded-full text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Download to cache"
               aria-label="Download"
             >
               <ArrowDownCircle size={21} />
-            </button>
-
-            {/* Create new playlist from this button */}
-            <button
-              id="hero-create-copy-button"
-              onClick={handleCreateNewPlaylistFromThis}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white/80 hover:bg-white text-[#0F172A] border border-white/90 shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
-              title="Create new playlist from this"
-            >
-              <FolderPlus size={15} className="text-violet-600" />
-              <span>Create new playlist from this</span>
             </button>
 
             {/* 3-dots dropdown menu */}

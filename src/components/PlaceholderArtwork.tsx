@@ -29,7 +29,9 @@ interface PlaceholderArtworkProps {
   specularBorder?: boolean;
 }
 
-export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
+const failedImageUrls = new Set<string>();
+
+export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(({
   icon,
   imageUrl,
   source,
@@ -50,7 +52,8 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
     const isYtSource = source === 'YT' || source?.toLowerCase().includes('youtube');
     const isYtId = /^[a-zA-Z0-9_-]{11}$/.test(cleanId);
     if (isYtSource || isYtId) {
-      return `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`;
+      const url = `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`;
+      return failedImageUrls.has(url) ? undefined : url;
     }
     return undefined;
   }, [source, sourceId]);
@@ -61,7 +64,7 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
     if (clean.startsWith('//')) {
       clean = `https:${clean}`;
     }
-    return clean;
+    return failedImageUrls.has(clean) ? undefined : clean;
   }, [imageUrl]);
 
   const [currentImgUrl, setCurrentImgUrl] = React.useState<string | undefined>(
@@ -74,6 +77,9 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
   }, [normalizedImgUrl, ytFallbackUrl]);
 
   const handleImageError = () => {
+    if (currentImgUrl) {
+      failedImageUrls.add(currentImgUrl);
+    }
     if (currentImgUrl !== ytFallbackUrl && ytFallbackUrl) {
       setCurrentImgUrl(ytFallbackUrl);
     } else {
@@ -139,6 +145,7 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
           onError={handleImageError}
           className="absolute inset-0 w-full h-full object-cover z-0"
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
       )}
@@ -155,4 +162,4 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
       {!hasImage && <div className="relative z-10">{renderIcon()}</div>}
     </div>
   );
-};
+});

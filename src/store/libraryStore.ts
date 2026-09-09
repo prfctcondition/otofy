@@ -21,7 +21,7 @@ export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
 ];
 
 export interface NavigationSnapshot {
-  currentView: 'home' | 'playlist' | 'search';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog';
   selectedPlaylistId: string;
   viewingPlaylist: Playlist | null;
   currentPlaylistTracks: Track[];
@@ -57,7 +57,7 @@ interface LibraryState {
   selectedPlaylistId: string;
   currentPlaylistTracks: Track[];
   viewingPlaylist: Playlist | null;
-  currentView: 'home' | 'playlist' | 'search';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog';
   viewportMode: 'desktop' | 'mobile';
   isSidebarCollapsed: boolean;
   isRightPanelOpen: boolean;
@@ -91,7 +91,8 @@ interface LibraryActions {
   createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string }) => Promise<Playlist>;
   deletePlaylist: (id: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
-  setCurrentView: (view: 'home' | 'playlist' | 'search') => void;
+  setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog') => void;
+  openCatalog: () => void;
   navigateBack: () => void;
   navigateForward: () => void;
   setViewportMode: (mode: 'desktop' | 'mobile') => void;
@@ -209,7 +210,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       id: customId,
       title,
       type: options?.type || 'Playlist',
-      creator: options?.creator || 'Zen Music Mix',
+      creator: options?.creator || 'Otofy Mix',
       songCount: tracks.length,
       duration: options?.duration || `${tracks.length} tracks`,
       iconName: options?.iconName || 'music',
@@ -267,7 +268,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       id: `pl-${Date.now()}`,
       title: viewingPlaylist.title,
       type: 'Playlist',
-      creator: viewingPlaylist.creator || 'Zen Music',
+      creator: viewingPlaylist.creator || 'Otofy',
       songCount: currentPlaylistTracks.length,
       duration: viewingPlaylist.duration || `${currentPlaylistTracks.length} tracks`,
       iconName: viewingPlaylist.iconName || 'music',
@@ -412,18 +413,41 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
 
   setCurrentView: (view) => {
     const state = get();
-    if (state.currentView === view && view === 'home') return;
+    if (state.currentView === view && (view === 'home' || view === 'catalog')) return;
+    const isSpecialView = view === 'home' || view === 'catalog';
     const snapshot: NavigationSnapshot = {
       currentView: view,
       selectedPlaylistId: state.selectedPlaylistId,
-      viewingPlaylist: view === 'home' ? null : state.viewingPlaylist,
-      currentPlaylistTracks: view === 'home' ? [] : state.currentPlaylistTracks,
-      currentArtistDetails: view === 'home' ? null : state.currentArtistDetails,
+      viewingPlaylist: isSpecialView ? null : state.viewingPlaylist,
+      currentPlaylistTracks: isSpecialView ? [] : state.currentPlaylistTracks,
+      currentArtistDetails: isSpecialView ? null : state.currentArtistDetails,
     };
     const historyUpdate = pushHistoryEntry(state, snapshot);
     set({
       currentView: view,
+      viewingPlaylist: isSpecialView ? null : state.viewingPlaylist,
+      currentPlaylistTracks: isSpecialView ? [] : state.currentPlaylistTracks,
       currentArtistDetails: view === 'playlist' ? state.currentArtistDetails : null,
+      ...historyUpdate,
+    });
+  },
+
+  openCatalog: () => {
+    const state = get();
+    if (state.currentView === 'catalog') return;
+    const snapshot: NavigationSnapshot = {
+      currentView: 'catalog',
+      selectedPlaylistId: state.selectedPlaylistId,
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
+    };
+    const historyUpdate = pushHistoryEntry(state, snapshot);
+    set({
+      currentView: 'catalog',
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
       ...historyUpdate,
     });
   },

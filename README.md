@@ -1,4 +1,4 @@
-# Zen Music 🎵
+# Otofy 🎵
 
 A modern, fluid desktop and mobile music player powered by Electron, React, Tailwind CSS, and TypeScript. Ad-free audio streaming, high-resolution discographies, synchronized karaoke lyrics, and a parametric equalizer.
 

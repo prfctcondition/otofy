@@ -13,6 +13,8 @@ let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: 'Otofy',
+    icon: path.join(__dirname, '../public/icon.png'),
     width: 1440,
     height: 900,
     minWidth: 900,
@@ -25,7 +27,7 @@ function createWindow() {
     },
     titleBarStyle: 'hidden',
     frame: false,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#0B0F19',
   });
 
   mainWindow.on('maximize', () => {

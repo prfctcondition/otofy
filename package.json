@@ -1,5 +1,5 @@
 {
-  "name": "zen-music",
+  "name": "otofy",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -17,17 +17,19 @@
     "dist": "npm run build && tsc -p tsconfig.electron.json && npm run build:preload && electron-builder --win"
   },
   "build": {
-    "appId": "com.zenmusic.desktop",
-    "productName": "Zen Music",
+    "appId": "com.otofy.desktop",
+    "productName": "Otofy",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "public/**/*",
       "package.json"
     ],
     "win": {
+      "icon": "public/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -42,7 +44,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Zen Music"
+      "shortcutName": "Otofy"
     }
   },
   "dependencies": {

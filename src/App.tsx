@@ -8,6 +8,7 @@ import { ArtistDiscographySection } from './components/ArtistDiscographySection'
 import { DockPlayerBar } from './components/DockPlayerBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { HomeScreen } from './components/HomeScreen';
+import { GenreCatalogScreen } from './components/GenreCatalogScreen';
 import { StationItem, MadeForYouItem } from './data/homeData';
 
 import { usePlayerStore } from './store/playerStore';
@@ -61,6 +62,7 @@ export default function App() {
     isSyncModalOpen,
     isLyricsModalOpen,
     isQueueOpen,
+    isFullscreenLyrics,
   } = libraryStore;
 
   const { activeTrack, isPlaying, isShuffle } = playerStore;
@@ -243,7 +245,7 @@ export default function App() {
       const mixTracks = await getDailyMixTracks(matchMix);
       const meta = computeMixMeta(mixTracks, matchMix.mixNumber, matchMix.genre);
       libraryStore.setCustomPlaylistView(meta.title, mixTracks, {
-        creator: 'Zen Music',
+        creator: 'Otofy',
         description: meta.subtitle,
         iconName: 'sparkles',
       });
@@ -257,7 +259,7 @@ export default function App() {
     try {
       const stationTracks = await getStationTracks(station);
       libraryStore.setCustomPlaylistView(`${station.title} Radio`, stationTracks, {
-        creator: 'Zen Music',
+        creator: 'Otofy',
         description: station.artistsSummary,
         iconName: 'radio',
         gradientFrom: '#047857',
@@ -274,7 +276,7 @@ export default function App() {
       const stationTracks = await getStationTracks(station);
       if (stationTracks.length > 0) {
         libraryStore.setCustomPlaylistView(`${station.title} Radio`, stationTracks, {
-          creator: 'Zen Music',
+          creator: 'Otofy',
           description: station.artistsSummary,
           iconName: 'radio',
           gradientFrom: '#047857',
@@ -298,7 +300,7 @@ export default function App() {
         const mixTracks = await getDailyMixTracks(match);
         const meta = computeMixMeta(mixTracks, match.mixNumber, match.genre);
         libraryStore.setCustomPlaylistView(meta.title, mixTracks, {
-          creator: 'Zen Music',
+          creator: 'Otofy',
           description: meta.subtitle,
           iconName: 'sparkles',
           gradientFrom: '#1E1B4B',
@@ -321,7 +323,7 @@ export default function App() {
         if (mixTracks.length > 0) {
           const meta = computeMixMeta(mixTracks, match.mixNumber, match.genre);
           libraryStore.setCustomPlaylistView(meta.title, mixTracks, {
-            creator: 'Zen Music',
+            creator: 'Otofy',
             description: meta.subtitle,
             iconName: 'sparkles',
             gradientFrom: '#1E1B4B',
@@ -694,6 +696,11 @@ export default function App() {
                   onPlayStation={handlePlayStation}
                   onOpenMix={handleOpenMix}
                   onPlayMix={handlePlayMix}
+                  onShowAll={libraryStore.openCatalog}
+                />
+              ) : currentView === 'catalog' ? (
+                <GenreCatalogScreen
+                  onBack={() => libraryStore.setCurrentView('home')}
                 />
               ) : (
                 <div
@@ -754,7 +761,11 @@ export default function App() {
         ) : (
           /* Mobile Viewport */
           <div className="w-full max-w-md mx-auto h-full flex flex-col liquid-glass-panel rounded-3xl overflow-hidden shadow-2xl relative">
-            {mobileActiveTab === 'home' ? (
+            {currentView === 'catalog' ? (
+              <GenreCatalogScreen
+                onBack={() => libraryStore.setCurrentView('home')}
+              />
+            ) : mobileActiveTab === 'home' ? (
               <HomeScreen
                 onSelectCollection={handleSelectCollection}
                 onPlayCollection={handlePlayCollection}
@@ -762,6 +773,7 @@ export default function App() {
                 onPlayStation={handlePlayStation}
                 onOpenMix={handleOpenMix}
                 onPlayMix={handlePlayMix}
+                onShowAll={libraryStore.openCatalog}
               />
             ) : (
               <div
@@ -834,23 +846,27 @@ export default function App() {
         </div>
       )}
 
-      {/* Modals */}
-      <EqualizerModal isOpen={isEqModalOpen} onClose={libraryStore.toggleEqModal} />
-      <QueueModal isOpen={isQueueOpen} onClose={libraryStore.toggleQueue} />
-      <SharePlaylistModal
-        isOpen={isShareModalOpen}
-        onClose={libraryStore.toggleShareModal}
-        playlistTitle={currentPlaylist?.title || 'Playlist'}
-        playlistCreator={currentPlaylist?.creator || 'You'}
-        tracks={filteredTracks}
-      />
-      <ImportPlaylistModal isOpen={isImportModalOpen} onClose={libraryStore.toggleImportModal} />
-      <CreatePlaylistModal isOpen={isCreatePlaylistModalOpen} onClose={libraryStore.toggleCreatePlaylistModal} />
-      <AccountSyncModal isOpen={isSyncModalOpen} onClose={libraryStore.toggleSyncModal} />
-      {viewportMode === 'mobile' && (
+      {/* Modals (conditionally mounted for maximum performance) */}
+      {isEqModalOpen && <EqualizerModal isOpen={isEqModalOpen} onClose={libraryStore.toggleEqModal} />}
+      {isQueueOpen && <QueueModal isOpen={isQueueOpen} onClose={libraryStore.toggleQueue} />}
+      {isShareModalOpen && (
+        <SharePlaylistModal
+          isOpen={isShareModalOpen}
+          onClose={libraryStore.toggleShareModal}
+          playlistTitle={currentPlaylist?.title || 'Playlist'}
+          playlistCreator={currentPlaylist?.creator || 'You'}
+          tracks={filteredTracks}
+        />
+      )}
+      {isImportModalOpen && <ImportPlaylistModal isOpen={isImportModalOpen} onClose={libraryStore.toggleImportModal} />}
+      {isCreatePlaylistModalOpen && (
+        <CreatePlaylistModal isOpen={isCreatePlaylistModalOpen} onClose={libraryStore.toggleCreatePlaylistModal} />
+      )}
+      {isSyncModalOpen && <AccountSyncModal isOpen={isSyncModalOpen} onClose={libraryStore.toggleSyncModal} />}
+      {viewportMode === 'mobile' && isLyricsModalOpen && (
         <LyricsModal isOpen={isLyricsModalOpen} onClose={libraryStore.toggleLyricsModal} />
       )}
-      <FullscreenLyricsModal />
+      {isFullscreenLyrics && <FullscreenLyricsModal />}
 
       {/* Floating Notifications / Error Toasts */}
       <ToastContainer />

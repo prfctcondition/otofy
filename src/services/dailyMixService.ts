@@ -277,14 +277,69 @@ export const GENRE_PRESETS: GenrePreset[] = [
   },
 ];
 
-const GENRE_QUERIES: Record<number, string> = {
-  0: 'chart',
-  1: 'phonk',
-  2: 'lofi chill',
-  3: 'synthwave',
-  4: 'underground hip hop',
-  5: 'ambient chill',
+const ROTATING_QUERIES: Record<number, string[]> = {
+  0: [
+    'chart top songs',
+    'trending hits billboard',
+    'viral music 2025',
+    'popular tracks now',
+    'global top hits',
+    'dance pop anthems',
+    'indie discovery hits',
+  ],
+  1: [
+    'drift phonk',
+    'brazilian phonk mix',
+    'memphis underground phonk',
+    'aggressive phonk bass',
+    'wave phonk drift',
+    'kordhell dvrst phonk',
+    'dark bass drift phonk',
+  ],
+  2: [
+    'lofi hip hop chill beats',
+    'lofi study relaxing beats',
+    'chillhop cafe jazzhop',
+    'late night lofi beats',
+    'cozy lofi bedroom beats',
+    'japanese lofi chillhop',
+    'lofi sleep night beats',
+  ],
+  3: [
+    'synthwave 80s retrowave',
+    'darksynth cyberpunk',
+    'outrun electro synth',
+    'the midnight synthwave style',
+    'kavinsky retrowave night',
+    'synthpop electronic 80s',
+    'chillwave retro synth',
+  ],
+  4: [
+    'underground hip hop classics',
+    '90s boom bap rap',
+    'raw lyrical hip hop',
+    'conscious hip hop beats',
+    'golden era hip hop',
+    'jazz hop lyrical boom bap',
+    'gritty 90s underground rap',
+  ],
+  5: [
+    'ambient chill soundscapes',
+    'space ambient meditation',
+    'deep focus drone ambient',
+    'brian eno ambient flow',
+    'binaural focus soundscape',
+    'sleep ambient textures',
+    'ethereal ambient flow',
+  ],
 };
+
+export function getDailyQueryForMix(mixNumber: number): string {
+  const list = ROTATING_QUERIES[mixNumber];
+  if (!list || list.length === 0) return 'chart';
+  const dayIndex = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  return list[dayIndex % list.length];
+}
 
 export async function fetchGenreTracks(query: string): Promise<Track[]> {
   // 1. If Electron IPC is available
@@ -379,7 +434,11 @@ const MIX_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 export async function shouldRefreshMixes(): Promise<boolean> {
   const lastRefresh = await repo.getSetting('dailyMixLastRefresh');
   if (!lastRefresh) return true;
-  return Date.now() - parseInt(lastRefresh, 10) > MIX_REFRESH_INTERVAL;
+  const lastDate = new Date(parseInt(lastRefresh, 10));
+  const today = new Date();
+  const isDifferentDay = lastDate.toDateString() !== today.toDateString();
+  const isExpired = Date.now() - parseInt(lastRefresh, 10) > 18 * 60 * 60 * 1000;
+  return isDifferentDay || isExpired;
 }
 
 /**
@@ -439,7 +498,7 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
   for (let i = 0; i < GENRE_PRESETS.length; i++) {
     const preset = GENRE_PRESETS[i];
     const mixId = `mix-${preset.mixNumber}`;
-    const query = GENRE_QUERIES[preset.mixNumber] || preset.genre;
+    const query = getDailyQueryForMix(preset.mixNumber) || preset.genre;
 
     let mixTracks = await fetchGenreTracks(query);
 
@@ -521,7 +580,7 @@ export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Trac
 
   // If fewer than 40 tracks were retrieved, fetch fresh full set of 40-50 tracks
   if (tracks.length < 40) {
-    const query = GENRE_QUERIES[mixConfig.mixNumber] || mixConfig.genre || 'chart';
+    const query = getDailyQueryForMix(mixConfig.mixNumber) || mixConfig.genre || 'chart';
     const freshTracks = await fetchGenreTracks(query);
     if (freshTracks.length > 0) {
       for (const t of freshTracks) {

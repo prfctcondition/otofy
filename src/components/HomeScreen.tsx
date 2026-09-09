@@ -33,6 +33,7 @@ interface HomeScreenProps {
   onPlayStation: (station: StationItem) => void;
   onOpenMix: (mix: MadeForYouItem) => void;
   onPlayMix: (mix: MadeForYouItem) => void;
+  onShowAll?: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -42,6 +43,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPlayStation,
   onOpenMix,
   onPlayMix,
+  onShowAll,
 }) => {
   const [dynamicMixes, setDynamicMixes] = useState<DailyMixConfig[]>([]);
 
@@ -109,7 +111,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={item.id}
               id={`quick-access-${item.id}`}
               onClick={() => onSelectCollection(item.title, item.playlistId)}
-              className="group relative h-14 rounded-lg bg-white/45 hover:bg-white/80 active:bg-white/90 backdrop-blur-xl border border-white/85 hover:border-white shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] flex items-center overflow-hidden cursor-pointer transition-all duration-200"
+              className="group relative h-14 rounded-lg bg-white/45 dark:bg-[#111827]/70 hover:bg-white/80 dark:hover:bg-[#161F30]/90 active:bg-white/90 dark:active:bg-[#1E293B] backdrop-blur-xl border border-white/85 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] flex items-center overflow-hidden cursor-pointer transition-all duration-200"
             >
               {/* Left Artwork Thumbnail */}
               <div
@@ -124,7 +126,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               {/* Title label */}
-              <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] truncate group-hover:text-violet-950 transition-colors">
+              <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] dark:text-[#F1F5F9] truncate group-hover:text-violet-950 dark:group-hover:text-violet-300 transition-colors">
                 {item.title}
               </span>
 
@@ -156,16 +158,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <section id="recommended-stations-section" className="relative z-10 mb-9">
         <div className="flex items-end justify-between mb-3.5">
           <div>
-            <p className="text-xs font-semibold text-[#64748B] tracking-wide mb-1">
+            <p className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] tracking-wide mb-1">
               Non-stop music based on your favorite songs and artists.
             </p>
-            <h2 className="text-xl font-bold tracking-tight text-[#0F172A]">
+            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
               Recommended Stations
             </h2>
           </div>
           <button
             id="show-all-stations-btn"
-            className="text-xs font-bold text-[#64748B] hover:text-[#0F172A] px-3 py-1 rounded-full bg-white/40 hover:bg-white/70 border border-white/70 transition-all"
+            onClick={onShowAll}
+            className="text-xs font-bold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/40 dark:bg-[#1E293B]/70 hover:bg-white/70 dark:hover:bg-[#27354A] border border-white/70 dark:border-[#27354A] transition-all"
           >
             Show all
           </button>
@@ -178,7 +181,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={station.id}
               id={`station-card-${station.id}`}
               onClick={() => onOpenStation(station)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/40 hover:bg-white/75 active:bg-white/85 backdrop-blur-xl border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/40 dark:bg-[#111827]/70 hover:bg-white/75 dark:hover:bg-[#161F30]/90 active:bg-white/85 dark:active:bg-[#1E293B] backdrop-blur-xl border border-white/80 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
             >
               {/* Authentic Spotify-style Radio Graphic Artwork */}
               <div
@@ -228,7 +231,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
               {/* Station Artists Subtitle */}
               <div className="mt-2.5 px-0.5">
-                <p className="text-xs text-[#64748B] group-hover:text-[#475569] leading-snug line-clamp-2 transition-colors">
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8] group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
                   {station.artistsSummary}
                 </p>
               </div>
@@ -240,12 +243,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* 3. SECTION: MADE FOR YOU */}
       <section id="made-for-you-section" className="relative z-10">
         <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A]">
+          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-[#F1F5F9]">
             Made For You
           </h2>
           <button
             id="show-all-made-for-you-btn"
-            className="text-xs font-bold text-[#64748B] hover:text-[#0F172A] px-3 py-1 rounded-full bg-white/40 hover:bg-white/70 border border-white/70 transition-all"
+            onClick={onShowAll}
+            className="text-xs font-bold text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/40 dark:bg-[#1E293B]/70 hover:bg-white/70 dark:hover:bg-[#27354A] border border-white/70 dark:border-[#27354A] transition-all"
           >
             Show all
           </button>
@@ -258,7 +262,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               key={item.id}
               id={`made-for-you-card-${item.id}`}
               onClick={() => onOpenMix(item)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/40 hover:bg-white/75 active:bg-white/85 backdrop-blur-xl border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/40 dark:bg-[#111827]/70 hover:bg-white/75 dark:hover:bg-[#161F30]/90 active:bg-white/85 dark:active:bg-[#1E293B] backdrop-blur-xl border border-white/80 dark:border-[#27354A]/80 hover:border-white dark:hover:border-[#384A66] shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer transition-all duration-200"
             >
               {/* Artwork Box */}
               <div

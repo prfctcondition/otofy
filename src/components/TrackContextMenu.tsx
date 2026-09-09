@@ -104,7 +104,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   };
 
   const handleCopyShare = () => {
-    const shareText = `🎵 ${track.title} - ${track.artist}\nZen Music Stream: ${track.sourceId}`;
+    const shareText = `🎵 ${track.title} - ${track.artist}\nOtofy Stream: ${track.sourceId}`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => {
