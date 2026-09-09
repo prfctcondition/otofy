@@ -1,0 +1,148 @@
+import React from 'react';
+import {
+  Disc,
+  Music,
+  Waves,
+  Headphones,
+  Radio,
+  Mic,
+  Zap,
+  Sparkles,
+  Flame,
+  Heart,
+  User,
+  Sliders,
+} from 'lucide-react';
+import { IconType } from '../types';
+
+interface PlaceholderArtworkProps {
+  icon: IconType;
+  imageUrl?: string;
+  source?: string;
+  sourceId?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  size?: number | string; // e.g. 40, 48, 56, 120, 240
+  iconSize?: number;
+  rounded?: string;
+  className?: string;
+  specularBorder?: boolean;
+}
+
+export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = ({
+  icon,
+  imageUrl,
+  source,
+  sourceId,
+  gradientFrom = '#1E1E24',
+  gradientTo = '#0E0E12',
+  size = 40,
+  iconSize,
+  rounded = 'rounded-md',
+  className = '',
+  specularBorder = true,
+}) => {
+  const [imageError, setImageError] = React.useState(false);
+
+  const ytFallbackUrl = React.useMemo(() => {
+    if (!sourceId) return undefined;
+    const cleanId = sourceId.trim();
+    const isYtSource = source === 'YT' || source?.toLowerCase().includes('youtube');
+    const isYtId = /^[a-zA-Z0-9_-]{11}$/.test(cleanId);
+    if (isYtSource || isYtId) {
+      return `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`;
+    }
+    return undefined;
+  }, [source, sourceId]);
+
+  const [currentImgUrl, setCurrentImgUrl] = React.useState<string | undefined>(
+    imageUrl || ytFallbackUrl
+  );
+
+  React.useEffect(() => {
+    setImageError(false);
+    setCurrentImgUrl(imageUrl || ytFallbackUrl);
+  }, [imageUrl, ytFallbackUrl]);
+
+  const handleImageError = () => {
+    if (currentImgUrl !== ytFallbackUrl && ytFallbackUrl) {
+      setCurrentImgUrl(ytFallbackUrl);
+    } else {
+      setImageError(true);
+    }
+  };
+
+  const computedSize = typeof size === 'number' ? `${size}px` : size;
+  const computedIconSize = iconSize ?? (typeof size === 'number' ? Math.round(size * 0.44) : 20);
+
+  const hasImage = Boolean(currentImgUrl && !imageError);
+
+  const renderIcon = () => {
+    const props = {
+      size: computedIconSize,
+      className: 'text-white/80 drop-shadow-sm transition-transform duration-300 group-hover:scale-105',
+    };
+
+    switch (icon) {
+      case 'disc':
+        return <Disc {...props} />;
+      case 'music':
+        return <Music {...props} />;
+      case 'waves':
+        return <Waves {...props} />;
+      case 'headphones':
+        return <Headphones {...props} />;
+      case 'radio':
+        return <Radio {...props} />;
+      case 'mic':
+        return <Mic {...props} />;
+      case 'zap':
+        return <Zap {...props} />;
+      case 'sparkles':
+        return <Sparkles {...props} />;
+      case 'flame':
+        return <Flame {...props} />;
+      case 'heart':
+        return <Heart {...props} fill="currentColor" />;
+      case 'user':
+        return <User {...props} />;
+      case 'sliders':
+        return <Sliders {...props} />;
+      default:
+        return <Music {...props} />;
+    }
+  };
+
+  return (
+    <div
+      className={`relative shrink-0 overflow-hidden flex items-center justify-center select-none ${rounded} ${className}`}
+      style={{
+        width: computedSize,
+        height: computedSize,
+        background: hasImage ? '#0F172A' : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+      }}
+    >
+      {/* Real Image Artwork */}
+      {hasImage && (
+        <img
+          src={currentImgUrl}
+          alt="Artwork"
+          onError={handleImageError}
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          loading="lazy"
+        />
+      )}
+
+      {/* Subtle Specular Sheen Diagonal Reflection */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.18] via-transparent to-black/30 z-10" />
+
+      {/* Hair-thin 0.5px Specular Border */}
+      {specularBorder && (
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-white/[0.15] z-10" />
+      )}
+
+      {/* Minimal Monochrome Icon Fallback */}
+      {!hasImage && <div className="relative z-10">{renderIcon()}</div>}
+    </div>
+  );
+};
