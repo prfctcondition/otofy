@@ -66,9 +66,8 @@ Streaming platforms have become heavy, bloated with podcasts and algorithmic clu
 
 - [ ] **Account Integrations**: Optional login for YouTube Music and SoundCloud to auto-sync existing cloud libraries and favorites.
 - [ ] **Discord Rich Presence**: Share current track, artist, and playback progress in your Discord status.
-- [ ] **Global Media Hotkeys**: System-wide media key shortcuts (Play/Pause/Next/Prev) even when minimized to tray.
 - [ ] **Offline Cache**: Smart local audio caching for stutter-free playback on unstable networks.
-- [ ] **Scrobbling**: Native Last.fm and ListenBrainz integration.
+- [ ] **Direct Track Downloads**: Native in-app audio downloader to save high-bitrate tracks locally for offline listening.
 
 ---
 
