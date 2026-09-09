@@ -204,8 +204,8 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/92 backdrop-blur-3xl border border-white rounded-3xl w-full max-w-lg flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-lg flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -213,13 +213,13 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               <Cloud size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] leading-tight">Account Sync</h2>
-              <p className="text-xs text-[#64748B]">Authorize and synchronize your external streaming libraries</p>
+              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Account Sync</h2>
+              <p className="text-xs text-[#64748B] dark:text-white/60">Authorize and synchronize your external streaming libraries</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -227,14 +227,14 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         {/* Status Banners */}
         {statusMessage && (
-          <div className="mb-4 flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs font-medium">
+          <div className="mb-4 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl text-xs font-medium">
             <CheckCircle2 size={16} className="shrink-0" />
             <span>{statusMessage}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mb-4 flex items-center gap-2 text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl text-xs font-medium">
+          <div className="mb-4 flex items-center gap-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 p-3 rounded-xl text-xs font-medium">
             <AlertCircle size={16} className="shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -243,34 +243,34 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
         {/* Platform Cards */}
         <div className="space-y-4 mb-6">
           {/* YouTube Music Card */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col gap-3">
+          <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center">
                   <Youtube size={22} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A]">YouTube Music</h4>
-                  <p className="text-xs text-[#64748B]">
+                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">YouTube Music</h4>
+                  <p className="text-xs text-[#64748B] dark:text-white/60">
                     {ytConnected ? ytUser : 'Google account login required to sync playlists'}
                   </p>
                 </div>
               </div>
 
               {ytConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-white/10">
               {!ytConnected ? (
                 <button
                   onClick={handleAuthorizeYT}
                   disabled={isAuthorizing === 'yt'}
-                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isAuthorizing === 'yt' ? (
                     <span>Opening Google Auth...</span>
@@ -286,7 +286,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   <button
                     onClick={handleSyncYT}
                     disabled={isSyncing}
-                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
                     <span>Sync Playlists</span>
@@ -296,7 +296,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                       setYtConnected(false);
                       setYtUser(null);
                     }}
-                    className="p-2 text-[#94A3B8] hover:text-rose-600 hover:bg-slate-100 rounded-xl transition-colors"
+                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
                     title="Disconnect"
                   >
                     <LogOut size={16} />
@@ -307,22 +307,22 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
           </div>
 
           {/* SoundCloud Card */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col gap-3">
+          <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
                   <Radio size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A]">SoundCloud</h4>
-                  <p className="text-xs text-[#64748B]">
+                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">SoundCloud</h4>
+                  <p className="text-xs text-[#64748B] dark:text-white/60">
                     {scConnected ? scUser : 'Enter your SoundCloud profile or sign in'}
                   </p>
                 </div>
               </div>
 
               {scConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>
@@ -336,17 +336,17 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   value={scInputUsername}
                   onChange={(e) => setScInputUsername(e.target.value)}
                   placeholder="SoundCloud profile or username"
-                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#0F172A] focus:outline-none focus:border-orange-500"
+                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 rounded-xl text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-orange-500"
                 />
               </div>
             )}
 
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-white/10">
               {!scConnected ? (
                 <button
                   onClick={handleAuthorizeSC}
                   disabled={isAuthorizing === 'sc'}
-                  className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isAuthorizing === 'sc' ? (
                     <span>Connecting...</span>
@@ -362,7 +362,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   <button
                     onClick={() => handleSyncSC()}
                     disabled={isSyncing}
-                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
                     <span>Sync Playlists</span>
@@ -372,7 +372,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                       setScConnected(false);
                       setScUser(null);
                     }}
-                    className="p-2 text-[#94A3B8] hover:text-rose-600 hover:bg-slate-100 rounded-xl transition-colors"
+                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
                     title="Disconnect"
                   >
                     <LogOut size={16} />
@@ -385,7 +385,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         <button
           onClick={onClose}
-          className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-[#0F172A] rounded-xl text-xs font-bold transition-all"
+          className="w-full py-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[#0F172A] dark:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
         >
           Close
         </button>

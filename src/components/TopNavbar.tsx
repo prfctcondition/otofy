@@ -110,15 +110,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       style={{ WebkitAppRegion: 'drag' as any }}
     >
       <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
-        <div className="flex items-center gap-1 text-[#64748B] dark:text-[#A1A1AA]">
+        <div className="flex items-center gap-1 text-[#64748B] dark:text-white/80">
           <button
             id="nav-back-button"
             onClick={onNavigateBack}
             disabled={!canGoBack}
             className={`p-1.5 rounded-full transition-all duration-150 ${
               canGoBack
-                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-[#FFFFFF]'
-                : 'text-[#94A3B8]/40 dark:text-[#52525B]/40 cursor-not-allowed'
+                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
+                : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
             title="Go back"
             aria-label="Back"
@@ -131,8 +131,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             disabled={!canGoForward}
             className={`p-1.5 rounded-full transition-all duration-150 ${
               canGoForward
-                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-[#FFFFFF]'
-                : 'text-[#94A3B8]/40 dark:text-[#52525B]/40 cursor-not-allowed'
+                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
+                : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
             title="Go forward"
             aria-label="Forward"
@@ -147,7 +147,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
             currentView === 'home'
               ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-violet-500/30'
-              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
+              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
           }`}
           title="Home"
           aria-label="Home"
@@ -158,7 +158,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
 
       <div className="flex-1 max-w-xl mx-auto flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
         <div className="relative flex items-center flex-1 h-10 px-3.5 rounded-full bg-white/60 dark:bg-white/[0.06] hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/[0.12] backdrop-blur-xl border border-white/90 dark:border-white/10 focus-within:border-[#0F172A]/30 dark:focus-within:border-white/30 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none transition-all duration-200">
-          <Search size={17} className="text-[#64748B] dark:text-[#A1A1AA] shrink-0 mr-2.5" />
+          <Search size={17} className="text-[#64748B] dark:text-white/70 shrink-0 mr-2.5" />
           <input
             id="global-search-input"
             type="text"
@@ -166,7 +166,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             placeholder="What do you want to play?"
-            className="w-full bg-transparent text-sm text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#71717A] focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -175,7 +175,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 searchStore.setQuery('');
                 searchStore.clearResults();
               }}
-              className="p-1 rounded-full text-[#94A3B8] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
+              className="p-1 rounded-full text-[#94A3B8] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
               title="Clear search"
               aria-label="Clear search"
             >
@@ -204,7 +204,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <Sun
               size={13}
               className={`transition-colors duration-200 ${
-                theme === 'light' ? 'text-amber-500' : 'text-zinc-400'
+                theme === 'light' ? 'text-amber-500' : 'text-zinc-400 dark:text-white/40'
               }`}
             />
           </div>
@@ -222,7 +222,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="account-sync-btn"
           onClick={() => useLibraryStore.getState().toggleSyncModal()}
-          className="p-2 rounded-full text-[#64748B] dark:text-[#A1A1AA] hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title="Account Sync (YouTube Music / SoundCloud)"
           aria-label="Account Sync"
         >
@@ -236,7 +236,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             className={`p-2 rounded-full transition-colors cursor-pointer ${
               isRightPanelOpen
                 ? 'text-violet-700 dark:text-violet-300 bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
-                : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
+                : 'text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
             }`}
             title={isRightPanelOpen ? 'Hide Now Playing panel' : 'Show Now Playing panel'}
             aria-label="Toggle Now Playing"
@@ -269,7 +269,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="window-minimize-btn"
               onClick={handleMinimize}
-              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
               title="Minimize"
               aria-label="Minimize"
             >
@@ -278,7 +278,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="window-maximize-btn"
               onClick={handleMaximize}
-              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
               title={isMaximized ? 'Restore' : 'Maximize'}
               aria-label={isMaximized ? 'Restore' : 'Maximize'}
             >
@@ -287,7 +287,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="window-close-btn"
               onClick={handleClose}
-              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-[#A1A1AA] hover:text-white hover:bg-rose-500 active:bg-rose-600 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-white hover:bg-rose-500 active:bg-rose-600 transition-colors"
               title="Close"
               aria-label="Close"
             >

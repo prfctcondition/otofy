@@ -41,7 +41,7 @@ interface TrackRowProps {
 
 const renderSourceBadge = (source: Track['source']) => {
   return (
-    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-white/70 dark:bg-white/10 text-[#334155] dark:text-[#94A3B8] border border-white/90 dark:border-white/10 shadow-[inset_0_1px_1px_#FFFFFF] dark:shadow-none">
+    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-white/70 dark:bg-white/10 text-[#334155] dark:text-white/70 border border-white/90 dark:border-white/10 shadow-[inset_0_1px_1px_#FFFFFF] dark:shadow-none">
       {source === 'Master' ? 'MQA' : source}
     </span>
   );
@@ -74,8 +74,8 @@ const TrackRow = React.memo<TrackRowProps>(({
       }}
       className={`group relative grid grid-cols-12 gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 ${
         isCurrent
-          ? 'bg-white/90 dark:bg-[#1E293B]/90 border border-violet-200/80 dark:border-violet-500/30 shadow-[0_4px_16px_rgba(124,58,237,0.08),inset_0_1px_1.5px_#FFFFFF] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)] text-[#0F172A] dark:text-[#F1F5F9] ring-1 ring-violet-500/20'
-          : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-[#94A3B8] border border-transparent'
+          ? 'bg-white/90 dark:bg-white/15 border border-violet-200/80 dark:border-white/20 shadow-[0_4px_16px_rgba(124,58,237,0.08),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white ring-1 ring-violet-500/20'
+          : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80 border border-transparent'
       }`}
     >
       <div className="col-span-1 flex items-center justify-center text-sm font-medium">
@@ -111,7 +111,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         ) : (
           <span
             className={`text-xs ${
-              isCurrent ? 'text-violet-700 dark:text-violet-400 font-bold' : 'text-[#94A3B8]'
+              isCurrent ? 'text-violet-700 dark:text-violet-400 font-bold' : 'text-[#94A3B8] dark:text-white/70'
             }`}
           >
             {track.number || index + 1}
@@ -134,7 +134,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="flex flex-col min-w-0">
           <span
             className={`text-sm font-semibold truncate ${
-              isCurrent ? 'text-[#0F172A] dark:text-[#F1F5F9] font-bold' : 'text-[#0F172A] dark:text-[#F1F5F9]'
+              isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
             }`}
           >
             {track.title}
@@ -144,7 +144,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               onSelectArtist?.(track.artist, track.source === 'SC' ? 'SC' : 'YT');
             }}
-            className="text-xs text-[#64748B] dark:text-[#94A3B8] truncate hover:text-violet-700 dark:hover:text-violet-400 hover:underline cursor-pointer transition-colors"
+            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:text-violet-700 dark:hover:text-white hover:underline cursor-pointer transition-colors"
             title={`View ${track.artist}`}
           >
             {track.artist}
@@ -160,8 +160,8 @@ const TrackRow = React.memo<TrackRowProps>(({
               onSelectAlbum(undefined, track.album, track.artist, track.source === 'SC' ? 'SC' : 'YT');
             }
           }}
-          className={`text-xs text-[#64748B] dark:text-[#94A3B8] truncate transition-colors ${
-            track.album ? 'hover:text-violet-700 dark:hover:text-violet-400 hover:underline cursor-pointer' : ''
+          className={`text-xs text-[#64748B] dark:text-white/80 truncate transition-colors ${
+            track.album ? 'hover:text-violet-700 dark:hover:text-white hover:underline cursor-pointer' : ''
           }`}
           title={track.album ? `View album ${track.album}` : undefined}
         >
@@ -170,7 +170,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="shrink-0">{renderSourceBadge(track.source)}</div>
       </div>
 
-      <div className="col-span-2 hidden lg:flex items-center text-xs text-[#64748B] dark:text-[#94A3B8]">
+      <div className="col-span-2 hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70">
         {track.dateAdded}
       </div>
 
@@ -195,7 +195,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           />
         </button>
 
-        <span className="text-xs text-[#64748B] dark:text-[#94A3B8] w-9 text-right tabular-nums">
+        <span className="text-xs text-[#64748B] dark:text-white/80 w-9 text-right tabular-nums">
           {track.duration}
         </span>
 
@@ -255,7 +255,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   return (
     <div id="dense-track-table" className="w-full px-6 py-2 select-none">
-      <div className="grid grid-cols-12 gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider">
+      <div className="grid grid-cols-12 gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
         <div className="col-span-1 flex items-center justify-center">#</div>
         <div className="col-span-5 flex items-center">Title</div>
         <div className="col-span-3 hidden md:flex items-center">Album</div>
@@ -272,15 +272,15 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               <Loader2 size={24} className="animate-spin" />
             </div>
             <h4 className="text-sm font-bold text-[#0F172A] dark:text-white mb-0.5">Loading tracks...</h4>
-            <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">Fetching songs and metadata</p>
+            <p className="text-xs text-[#64748B] dark:text-white/70">Fetching songs and metadata</p>
           </div>
         ) : tracks.length === 0 ? (
           <div className="py-16 px-4 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-[#111827]/60 border border-white/80 dark:border-[#27354A] flex items-center justify-center text-violet-500 mb-3 shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-white/10 border border-white/80 dark:border-white/15 flex items-center justify-center text-violet-500 mb-3 shadow-xs">
               <Clock size={28} className="opacity-80" />
             </div>
-            <h4 className="text-base font-bold text-[#0F172A] dark:text-[#F1F5F9] mb-1">No songs in this collection</h4>
-            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-sm leading-relaxed">
+            <h4 className="text-base font-bold text-[#0F172A] dark:text-white mb-1">No songs in this collection</h4>
+            <p className="text-xs text-[#64748B] dark:text-white/70 max-w-sm leading-relaxed">
               Use the top search bar to find and add ad-free songs from YouTube Music & SoundCloud, or import an Otofy share code.
             </p>
           </div>

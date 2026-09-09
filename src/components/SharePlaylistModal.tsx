@@ -49,12 +49,12 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Share Playlist</h2>
-              <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">Generate a compact share code</p>
+              <p className="text-xs text-[#64748B] dark:text-white/60">Generate a compact share code</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -62,12 +62,12 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
 
         <div className="mb-5 p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs">
           <h3 className="font-bold text-[#0F172A] dark:text-white text-base mb-0.5">{playlistTitle}</h3>
-          <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">by {playlistCreator} • {tracks.length} tracks</p>
+          <p className="text-xs text-[#64748B] dark:text-white/60">by {playlistCreator} • {tracks.length} tracks</p>
         </div>
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between ml-1">
-            <p className="text-xs font-bold text-[#64748B] dark:text-[#A1A1AA] uppercase tracking-wider">
+            <p className="text-xs font-bold text-[#64748B] dark:text-white/60 uppercase tracking-wider">
               Playlist Code
             </p>
             <button
@@ -88,7 +88,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
               )}
             </button>
           </div>
-          <div className="w-full max-h-36 overflow-y-auto p-3.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-2xl font-mono text-xs break-all select-all text-[#0F172A] dark:text-zinc-200 shadow-inner">
+          <div className="w-full max-h-36 overflow-y-auto p-3.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-2xl font-mono text-xs break-all select-all text-[#0F172A] dark:text-white shadow-inner">
             <span className="text-violet-600 dark:text-violet-400 font-bold mr-0.5">{codePrefix}</span>
             <span>{codeBody}</span>
           </div>
@@ -97,7 +97,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
         <div className="mt-6">
           <button
             onClick={onClose}
-            className="w-full py-3.5 px-4 bg-[#0F172A] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-zinc-200 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all cursor-pointer"
+            className="w-full py-3.5 px-4 bg-[#0F172A] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all cursor-pointer"
           >
             Done
           </button>

@@ -98,7 +98,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
       className="absolute top-16 left-4 right-4 md:left-64 md:right-64 z-50 max-h-[500px] overflow-y-auto rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-3.5 bg-white/95 dark:bg-[#0C0C10]/95 backdrop-blur-3xl border border-white/90 dark:border-white/10 text-[#0F172A] dark:text-white animate-in fade-in zoom-in-95 duration-150 select-none custom-scrollbar"
     >
       {isSearching && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-zinc-400">
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-white/70">
           <div className="w-10 h-10 rounded-full bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
             <span className="inline-block w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -109,16 +109,16 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
       )}
 
       {!isSearching && hasSearched && results.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-zinc-400">
-          <Search size={32} className="opacity-40 text-[#64748B] dark:text-zinc-500" />
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-white/70">
+          <Search size={32} className="opacity-40 text-[#64748B] dark:text-white/40" />
           <p className="text-sm font-bold text-[#0F172A] dark:text-white">No ad-free streams found</p>
-          <p className="text-xs text-[#475569] dark:text-zinc-400">Try searching by song title, artist, or album</p>
+          <p className="text-xs text-[#475569] dark:text-white/60">Try searching by song title, artist, or album</p>
         </div>
       )}
 
       {!isSearching && results.length > 0 && (
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold text-[#475569] dark:text-zinc-400 uppercase tracking-wider border-b border-black/[0.06] dark:border-white/[0.08] mb-1.5">
+          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold text-[#475569] dark:text-white/70 uppercase tracking-wider border-b border-black/[0.06] dark:border-white/[0.08] mb-1.5">
             <div className="flex items-center gap-2">
               <span>Results ({results.length})</span>
               <div className="inline-flex items-center p-0.5 rounded-lg bg-black/[0.05] dark:bg-white/10 border border-black/[0.05] dark:border-white/10 text-[10px] font-bold lowercase">
@@ -135,7 +135,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                     className={`px-2 py-0.5 rounded-md uppercase font-bold tracking-tight transition-all cursor-pointer ${
                       sourceFilter === item.id
                         ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-xs'
-                        : 'text-[#64748B] dark:text-zinc-400 hover:text-[#0F172A] dark:hover:text-white'
+                        : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
                     }`}
                   >
                     {item.label}
@@ -169,14 +169,14 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-[#0F172A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)] truncate">
+                    <span className="font-bold text-sm text-[#0F172A] dark:text-white truncate">
                       {artistCard.name}
                     </span>
                     <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-600 text-white shadow-xs">
                       <Sparkles size={10} /> Official Artist
                     </span>
                   </div>
-                  <span className="text-xs text-[#334155] font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)] truncate mt-0.5">
+                  <span className="text-xs text-[#334155] dark:text-white/80 font-semibold truncate mt-0.5">
                     {artistCard.subtitle || 'Official YouTube Music Channel & Discography'}
                   </span>
                 </div>
@@ -184,7 +184,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
 
               <button
                 onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT')}
-                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-violet-700 shadow-xs border border-violet-200/60 flex-shrink-0 transition-all drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]"
+                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/20 hover:bg-white dark:hover:bg-white/30 text-violet-700 dark:text-violet-300 shadow-xs border border-violet-200/60 dark:border-violet-500/30 flex-shrink-0 transition-all"
               >
                 <span>View Discography</span>
                 <ExternalLink size={12} />
@@ -227,7 +227,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                     </span>
                   </div>
                   <span
-                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-zinc-400 hover:text-violet-700 dark:hover:text-violet-400 hover:underline transition-colors mt-0.5"
+                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-white/80 hover:text-violet-700 dark:hover:text-violet-400 hover:underline transition-colors mt-0.5"
                     onClick={(e) => handleArtistClick(result.artist, e, result.source)}
                     title={`View ${result.artist} discography`}
                   >
@@ -237,7 +237,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
               </div>
 
               <div className="flex items-center gap-2.5 pl-2 flex-shrink-0">
-                <span className="text-xs font-mono font-bold text-[#334155] dark:text-zinc-400">
+                <span className="text-xs font-mono font-bold text-[#334155] dark:text-white/70">
                   {result.duration}
                 </span>
                 <button
@@ -245,7 +245,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                   className={`p-2 rounded-full transition-all cursor-pointer ${
                     addedIds[result.id]
                       ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'hover:bg-white/80 dark:hover:bg-white/15 text-[#334155] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white'
+                      : 'hover:bg-white/80 dark:hover:bg-white/15 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white'
                   }`}
                   title={addedIds[result.id] ? 'Added to playlist!' : 'Add to current playlist'}
                 >

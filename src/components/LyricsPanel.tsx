@@ -128,13 +128,13 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
   return (
     <aside
       id="lyrics-panel"
-      className="w-[320px] min-w-[320px] h-full flex flex-col liquid-glass-panel rounded-2xl select-none overflow-hidden relative shadow-lg"
+      className="w-[320px] min-w-[320px] h-full flex flex-col liquid-glass-panel dark:bg-[#08080C]/90 dark:border-white/10 rounded-2xl select-none overflow-hidden relative shadow-lg"
     >
       {/* Top Gloss Reflection */}
-      <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 to-transparent" />
+      <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 dark:from-white/5 to-transparent" />
 
       {/* Header */}
-      <div className="p-3.5 flex items-center justify-between border-b border-black/[0.05] relative z-10 shrink-0">
+      <div className="p-3.5 flex items-center justify-between border-b border-black/[0.05] dark:border-white/10 relative z-10 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0 pr-2">
           {activeTrack ? (
             <PlaceholderArtwork
@@ -144,23 +144,23 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
               gradientTo={activeTrack.gradientTo}
               size={32}
               rounded="rounded-lg"
-              className="shadow-xs border border-white shrink-0"
+              className="shadow-xs border border-white dark:border-white/10 shrink-0"
             />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
               <Mic2 size={16} />
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="text-xs font-bold text-[#0F172A] truncate flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-[#0F172A] dark:text-white truncate flex items-center gap-1.5">
               <span>Lyrics</span>
               {lyricsData?.syncedLyrics && !isSearching && (
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-100 text-violet-700 flex items-center gap-0.5">
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 flex items-center gap-0.5">
                   <Sparkles size={9} /> Synced
                 </span>
               )}
             </h3>
-            <p className="text-[11px] text-[#64748B] truncate">
+            <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">
               {activeTrack?.title || 'No active track'}
             </p>
           </div>
@@ -169,10 +169,10 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setIsSearching((prev) => !prev)}
-            className={`p-1.5 rounded-full transition-colors ${
+            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
               isSearching
                 ? 'bg-violet-600 text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A] hover:bg-white/60'
+                : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
             }`}
             title={isSearching ? 'Back to lyrics' : 'Search alternative lyrics'}
             aria-label="Search lyrics"
@@ -182,7 +182,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
           <button
             id="close-lyrics-panel-btn"
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#64748B] hover:text-[#0F172A] hover:bg-white/60 transition-colors"
+            className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
             title="Close lyrics"
             aria-label="Close"
           >
@@ -193,20 +193,20 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
 
       {/* Manual Search Bar if isSearching or lyrics not found */}
       {isSearching && (
-        <div className="p-3 border-b border-black/[0.05] bg-white/50 backdrop-blur-md relative z-10 shrink-0">
+        <div className="p-3 border-b border-black/[0.05] dark:border-white/10 bg-white/50 dark:bg-white/[0.04] backdrop-blur-md relative z-10 shrink-0">
           <form onSubmit={handleManualSearch} className="flex gap-1.5">
             <input
               type="text"
               value={customSearch}
               onChange={(e) => setCustomSearch(e.target.value)}
               placeholder="Track or artist..."
-              className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-[#0F172A] focus:outline-none focus:border-violet-500 shadow-2xs"
+              className="flex-1 px-2.5 py-1.5 bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/15 rounded-lg text-xs text-[#0F172A] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-violet-500 shadow-2xs"
               autoFocus
             />
             <button
               type="submit"
               disabled={isLoading}
-              className="px-3 py-1.5 bg-[#0F172A] hover:bg-black text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
+              className="px-3 py-1.5 bg-[#0F172A] hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
             >
               {isLoading ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
             </button>
@@ -220,35 +220,35 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
         className="flex-1 overflow-y-auto p-4 space-y-3 relative z-10 select-text"
       >
         {isLoading ? (
-          <div className="h-full flex flex-col items-center justify-center gap-2 text-[#64748B] py-16">
-            <RefreshCw size={22} className="animate-spin text-violet-600" />
+          <div className="h-full flex flex-col items-center justify-center gap-2 text-[#64748B] dark:text-white/60 py-16">
+            <RefreshCw size={22} className="animate-spin text-violet-600 dark:text-violet-400" />
             <p className="text-xs font-semibold">Searching lyrics...</p>
           </div>
         ) : isSearching && candidates.length > 0 ? (
           /* Candidates selection list */
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider px-1">
+            <p className="text-[11px] font-semibold text-[#64748B] dark:text-white/60 uppercase tracking-wider px-1">
               Select lyrics candidate:
             </p>
             {candidates.map((cand, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSelectCandidate(cand)}
-                className="w-full text-left p-2.5 rounded-xl bg-white/60 hover:bg-violet-50 border border-slate-200 hover:border-violet-300 transition-all flex items-center justify-between gap-2 shadow-2xs group"
+                className="w-full text-left p-2.5 rounded-xl bg-white/60 dark:bg-white/[0.04] hover:bg-violet-50 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-white/20 transition-all flex items-center justify-between gap-2 shadow-2xs group cursor-pointer"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[#0F172A] truncate group-hover:text-violet-900">
+                  <p className="text-xs font-bold text-[#0F172A] dark:text-white truncate group-hover:text-violet-900 dark:group-hover:text-violet-300">
                     {cand.trackName}
                   </p>
-                  <p className="text-[11px] text-[#64748B] truncate">{cand.artistName}</p>
+                  <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">{cand.artistName}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {cand.syncedLyrics ? (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300">
                       Synced
                     </span>
                   ) : (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70">
                       Plain
                     </span>
                   )}
@@ -257,17 +257,17 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
             ))}
           </div>
         ) : !activeTrack ? (
-          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] py-16">
-            <Mic2 size={32} className="text-slate-300 mb-2" />
-            <p className="text-xs font-semibold text-[#0F172A]">Play a track to view lyrics</p>
+          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/60 py-16">
+            <Mic2 size={32} className="text-slate-300 dark:text-white/20 mb-2" />
+            <p className="text-xs font-semibold text-[#0F172A] dark:text-white">Play a track to view lyrics</p>
           </div>
         ) : lyricsData?.instrumental ? (
-          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] gap-2 py-16">
-            <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center shadow-inner">
+          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/60 gap-2 py-16">
+            <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shadow-inner">
               <Music size={22} />
             </div>
-            <h4 className="text-base font-bold text-[#0F172A]">♪ Instrumental ♪</h4>
-            <p className="text-xs text-[#64748B]">No vocal lyrics in this track.</p>
+            <h4 className="text-base font-bold text-[#0F172A] dark:text-white">♪ Instrumental ♪</h4>
+            <p className="text-xs text-[#64748B] dark:text-white/60">No vocal lyrics in this track.</p>
           </div>
         ) : lyricsData?.parsedLines && lyricsData.parsedLines.length > 0 ? (
           /* Live Karaoke Highlighting */
@@ -283,10 +283,10 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                   onClick={() => seek(line.time)}
                   className={`cursor-pointer transition-all duration-200 rounded-xl px-3 py-1.5 ${
                     isActive
-                      ? 'bg-violet-600/10 border-l-4 border-violet-600 text-violet-950 font-extrabold text-base scale-[1.01] shadow-2xs'
+                      ? 'bg-violet-600/10 dark:bg-violet-500/20 border-l-4 border-violet-600 dark:border-violet-400 text-violet-950 dark:text-violet-200 font-extrabold text-base scale-[1.01] shadow-2xs'
                       : isPast
-                      ? 'text-[#64748B] font-medium text-xs hover:text-[#0F172A] hover:bg-white/40'
-                      : 'text-[#94A3B8] font-medium text-xs hover:text-[#0F172A] hover:bg-white/40'
+                      ? 'text-[#64748B] dark:text-white/60 font-medium text-xs hover:text-[#0F172A] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
+                      : 'text-[#94A3B8] dark:text-white/40 font-medium text-xs hover:text-[#0F172A] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
                   }`}
                 >
                   <span>{line.text}</span>
@@ -298,7 +298,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
           /* Plain Lyrics */
           <div className="space-y-2 py-3">
             {lyricsData.plainLyrics.split('\n').map((line, idx) => (
-              <p key={idx} className="text-[#0F172A] font-medium text-xs leading-relaxed">
+              <p key={idx} className="text-[#0F172A] dark:text-white font-medium text-xs leading-relaxed">
                 {line || <br />}
               </p>
             ))}
@@ -306,9 +306,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
         ) : (
           /* Not Found */
           <div className="h-full flex flex-col items-center justify-center text-center py-10 px-2">
-            <Mic2 size={32} className="text-slate-300 mb-2" />
-            <h4 className="text-xs font-bold text-[#0F172A] mb-1">No lyrics found</h4>
-            <p className="text-[11px] text-[#64748B] mb-3">
+            <Mic2 size={32} className="text-slate-300 dark:text-white/20 mb-2" />
+            <h4 className="text-xs font-bold text-[#0F172A] dark:text-white mb-1">No lyrics found</h4>
+            <p className="text-[11px] text-[#64748B] dark:text-white/60 mb-3">
               Search by another title or artist keyword:
             </p>
 
@@ -318,11 +318,11 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                 value={customSearch}
                 onChange={(e) => setCustomSearch(e.target.value)}
                 placeholder="Song or artist..."
-                className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-[#0F172A] focus:outline-none focus:border-violet-500 shadow-2xs"
+                className="flex-1 px-2.5 py-1.5 bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/15 rounded-lg text-xs text-[#0F172A] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-violet-500 shadow-2xs"
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-[#0F172A] hover:bg-black text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
+                className="px-3 py-1.5 bg-[#0F172A] hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
               >
                 <Search size={12} />
               </button>
@@ -332,7 +332,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
       </div>
 
       {/* Footer Info */}
-      <div className="p-2.5 border-t border-black/[0.05] flex items-center justify-between text-[10px] text-[#94A3B8] bg-white/40 relative z-10 shrink-0">
+      <div className="p-2.5 border-t border-black/[0.05] dark:border-white/10 flex items-center justify-between text-[10px] text-[#94A3B8] dark:text-white/40 bg-white/40 dark:bg-transparent relative z-10 shrink-0">
         <span>Powered by LRCLIB</span>
         <span>Click line to seek</span>
       </div>

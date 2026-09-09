@@ -117,12 +117,12 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-50 w-60 py-1.5 rounded-2xl bg-white/92 backdrop-blur-3xl border border-white/95 shadow-[0_15px_40px_rgba(0,0,0,0.18)] text-[#0F172A] text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-50 w-60 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
     >
       {/* Track Header preview in menu */}
-      <div className="px-3 py-2 border-b border-black/[0.06] mb-1">
-        <p className="font-bold text-[13px] truncate text-[#0F172A]">{track.title}</p>
-        <p className="text-[11px] text-[#64748B] truncate">{track.artist}</p>
+      <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
+        <p className="font-bold text-[13px] truncate text-[#0F172A] dark:text-white">{track.title}</p>
+        <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">{track.artist}</p>
       </div>
 
       {/* Play Now */}
@@ -131,9 +131,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           onPlay(track);
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
-        <Play size={15} className="text-violet-600 fill-violet-600" />
+        <Play size={15} className="text-violet-600 dark:text-violet-400 fill-violet-600 dark:fill-violet-400" />
         <span>Play now</span>
       </button>
 
@@ -143,16 +143,16 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           onToggleLike(track.id, track);
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
         <Heart
           size={15}
-          className={track.isLiked ? 'text-rose-500 fill-rose-500' : 'text-[#64748B]'}
+          className={track.isLiked ? 'text-rose-500 fill-rose-500' : 'text-[#64748B] dark:text-white/70'}
         />
         <span>{track.isLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}</span>
       </button>
 
-      <div className="h-px bg-black/[0.06] my-1" />
+      <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
       {/* Add to Playlist (with submenu) */}
       <div
@@ -162,13 +162,13 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       >
         <button
           onClick={() => setShowPlaylistsSubmenu((prev) => !prev)}
-          className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] transition-colors text-left"
+          className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
           <div className="flex items-center gap-2.5">
-            <Plus size={15} className="text-[#64748B]" />
+            <Plus size={15} className="text-[#64748B] dark:text-white/70" />
             <span>Add to playlist</span>
           </div>
-          <ChevronRight size={14} className="text-[#94A3B8]" />
+          <ChevronRight size={14} className="text-[#94A3B8] dark:text-white/40" />
         </button>
 
         {/* Submenu of user playlists */}
@@ -176,13 +176,13 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           <div
             className={`absolute top-0 ${
               coords.left + 240 + 215 > window.innerWidth - 10 ? 'right-full -mr-1' : 'left-full -ml-1'
-            } w-52 py-1.5 rounded-2xl bg-white/95 backdrop-blur-3xl border border-white/95 shadow-[0_15px_40px_rgba(0,0,0,0.18)] max-h-56 overflow-y-auto z-50`}
+            } w-52 py-1.5 rounded-2xl bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] max-h-56 overflow-y-auto z-50`}
           >
-            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-white/50">
               Your Playlists
             </div>
             {userPlaylists.length === 0 ? (
-              <div className="px-3 py-2 text-[11px] text-[#94A3B8] italic">
+              <div className="px-3 py-2 text-[11px] text-[#94A3B8] dark:text-white/50 italic">
                 No custom playlists yet
               </div>
             ) : (
@@ -190,11 +190,11 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                 <button
                   key={pl.id}
                   onClick={() => handlePlaylistSelect(pl.id)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-[#0F172A] dark:text-white"
                 >
                   <span className="truncate pr-2">{pl.title}</span>
                   {addedPlaylistId === pl.id && (
-                    <Check size={14} className="text-emerald-600 shrink-0" />
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   )}
                 </button>
               ))
@@ -209,13 +209,13 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           onCreatePlaylistWithTrack(track);
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] transition-colors text-left text-violet-700 font-semibold"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-violet-700 dark:text-violet-400 font-semibold cursor-pointer"
       >
-        <FolderPlus size={15} className="text-violet-600" />
+        <FolderPlus size={15} className="text-violet-600 dark:text-violet-400" />
         <span>Create playlist with this track</span>
       </button>
 
-      <div className="h-px bg-black/[0.06] my-1" />
+      <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
       {/* Go to Artist */}
       {onSelectArtist &&
@@ -228,9 +228,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               onSelectArtist(track.artist);
               onClose();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
           >
-            <User size={15} className="text-[#64748B]" />
+            <User size={15} className="text-[#64748B] dark:text-white/70" />
             <span>View artist ({track.artist})</span>
           </button>
         )}
@@ -238,16 +238,16 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       {/* Copy Share Code */}
       <button
         onClick={handleCopyShare}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
         {copied ? (
           <>
-            <Check size={15} className="text-emerald-600" />
-            <span className="text-emerald-600">Copied to clipboard!</span>
+            <Check size={15} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-emerald-600 dark:text-emerald-400">Copied to clipboard!</span>
           </>
         ) : (
           <>
-            <Share2 size={15} className="text-[#64748B]" />
+            <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
             <span>Copy track details</span>
           </>
         )}

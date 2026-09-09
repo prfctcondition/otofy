@@ -43,14 +43,14 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
   const getBorderColor = () => {
     switch (toast.type) {
       case 'error':
-        return 'border-rose-300/80 bg-white/90 text-rose-950 shadow-[0_10px_25px_-5px_rgba(244,63,94,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-rose-300/80 dark:border-rose-500/30 bg-white/90 dark:bg-[#12080a]/90 text-rose-950 dark:text-rose-200 shadow-[0_10px_25px_-5px_rgba(244,63,94,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
       case 'warning':
-        return 'border-amber-300/80 bg-white/90 text-amber-950 shadow-[0_10px_25px_-5px_rgba(245,158,11,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-amber-300/80 dark:border-amber-500/30 bg-white/90 dark:bg-[#120e08]/90 text-amber-950 dark:text-amber-200 shadow-[0_10px_25px_-5px_rgba(245,158,11,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
       case 'success':
-        return 'border-emerald-300/80 bg-white/90 text-emerald-950 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-emerald-300/80 dark:border-emerald-500/30 bg-white/90 dark:bg-[#08120b]/90 text-emerald-950 dark:text-emerald-200 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
       case 'info':
       default:
-        return 'border-white/90 bg-white/90 text-[#0F172A] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.12),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-white/90 dark:border-white/10 bg-white/90 dark:bg-[#0C0C10]/95 text-[#0F172A] dark:text-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.12),0_4px_10px_rgba(0,0,0,0.05)]';
     }
   };
 
@@ -70,7 +70,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       </div>
       <button
         onClick={onDismiss}
-        className="p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 transition-opacity"
+        className="p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 dark:text-white transition-opacity cursor-pointer"
         title="Dismiss"
         aria-label="Close notification"
       >

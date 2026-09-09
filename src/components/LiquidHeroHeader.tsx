@@ -296,8 +296,8 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               <span className="text-[11px] font-black uppercase tracking-wider text-[#0F172A] dark:text-white bg-white/70 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-white/95 dark:border-white/15 shadow-[inset_0_1px_1px_#FFFFFF,0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none">
                 {playlist.type || 'Playlist'}
               </span>
-              <span className="text-[#94A3B8] dark:text-[#52525B]">•</span>
-              <span className="text-xs text-[#64748B] dark:text-[#A1A1AA] font-medium flex items-center gap-1">
+              <span className="text-[#94A3B8] dark:text-white/40">•</span>
+              <span className="text-xs text-[#64748B] dark:text-white/80 font-medium flex items-center gap-1">
                 <Sparkles size={12} className="text-violet-600 dark:text-violet-400" />
                 Hi-Res Master Audio
               </span>
@@ -310,13 +310,13 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
             {/* Playlist Description */}
             {(playlist.description || artistsSubtitle) && (
-              <p className="text-sm text-[#475569] dark:text-[#A1A1AA] font-medium leading-relaxed max-w-2xl mb-3">
+              <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
                 {playlist.description || artistsSubtitle}
               </p>
             )}
 
             {/* Creator & Stats Row */}
-            <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] dark:text-[#A1A1AA] font-normal">
+            <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] dark:text-white/80 font-normal">
               {playlist.type === 'Artist' ? (
                 <span className="font-bold text-[#0F172A] dark:text-white">
                   {playlist.creator}
@@ -383,7 +383,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               className={`p-2.5 rounded-full transition-all relative cursor-pointer ${
                 isShuffle
                   ? 'text-violet-600 dark:text-white bg-white/90 dark:bg-white/10 border border-white dark:border-white/10 shadow-xs'
-                  : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
+                  : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
               }`}
               title="Shuffle collection"
               aria-label="Shuffle"
@@ -424,7 +424,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* Download Button */}
             <button
               id="hero-download-button"
-              className="p-2.5 rounded-full text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-2.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Download to cache"
               aria-label="Download"
             >
@@ -439,7 +439,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 className={`p-2.5 rounded-full transition-colors cursor-pointer ${
                   isOptionsMenuOpen
                     ? 'bg-white dark:bg-white/20 text-[#0F172A] dark:text-white shadow-xs'
-                    : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
+                    : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
                 }`}
                 title="More options for collection"
                 aria-label="Options"
@@ -464,7 +464,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                         </>
                       ) : (
                         <>
-                          <Plus size={15} className="text-slate-600 dark:text-zinc-400" />
+                          <Plus size={15} className="text-slate-600 dark:text-white/70" />
                           <span>Add to Your Library</span>
                         </>
                       )}
@@ -479,7 +479,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       }}
                       className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                     >
-                      <Edit3 size={15} className="text-[#64748B] dark:text-[#A1A1AA]" />
+                      <Edit3 size={15} className="text-[#64748B] dark:text-white/70" />
                       <span>Rename playlist</span>
                     </button>
                   )}
@@ -499,7 +499,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                   >
-                    <Share2 size={15} className="text-[#64748B] dark:text-[#A1A1AA]" />
+                    <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
                     <span>Share playlist</span>
                   </button>
 
@@ -523,14 +523,14 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
           <div className="flex items-center gap-3">
             {isSearchVisible ? (
               <div className="flex items-center bg-white/80 dark:bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/90 dark:border-white/15 shadow-inner text-xs w-52">
-                <Search size={14} className="text-[#64748B] dark:text-[#A1A1AA] mr-2 shrink-0" />
+                <Search size={14} className="text-[#64748B] dark:text-white/70 mr-2 shrink-0" />
                 <input
                   id="playlist-search-input"
                   type="text"
                   value={playlistSearchQuery}
                   onChange={(e) => onPlaylistSearchChange(e.target.value)}
                   placeholder="Search in playlist"
-                  className="w-full bg-transparent text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#71717A] focus:outline-none"
+                  className="w-full bg-transparent text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
                   autoFocus
                 />
               </div>
@@ -538,7 +538,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               <button
                 id="toggle-playlist-search-btn"
                 onClick={onToggleSearch}
-                className="p-2 rounded-full text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Search in this playlist"
               >
                 <Search size={18} />
@@ -547,7 +547,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
             <div
               id="playlist-sort-dropdown"
-              className="flex items-center gap-1.5 text-xs font-medium text-[#334155] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white cursor-pointer px-3 py-1.5 rounded-full bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none transition-all"
+              className="flex items-center gap-1.5 text-xs font-medium text-[#334155] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white cursor-pointer px-3 py-1.5 rounded-full bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none transition-all"
             >
               <span>Date added</span>
               <ListFilter size={14} />
@@ -571,7 +571,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${
                       isSelected
                         ? 'liquid-glass-pill-active font-semibold'
-                        : 'liquid-glass-pill text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/15'
+                        : 'liquid-glass-pill text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/15'
                     }`}
                   >
                     {pill}
@@ -582,7 +582,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
             <button
               onClick={handleScrollRight}
-              className="absolute right-0 top-1 bottom-0 px-2 bg-gradient-to-l from-white/80 dark:from-black/90 via-white/50 dark:via-black/50 to-transparent flex items-center justify-center text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+              className="absolute right-0 top-1 bottom-0 px-2 bg-gradient-to-l from-white/80 dark:from-black/90 via-white/50 dark:via-black/50 to-transparent flex items-center justify-center text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
               title="Scroll filters"
             >
               <div className="w-6 h-6 rounded-full bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 border border-white/90 dark:border-white/15 flex items-center justify-center shadow-sm">
@@ -612,7 +612,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsRenaming(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] dark:text-[#A1A1AA] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#64748B] dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>

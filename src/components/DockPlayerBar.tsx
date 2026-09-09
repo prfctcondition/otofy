@@ -64,6 +64,9 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
     toggleFullscreenLyrics,
   } = useLibraryStore();
 
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState<number | null>(null);
+
   if (!activeTrack) {
     return (
       <footer
@@ -75,15 +78,15 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             <Mic2 size={22} className="opacity-75" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-[#0F172A] dark:text-[#F1F5F9]">Otofy</span>
-            <span className="text-xs text-[#64748B] dark:text-[#94A3B8]">Choose a song or daily mix to begin listening</span>
+            <span className="text-sm font-bold text-[#0F172A] dark:text-white">Otofy</span>
+            <span className="text-xs text-[#64748B] dark:text-white/70">Choose a song or daily mix to begin listening</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={toggleEqModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 dark:bg-[#1E293B] hover:bg-white dark:hover:bg-[#27354A] text-xs font-semibold text-[#334155] dark:text-[#F1F5F9] border border-white/80 dark:border-[#27354A] transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-xs font-semibold text-[#334155] dark:text-white border border-white/80 dark:border-white/15 transition-all shadow-xs cursor-pointer"
             title="Equalizer"
           >
             <SlidersHorizontal size={15} className="text-violet-600 dark:text-violet-400" />
@@ -95,9 +98,6 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   }
 
   const isLiked = activeTrack.isLiked || false;
-
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [seekValue, setSeekValue] = useState<number | null>(null);
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -173,7 +173,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </div>
           <span
             onClick={() => onSelectArtist?.(activeTrack.artist)}
-            className="text-xs text-[#64748B] dark:text-[#A1A1AA] truncate hover:underline hover:text-violet-700 dark:hover:text-violet-400 cursor-pointer mt-0.5"
+            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:underline hover:text-violet-700 dark:hover:text-white cursor-pointer mt-0.5"
             title={`View ${activeTrack.artist}`}
           >
             {activeTrack.artist}
@@ -186,7 +186,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
             isLiked
               ? 'text-rose-500 hover:text-rose-600'
-              : 'text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white'
+              : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
           }`}
           title={isLiked ? 'Remove from Liked' : 'Save to Liked'}
         >
@@ -201,7 +201,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-shuffle-btn"
             onClick={toggleShuffle}
             className={`transition-colors ${
-              isShuffle ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#A1A1AA] dark:hover:text-white'
+              isShuffle ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
             }`}
             title="Shuffle"
           >
@@ -246,7 +246,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-repeat-btn"
             onClick={cycleRepeat}
             className={`transition-colors ${
-              repeatMode !== 'off' ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-white'
+              repeatMode !== 'off' ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
             }`}
             title="Repeat"
           >
@@ -254,8 +254,8 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </button>
         </div>
 
-        <div className="w-full flex items-center gap-2.5 text-[11px] text-[#64748B] dark:text-[#A1A1AA] font-mono select-none">
-          <span className="w-10 text-right tabular-nums font-medium text-[#475569] dark:text-[#A1A1AA]">{formatTime(displayCurrentTime)}</span>
+        <div className="w-full flex items-center gap-2.5 text-[11px] text-[#64748B] dark:text-white/80 font-mono select-none">
+          <span className="w-10 text-right tabular-nums font-medium text-[#475569] dark:text-white/80">{formatTime(displayCurrentTime)}</span>
           <div className="relative flex-1 flex items-center group h-6 cursor-pointer">
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] dark:bg-white/[0.12] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
@@ -285,12 +285,12 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
               title="Seek"
             />
           </div>
-          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-[#A1A1AA]">{formatTime(duration)}</span>
+          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-white/80">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* Right side controls */}
-      <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-[#64748B] dark:text-[#94A3B8]">
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-[#64748B] dark:text-white/70">
         <button
           id="player-lyrics-btn"
           onClick={toggleLyricsModal}

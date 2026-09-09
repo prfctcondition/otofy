@@ -442,7 +442,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                   Genre & Mood Catalog
                 </h1>
               </div>
-              <p className="text-xs sm:text-sm font-medium text-[#64748B] dark:text-[#A1A1AA]">
+              <p className="text-xs sm:text-sm font-medium text-[#64748B] dark:text-white/80">
                 16 curated musical realms with dynamic radio stations and auto-mixes
               </p>
             </div>
@@ -451,14 +451,14 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
             <div className="relative w-full sm:w-72">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] dark:text-[#71717A] pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] dark:text-white/40 pointer-events-none"
               />
               <input
                 type="text"
                 placeholder="Filter genres..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-[#121218] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-[#71717A] focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all shadow-xs"
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all shadow-xs"
               />
             </div>
           </div>
@@ -471,7 +471,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 <div
                   key={genre.id}
                   onClick={() => handleOpenGenre(genre)}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/50 dark:bg-[#111116]/80 hover:bg-white/80 dark:hover:bg-[#181820] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.8)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 overflow-hidden min-h-[170px]"
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.8)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 overflow-hidden min-h-[170px]"
                 >
                   {/* Decorative Gradient Background Glow */}
                   <div
@@ -486,7 +486,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                       <IconComp size={20} />
                     </div>
 
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[#475569] dark:text-[#A1A1AA]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[#475569] dark:text-white/80">
                       {genre.category}
                     </span>
                   </div>
@@ -496,7 +496,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                     <h3 className="text-base font-extrabold text-[#0F172A] dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {genre.name}
                     </h3>
-                    <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] line-clamp-2 mt-1 leading-snug">
+                    <p className="text-xs text-[#64748B] dark:text-white/70 line-clamp-2 mt-1 leading-snug">
                       {genre.description}
                     </p>
                   </div>
@@ -506,7 +506,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                     {genre.subgenres.slice(0, 2).map((sg) => (
                       <span
                         key={sg}
-                        className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-[#64748B] dark:text-[#A1A1AA]"
+                        className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-[#64748B] dark:text-white/70"
                       >
                         {sg}
                       </span>
@@ -626,7 +626,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 Genre Tracks ({genreTracks.length})
               </h2>
               {isLoadingTracks && (
-                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-[#A1A1AA]">
+                <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-white/80">
                   <Loader2 size={14} className="animate-spin text-indigo-400" />
                   Curating the best tracks...
                 </div>
@@ -634,17 +634,17 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
             </div>
 
             {isLoadingTracks ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#64748B] dark:text-[#A1A1AA]">
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#64748B] dark:text-white/80">
                 <Loader2 size={32} className="animate-spin text-indigo-500" />
                 <p className="text-sm font-medium">Curating the best tracks for this genre...</p>
               </div>
             ) : genreTracks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-[#64748B] dark:text-[#A1A1AA]">
+              <div className="flex flex-col items-center justify-center py-16 text-[#64748B] dark:text-white/80">
                 <Music size={36} className="mb-2 opacity-50" />
                 <p className="text-sm">No tracks found for this genre</p>
               </div>
             ) : (
-              <div className="flex flex-col rounded-2xl bg-white/50 dark:bg-[#111116]/80 border border-white/80 dark:border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
+              <div className="flex flex-col rounded-2xl bg-white/50 dark:bg-white/[0.04] border border-white/80 dark:border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
                 {genreTracks.map((track, idx) => {
                   const isCurrent = playerStore.activeTrack?.id === track.id;
                   return (
@@ -658,7 +658,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 text-center text-xs font-mono font-bold text-[#94A3B8] dark:text-[#71717A] group-hover:hidden">
+                        <span className="w-6 text-center text-xs font-mono font-bold text-[#94A3B8] dark:text-white/70 group-hover:hidden">
                           {idx + 1}
                         </span>
                         <button
@@ -691,13 +691,13 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                           >
                             {track.title}
                           </p>
-                          <p className="text-[11px] sm:text-xs text-[#64748B] dark:text-[#A1A1AA] truncate leading-tight mt-0.5">
+                          <p className="text-[11px] sm:text-xs text-[#64748B] dark:text-white/80 truncate leading-tight mt-0.5">
                             {track.artist}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs font-mono text-[#64748B] dark:text-[#A1A1AA] shrink-0">
+                      <div className="flex items-center gap-4 text-xs font-mono text-[#64748B] dark:text-white/80 shrink-0">
                         <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] bg-black/5 dark:bg-white/5 font-sans">
                           {track.sourceLabel || 'YT'}
                         </span>

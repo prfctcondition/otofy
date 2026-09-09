@@ -31,10 +31,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {hasAlbums && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
-              <Disc size={18} className="text-violet-600" />
+            <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
+              <Disc size={18} className="text-violet-600 dark:text-violet-400" />
               Albums & Discography
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300">
                 {details.albums.length}
               </span>
             </h3>
@@ -47,10 +47,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                 <div
                   key={album.browseId || `album-${idx}`}
                   onClick={() => onSelectAlbum(album.browseId, album.title, details.artist, albumSource)}
-                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
+                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/85 dark:hover:bg-white/[0.09] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.03)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
                 >
                   {/* Album Cover Art */}
-                  <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-2.5">
+                  <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 border border-white/80 dark:border-white/10 shadow-sm mb-2.5">
                     <PlaceholderArtwork
                       icon="disc"
                       imageUrl={album.artworkUrl || defaultArtistArt}
@@ -63,17 +63,17 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
 
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-white text-[#0F172A] flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
                         <Play size={16} fill="currentColor" className="ml-0.5" />
                       </div>
                     </div>
                   </div>
 
                   {/* Album Info */}
-                  <span className="text-xs font-bold text-[#0F172A] truncate leading-tight group-hover:text-violet-700 transition-colors" title={album.title}>
+                  <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors" title={album.title}>
                     {album.title}
                   </span>
-                  <span className="text-[11px] text-[#64748B] mt-0.5">
+                  <span className="text-[11px] text-[#64748B] dark:text-white/70 mt-0.5">
                     {album.year ? album.year : 'Album'}
                   </span>
                 </div>
@@ -87,10 +87,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {hasSingles && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
-              <Sparkles size={18} className="text-pink-600" />
+            <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-pink-600 dark:text-pink-400" />
               Singles & EPs
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300">
                 {details.singles!.length}
               </span>
             </h3>
@@ -103,9 +103,9 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                 <div
                   key={single.browseId || `single-${idx}`}
                   onClick={() => onSelectAlbum(single.browseId, single.title, details.artist, singleSource)}
-                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
+                  className="group relative flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/85 dark:hover:bg-white/[0.09] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.03)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer"
                 >
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-2.5">
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-slate-900 border border-white/80 dark:border-white/10 shadow-sm mb-2.5">
                   <PlaceholderArtwork
                     icon="sparkles"
                     imageUrl={single.artworkUrl || defaultArtistArt}
@@ -116,16 +116,16 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                     className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white text-[#0F172A] flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
                       <Play size={16} fill="currentColor" className="ml-0.5" />
                     </div>
                   </div>
                 </div>
 
-                <span className="text-xs font-bold text-[#0F172A] truncate leading-tight group-hover:text-pink-700 transition-colors" title={single.title}>
+                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-pink-700 dark:group-hover:text-pink-400 transition-colors" title={single.title}>
                   {single.title}
                 </span>
-                <span className="text-[11px] text-[#64748B] mt-0.5">
+                <span className="text-[11px] text-[#64748B] dark:text-white/70 mt-0.5">
                   {single.year ? single.year : 'Single'}
                 </span>
               </div>
@@ -138,8 +138,8 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {/* Fans Might Also Like (Related Artists) */}
       {hasRelated && (
         <section className="space-y-3">
-          <h3 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
-            <User size={18} className="text-indigo-600" />
+          <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
+            <User size={18} className="text-indigo-600 dark:text-indigo-400" />
             Fans Might Also Like
           </h3>
 
@@ -148,9 +148,9 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
               <div
                 key={rel.channelId || `rel-${idx}`}
                 onClick={() => onSelectArtist(rel.name)}
-                className="group flex flex-col items-center p-3 rounded-2xl bg-white/50 hover:bg-white/85 border border-white/80 hover:border-white shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer text-center"
+                className="group flex flex-col items-center p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/85 dark:hover:bg-white/[0.09] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.03)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-200 cursor-pointer text-center"
               >
-                <div className="relative w-20 h-20 rounded-full overflow-hidden bg-slate-800 border-2 border-white shadow-md mb-2 group-hover:scale-105 transition-transform duration-300">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden bg-slate-800 border-2 border-white dark:border-white/20 shadow-md mb-2 group-hover:scale-105 transition-transform duration-300">
                   <PlaceholderArtwork
                     icon="user"
                     imageUrl={rel.avatarUrl}
@@ -161,10 +161,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                     className="w-full h-full"
                   />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A] truncate w-full group-hover:text-indigo-600 transition-colors" title={rel.name}>
+                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate w-full group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title={rel.name}>
                   {rel.name}
                 </span>
-                <span className="text-[10px] text-[#64748B] mt-0.5 uppercase tracking-wider font-semibold">
+                <span className="text-[10px] text-[#64748B] dark:text-white/70 mt-0.5 uppercase tracking-wider font-semibold">
                   Artist
                 </span>
               </div>
@@ -175,18 +175,18 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
 
       {/* About the Artist Bio Card */}
       {hasBio && (
-        <section className="rounded-2xl p-5 bg-white/60 backdrop-blur-xl border border-white/90 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-2">
+        <section className="rounded-2xl p-5 bg-white/60 dark:bg-white/[0.04] backdrop-blur-xl border border-white/90 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] dark:text-white/60">
               About {details.artist}
             </h4>
             {details.subscribers && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100/80 text-violet-800 border border-violet-200/50">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100/80 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
                 {details.subscribers}
               </span>
             )}
           </div>
-          <p className="text-xs leading-relaxed text-[#475569] whitespace-pre-line max-h-48 overflow-y-auto pr-2">
+          <p className="text-xs leading-relaxed text-[#475569] dark:text-white/80 whitespace-pre-line max-h-48 overflow-y-auto pr-2">
             {details.bio}
           </p>
         </section>

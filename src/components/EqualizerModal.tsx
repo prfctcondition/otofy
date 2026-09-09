@@ -100,7 +100,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">10-Band Equalizer</h2>
-                <p className="text-xs text-[#64748B] dark:text-[#A1A1AA] flex items-center gap-1.5 mt-0.5">
+                <p className="text-xs text-[#64748B] dark:text-white/70 flex items-center gap-1.5 mt-0.5">
                   <Activity size={12} className="text-violet-600 dark:text-violet-400 animate-pulse" />
                   Web Audio Parametric Engine (-12dB to +12dB)
                 </p>
@@ -116,13 +116,13 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                     checked={isEnabled}
                     onChange={() => toggleEnabled()}
                   />
-                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-violet-600' : 'bg-[#94A3B8] dark:bg-zinc-700'}`} />
+                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-violet-600' : 'bg-[#94A3B8] dark:bg-white/20'}`} />
                   <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm ${isEnabled ? 'transform translate-x-6' : ''}`} />
                 </div>
               </label>
               <button
                 onClick={onClose}
-                className="p-2 text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
                 title="Close Equalizer"
               >
                 <X size={20} />
@@ -133,7 +133,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           {/* Real-time Spectrum Canvas */}
           <div className="w-full h-14 mb-5 rounded-2xl bg-slate-100/90 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 overflow-hidden relative flex items-end px-2 py-1 shadow-inner">
             <canvas ref={canvasRef} width={580} height={48} className="w-full h-full" />
-            <div className="absolute top-1.5 right-2.5 text-[10px] font-mono font-bold text-[#64748B] dark:text-zinc-400 uppercase tracking-wider">
+            <div className="absolute top-1.5 right-2.5 text-[10px] font-mono font-bold text-[#64748B] dark:text-white/70 uppercase tracking-wider">
               {isEnabled ? 'Live Spectrum' : 'EQ Bypass'}
             </div>
           </div>
@@ -160,7 +160,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                   className="eq-slider"
                   style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
                 />
-                <div className="text-[11px] font-bold text-[#334155] dark:text-zinc-400 mt-1">
+                <div className="text-[11px] font-bold text-[#334155] dark:text-white/80 mt-1">
                   {bandConfig.label}
                 </div>
               </div>
@@ -169,7 +169,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
 
           {/* Presets (Wrapped Grid - All visible at once!) */}
           <div className="mt-auto pt-4 border-t border-slate-200/80 dark:border-white/10">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#A1A1AA] mb-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-white/70 mb-2.5">
               Audio Presets
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                     className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       isActive
                         ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-md'
-                        : 'bg-slate-100 dark:bg-white/[0.06] hover:bg-white dark:hover:bg-white/[0.12] text-[#334155] dark:text-zinc-300 hover:text-[#0F172A] dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs'
+                        : 'bg-slate-100 dark:bg-white/[0.06] hover:bg-white dark:hover:bg-white/[0.12] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs'
                     }`}
                   >
                     {preset.name}

@@ -124,12 +124,12 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Import Playlist</h2>
-              <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">Paste an Otofy playlist share code</p>
+              <p className="text-xs text-[#64748B] dark:text-white/60">Paste an Otofy playlist share code</p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -137,20 +137,21 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#64748B] dark:text-[#A1A1AA] uppercase tracking-wider mb-1.5 ml-1">
-              Share Code
+            <label className="block text-xs font-bold text-[#64748B] dark:text-white/60 uppercase tracking-wider mb-1.5 ml-1">
+              Playlist Share Code
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                placeholder="OTO-xxxx-xxxx-xxxx-xxxx"
-                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl focus:outline-none text-sm font-mono text-[#0F172A] dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 shadow-xs transition-all"
+                placeholder="Paste code here (e.g. OTO-xxxx-xxxx)"
+                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-emerald-500 rounded-xl focus:outline-none text-xs font-mono text-[#0F172A] dark:text-white placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+                autoFocus
               />
               <button
                 onClick={handleParse}
-                className="px-5 py-3 bg-[#0F172A] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-zinc-200 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer"
+                className="px-5 py-3 bg-[#0F172A] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer"
               >
                 Inspect
               </button>
@@ -158,42 +159,42 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-3 rounded-xl text-xs font-medium">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 p-3 rounded-xl text-xs font-medium">
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {parsedData && (
-            <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs space-y-3">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-base text-[#0F172A] dark:text-white">{parsedData.title}</h4>
-                  <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">
-                    Created by {parsedData.creator} • {parsedData.tracks.length} tracks
+                  <h4 className="font-bold text-[#0F172A] dark:text-white text-sm">{parsedData.title}</h4>
+                  <p className="text-xs text-[#64748B] dark:text-white/60">
+                    by {parsedData.creator} • {parsedData.tracks.length} tracks
                   </p>
                 </div>
-                <div className="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-xs">
-                  <Music size={18} />
-                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                  Ready to import
+                </span>
               </div>
 
-              {/* Track preview list */}
-              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 border-t border-slate-100 dark:border-white/10 pt-2 text-xs">
-                {parsedData.tracks.slice(0, 5).map((t, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-[#334155] dark:text-zinc-300 py-0.5">
-                    <span className="truncate pr-2">
-                      <span className="text-[#94A3B8] dark:text-zinc-500 font-mono mr-1.5">{idx + 1}.</span>
-                      {t.title} – <span className="text-[#64748B] dark:text-zinc-400">{t.artist}</span>
+              {/* Tracks preview list */}
+              <div className="max-h-32 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06] text-xs pr-1">
+                {parsedData.tracks.slice(0, 10).map((t, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[#334155] dark:text-white/80 py-0.5">
+                    <span className="truncate max-w-[280px]">
+                      <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">{idx + 1}.</span>
+                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-zinc-300 border border-slate-200 dark:border-white/10">
-                      {t.source}
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80 border border-slate-200 dark:border-white/10">
+                      {t.duration || '0:00'}
                     </span>
                   </div>
                 ))}
-                {parsedData.tracks.length > 5 && (
-                  <div className="text-[11px] text-[#94A3B8] dark:text-zinc-500 italic pt-1">
-                    + {parsedData.tracks.length - 5} more tracks...
+                {parsedData.tracks.length > 10 && (
+                  <div className="text-[11px] text-[#94A3B8] dark:text-white/50 italic pt-1">
+                    ...and {parsedData.tracks.length - 10} more tracks
                   </div>
                 )}
               </div>
