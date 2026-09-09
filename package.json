@@ -12,7 +12,37 @@
     "electron:dev": "tsc -p tsconfig.electron.json && concurrently \"vite --port=3000\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "vite build && tsc -p tsconfig.electron.json",
     "cap:sync": "npx cap sync",
-    "cap:android": "npx cap open android"
+    "cap:android": "npx cap open android",
+    "dist": "npm run build && tsc -p tsconfig.electron.json && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.zenmusic.desktop",
+    "productName": "Zen Music",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Zen Music"
+    }
   },
   "dependencies": {
     "@capacitor/core": "^7.2.0",
@@ -38,6 +68,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^36.3.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",

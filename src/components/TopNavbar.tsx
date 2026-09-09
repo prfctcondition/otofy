@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Home,
   Search,
-  Compass,
   PanelRight,
   PanelRightClose,
   Cloud,
@@ -132,14 +131,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               <X size={15} />
             </button>
           )}
-          <button
-            id="browse-categories-button"
-            className="p-1 rounded-full text-[#94A3B8] hover:text-[#0F172A] transition-colors"
-            title="Browse categories"
-            aria-label="Browse"
-          >
-            <Compass size={16} />
-          </button>
         </div>
       </div>
 
