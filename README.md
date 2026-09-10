@@ -46,7 +46,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 
 ---
 
-## 🔥 Killer Features
+## ♟️ What Sets It Apart
 
 ### 🔓 1. Zero Accounts, Zero Tracking, Zero Ads
 * **No Sign-Up Required**: Launch Otofy and play music immediately. No emails, no passwords, no phone numbers, and no behavioral profiling.
