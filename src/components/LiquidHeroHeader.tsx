@@ -25,6 +25,7 @@ import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { useDownloadStore } from '../store/downloadStore';
+import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface LiquidHeroHeaderProps {
   playlist: Playlist;
@@ -130,17 +131,17 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
     useToastStore.getState().success('Playlist Renamed', `Renamed to "${trimmed}".`);
   };
 
-  const handleDelete = async () => {
-    if (playlist.id === 'pl-liked') {
-      useToastStore.getState().warning('Action Not Allowed', 'Liked Songs is a system playlist.');
+  const handleDelete = () => {
+    if (playlist.id === 'pl-liked' || playlist.id === 'pl-downloads' || playlist.id === 'pl-cached') {
+      useToastStore.getState().warning('Action Not Allowed', `${playlist.title} is a system playlist.`);
       return;
     }
-    if (window.confirm(`Are you sure you want to delete playlist "${playlist.title}"?`)) {
+    setIsOptionsMenuOpen(false);
+    useContextMenuStore.getState().openConfirmDelete(playlist, async () => {
       await useLibraryStore.getState().deletePlaylist(playlist.id);
       await useLibraryStore.getState().selectPlaylist('pl-liked');
-      setIsOptionsMenuOpen(false);
       useToastStore.getState().info('Playlist Deleted', `"${playlist.title}" has been deleted.`);
-    }
+    });
   };
 
   const isRadioOrMix =
@@ -546,17 +547,6 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       >
                         <Download size={15} className="text-[#64748B] dark:text-white/70" />
                         <span>Download all tracks (MP3 320kbps)</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsOptionsMenuOpen(false);
-                          downloadPlaylist(tracks, playlist.title, 'flac');
-                        }}
-                        disabled={isBatchDownloading}
-                        className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <Download size={15} className="text-[#64748B] dark:text-white/70" />
-                        <span>Download all tracks (FLAC)</span>
                       </button>
                     </div>
                   )}

@@ -16,7 +16,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { useNetworkStore } from '../store/networkStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore } from '../store/downloadStore';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface LeftLibraryDockProps {
   playlists: Playlist[];
@@ -40,7 +40,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   const [filterTag, setFilterTag] = useState<'all' | 'playlists' | 'artists' | 'albums'>('all');
   const [searchFilter, setSearchFilter] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [deletingPlaylist, setDeletingPlaylist] = useState<Playlist | null>(null);
 
   const isOnline = useNetworkStore((state) => state.isOnline);
   const cachedTracks = usePlayerStore((state) => state.cachedTracks);
@@ -90,24 +89,25 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
     return list;
   }, [playlists, isOnline, cachedTracks.length]);
 
-  const filteredPlaylists = displayedPlaylists.filter((pl) => {
-    if (filterTag === 'playlists' && pl.type !== 'Playlist') return false;
-    if (filterTag === 'albums' && pl.type !== 'Album') return false;
-    if (searchFilter.trim()) {
-      return (
-        pl.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        pl.creator.toLowerCase().includes(searchFilter.toLowerCase())
-      );
-    }
-    return true;
-  });
-
-  const handleDeleteConfirm = async () => {
-    if (deletingPlaylist) {
-      await deletePlaylist(deletingPlaylist.id);
-      setDeletingPlaylist(null);
-    }
-  };
+  const filteredPlaylists = React.useMemo(() => {
+    return displayedPlaylists
+      .filter((pl) => {
+        if (filterTag === 'playlists' && pl.type !== 'Playlist') return false;
+        if (filterTag === 'albums' && pl.type !== 'Album') return false;
+        if (searchFilter.trim()) {
+          return (
+            pl.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+            pl.creator.toLowerCase().includes(searchFilter.toLowerCase())
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      });
+  }, [displayedPlaylists, filterTag, searchFilter]);
 
   return (
     <>
@@ -271,6 +271,10 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 key={pl.id}
                 id={`playlist-item-${pl.id}`}
                 onClick={() => onSelectPlaylist(pl.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  useContextMenuStore.getState().openPlaylistMenu(pl, e.clientX, e.clientY);
+                }}
                 className={`group relative flex items-center ${
                   isCollapsed
                     ? 'justify-center w-12 h-12 p-0 mx-auto rounded-xl'
@@ -322,7 +326,9 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeletingPlaylist(pl);
+                          useContextMenuStore.getState().openConfirmDelete(pl, async () => {
+                            await deletePlaylist(pl.id);
+                          });
                         }}
                         className="p-1 rounded-md text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white/80 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                         title={`Delete ${pl.title}`}
@@ -341,14 +347,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
           })}
         </div>
       </aside>
-
-      {/* Confirmation Modal for Deletion */}
-      <ConfirmDeleteModal
-        isOpen={Boolean(deletingPlaylist)}
-        playlist={deletingPlaylist}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeletingPlaylist(null)}
-      />
     </>
   );
 };

@@ -27,6 +27,7 @@ import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useEqStore } from '../store/eqStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
+import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface DockPlayerBarProps {
   onSelectArtist?: (artist: string) => void;
@@ -157,7 +158,13 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
       id="dock-player-bar"
       className="h-[84px] w-full shrink-0 px-3 sm:px-6 grid grid-cols-[minmax(0,280px)_1fr_minmax(0,280px)] items-center gap-2 sm:gap-4 select-none liquid-glass-panel rounded-2xl relative z-40 overflow-hidden"
     >
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0 w-full max-w-full overflow-hidden">
+      <div
+        onContextMenu={(e) => {
+          e.preventDefault();
+          useContextMenuStore.getState().openTrackMenu(activeTrack, e.clientX, e.clientY);
+        }}
+        className="flex items-center gap-2 sm:gap-3 min-w-0 w-full max-w-full overflow-hidden cursor-context-menu"
+      >
         <div className="relative group shrink-0 rounded-lg p-0.5 bg-white/70 dark:bg-white/10 border border-white dark:border-white/10 shadow-sm">
           <PlaceholderArtwork
             icon={activeTrack.iconName}

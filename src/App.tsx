@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ViewportMode, Track, Playlist, ArtistDetails, SourceType } from './types';
 import { TopNavbar } from './components/TopNavbar';
 import { LeftLibraryDock } from './components/LeftLibraryDock';
@@ -18,7 +18,13 @@ import { useSearchStore } from './store/searchStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useDownloadStore } from './store/downloadStore';
 import { useNetworkStore } from './store/networkStore';
+import { useContextMenuStore } from './store/contextMenuStore';
+import { useToastStore } from './store/toastStore';
 
+import { TrackContextMenu } from './components/TrackContextMenu';
+import { PlaylistContextMenu } from './components/PlaylistContextMenu';
+import { ConfirmDeleteModal } from './components/ConfirmDeleteModal';
+import { generateShareCode } from './services/shareCodeService';
 import { EqualizerModal } from './components/EqualizerModal';
 import { QueueModal } from './components/QueueModal';
 import { SharePlaylistModal } from './components/SharePlaylistModal';
@@ -71,7 +77,24 @@ export default function App() {
   } = libraryStore;
 
   const { activeTrack, isPlaying, isShuffle } = playerStore;
-  const [activeQueuePlaylistId, setActiveQueuePlaylistId] = React.useState<string | null>(null);
+  const [activeQueuePlaylistId, setActiveQueuePlaylistId] = useState<string | null>(null);
+
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isCompactLayout = windowWidth < 1100;
+
+  const trackMenu = useContextMenuStore((s) => s.trackMenu);
+  const playlistMenu = useContextMenuStore((s) => s.playlistMenu);
+  const confirmDelete = useContextMenuStore((s) => s.confirmDelete);
+  const closeTrackMenu = useContextMenuStore((s) => s.closeTrackMenu);
+  const closePlaylistMenu = useContextMenuStore((s) => s.closePlaylistMenu);
+  const closeConfirmDelete = useContextMenuStore((s) => s.closeConfirmDelete);
 
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const mobileScrollRef = useRef<HTMLDivElement>(null);
@@ -767,7 +790,7 @@ export default function App() {
             {/* Center Canvas */}
             <main
               id="center-canvas"
-              className="flex-1 min-w-0 h-full flex flex-col liquid-glass-panel rounded-2xl overflow-hidden relative"
+              className="flex-1 min-w-[360px] sm:min-w-[480px] h-full flex flex-col liquid-glass-panel rounded-2xl overflow-hidden relative"
             >
               <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/[0.50] dark:from-black/40 via-white/[0.10] dark:via-black/10 to-transparent z-10" />
 
@@ -839,9 +862,23 @@ export default function App() {
               )}
             </main>
 
-            {/* Lyrics Panel (open by default on the right side) */}
+            {/* Lyrics Panel: inline sidebar when >= 1100px, floating liquid drawer when < 1100px */}
             {isLyricsModalOpen && (
-              <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
+              isCompactLayout ? (
+                <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
+                  {/* Smooth backdrop blur */}
+                  <div
+                    className="absolute inset-0 bg-black/40 backdrop-blur-xs pointer-events-auto transition-opacity animate-in fade-in duration-200"
+                    onClick={libraryStore.toggleLyricsModal}
+                  />
+                  {/* Floating liquid glass drawer */}
+                  <div className="relative z-10 h-full p-3 pointer-events-auto animate-in slide-in-from-right duration-200 shadow-2xl">
+                    <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
+                  </div>
+                </div>
+              ) : (
+                <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
+              )
             )}
           </>
         ) : (
@@ -959,6 +996,69 @@ export default function App() {
 
       {/* Batch Download Floating Banner */}
       <BatchDownloadBanner />
+
+      {/* Global Track Context Menu */}
+      {trackMenu && (
+        <TrackContextMenu
+          track={trackMenu.track}
+          x={trackMenu.x}
+          y={trackMenu.y}
+          playlists={playlists}
+          currentPlaylistId={trackMenu.currentPlaylistId || selectedPlaylistId}
+          onClose={closeTrackMenu}
+          onPlay={(t) => handleSelectTrack(t, [t])}
+          onAddToPlaylist={(plId, t) => libraryStore.addTrackToPlaylist(plId, t)}
+          onRemoveFromPlaylist={(plId, trkId) => libraryStore.removeTrackFromPlaylist(plId, trkId)}
+          onCreatePlaylistWithTrack={(t) => libraryStore.createPlaylistFromTracks(t.title, [t])}
+          onToggleLike={(id, t) => libraryStore.toggleLike(id, t)}
+          onSelectArtist={(a) => handleOpenArtistView(a)}
+        />
+      )}
+
+      {/* Global Playlist Context Menu */}
+      {playlistMenu && (
+        <PlaylistContextMenu
+          playlist={playlistMenu.playlist}
+          x={playlistMenu.x}
+          y={playlistMenu.y}
+          onClose={closePlaylistMenu}
+          onPinToggle={(pl) => libraryStore.togglePinPlaylist(pl.id)}
+          onShare={async (pl) => {
+            try {
+              const trks = await repo.getPlaylistTracks(pl.id);
+              const code = generateShareCode(pl.title, pl.creator, trks);
+              await navigator.clipboard.writeText(code);
+              useToastStore.getState().success('Share Code Copied', `Code for "${pl.title}" copied to clipboard.`);
+            } catch {
+              useToastStore.getState().error('Share Failed', 'Could not generate share code.');
+            }
+          }}
+          onDelete={(pl) => {
+            useContextMenuStore.getState().openConfirmDelete(pl, async () => {
+              await libraryStore.deletePlaylist(pl.id);
+              if (selectedPlaylistId === pl.id) {
+                await libraryStore.selectPlaylist('pl-liked');
+              }
+              useToastStore.getState().info('Playlist Deleted', `"${pl.title}" has been deleted.`);
+            });
+          }}
+        />
+      )}
+
+      {/* Custom Liquid Glass Delete Confirmation Modal */}
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          isOpen={Boolean(confirmDelete)}
+          playlist={confirmDelete.playlist}
+          onConfirm={async () => {
+            if (confirmDelete.onConfirm) {
+              await confirmDelete.onConfirm();
+            }
+            closeConfirmDelete();
+          }}
+          onCancel={closeConfirmDelete}
+        />
+      )}
 
       {/* Floating Notifications / Error Toasts */}
       <ToastContainer />

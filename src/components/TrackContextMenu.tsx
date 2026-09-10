@@ -14,9 +14,11 @@ import {
   Pause,
   X,
   Clock,
+  Radio,
 } from 'lucide-react';
 import { Track, Playlist } from '../types';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
+import { usePlayerStore } from '../store/playerStore';
 
 interface TrackContextMenuProps {
   track: Track;
@@ -95,7 +97,16 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       }
     };
 
-    const handleScroll = () => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.closest?.('#lyrics-panel') ||
+          target.closest?.('.lyrics-scroll-container') ||
+          menuRef.current?.contains(target))
+      ) {
+        return;
+      }
       onClose();
     };
 
@@ -148,7 +159,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in duration-75 ease-out"
     >
       {/* Track Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
@@ -166,6 +177,18 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       >
         <Play size={15} className="text-violet-600 dark:text-violet-400 fill-violet-600 dark:fill-violet-400" />
         <span>Play now</span>
+      </button>
+
+      {/* Start Radio */}
+      <button
+        onClick={() => {
+          usePlayerStore.getState().startTrackRadio(track);
+          onClose();
+        }}
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+      >
+        <Radio size={15} className="text-violet-600 dark:text-violet-400" />
+        <span>Start Radio</span>
       </button>
 
       {/* Like / Unlike */}
@@ -390,28 +413,16 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           </button>
         </>
       ) : (
-        <>
-          <button
-            onClick={() => {
-              startDownload(track, 'mp3');
-              onClose();
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
-          >
-            <Download size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>Download MP3 (320 kbps)</span>
-          </button>
-          <button
-            onClick={() => {
-              startDownload(track, 'flac');
-              onClose();
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
-          >
-            <Download size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>Download FLAC</span>
-          </button>
-        </>
+        <button
+          onClick={() => {
+            startDownload(track, 'mp3');
+            onClose();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          <Download size={15} className="text-[#64748B] dark:text-white/70" />
+          <span>Download MP3 (320 kbps)</span>
+        </button>
       )}
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />

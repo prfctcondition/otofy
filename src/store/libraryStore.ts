@@ -129,6 +129,7 @@ interface LibraryActions {
   saveViewingPlaylistToLibrary: () => Promise<void>;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
+  togglePinPlaylist: (id: string) => Promise<void>;
   clearAndRefreshAllCollections: () => Promise<void>;
 
   // Modal toggles
@@ -398,6 +399,23 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       playlists: updated,
       viewingPlaylist: currentVP && currentVP.id === id ? { ...currentVP, title: trimmed } : currentVP,
     });
+  },
+
+  togglePinPlaylist: async (id: string) => {
+    const pl = get().playlists.find((p) => p.id === id);
+    if (!pl) return;
+    const nextPinned = !pl.isPinned;
+    await repo.updatePlaylist(id, { isPinned: nextPinned });
+    const updated = await repo.getPlaylists();
+    const currentVP = get().viewingPlaylist;
+    set({
+      playlists: updated,
+      viewingPlaylist: currentVP && currentVP.id === id ? { ...currentVP, isPinned: nextPinned } : currentVP,
+    });
+    useToastStore.getState().info(
+      nextPinned ? 'Playlist Pinned' : 'Playlist Unpinned',
+      nextPinned ? `"${pl.title}" pinned to your library.` : `"${pl.title}" unpinned.`
+    );
   },
 
   toggleLike: async (trackId, trackData) => {

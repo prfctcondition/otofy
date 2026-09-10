@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { Track } from '../types';
+import type { Track, SourceType } from '../types';
 import audioEngine from '../audio/AudioEngine';
+import repo from '../db/repository';
 import useToastStore from './toastStore';
 import { useSettingsStore } from './settingsStore';
 import { useDownloadStore } from './downloadStore';
@@ -47,6 +48,7 @@ interface PlayerActions {
   clearQueue: () => void;
   initAudioListeners: () => () => void;
   appendAutoplayTracks: () => Promise<void>;
+  startTrackRadio: (track: Track) => Promise<void>;
   getCachedTracks: () => Track[];
 }
 
@@ -519,6 +521,95 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       console.warn('[Player] Autoplay fetch failed:', err);
     } finally {
       set({ isAutoplayLoading: false, isLoadingAutoplay: false, isBuffering: false });
+    }
+  },
+
+  startTrackRadio: async (track: Track) => {
+    // 1. Reset queue to just this track, set active track, and play immediately
+    set({
+      queue: [track],
+      queueIndex: 0,
+      activeTrack: track,
+    });
+    await get().playTrack(track, [track]);
+
+    useToastStore.getState().info(
+      'Starting Radio',
+      `Tuning into radio for "${track.title}"...`
+    );
+
+    try {
+      const cleanId = cleanTrackId(track.sourceId || track.id);
+      const source = (track.source || 'YT') as 'YT' | 'SC';
+      let fetchedTracks: any[] = [];
+
+      if (window.electronAPI?.getRelatedTracks) {
+        try {
+          fetchedTracks = await window.electronAPI.getRelatedTracks(
+            cleanId,
+            source,
+            track.artist,
+            track.title
+          );
+        } catch (ipcErr) {
+          console.warn('[Player] IPC getRelatedTracks failed:', ipcErr);
+        }
+      }
+
+      if (fetchedTracks.length === 0) {
+        try {
+          const res = await fetch(
+            `/api/music/related-tracks?id=${encodeURIComponent(cleanId)}&source=${encodeURIComponent(source)}&artist=${encodeURIComponent(track.artist || '')}&title=${encodeURIComponent(track.title || '')}`
+          );
+          if (res.ok) {
+            fetchedTracks = await res.json();
+          }
+        } catch (fetchErr) {
+          console.warn('[Player] Dev server related-tracks failed:', fetchErr);
+        }
+      }
+
+      if (fetchedTracks.length === 0 && window.electronAPI?.getGenreTracks) {
+        try {
+          const query = track.artist || track.title;
+          fetchedTracks = (await window.electronAPI.getGenreTracks(`${query} radio`)) as any;
+        } catch {}
+      }
+
+      if (fetchedTracks && fetchedTracks.length > 0) {
+        const radioTracks: Track[] = fetchedTracks.map((t: any, idx: number) => ({
+          id: t.id || `radio-${idx}-${Date.now()}`,
+          number: idx + 2,
+          title: t.title,
+          artist: t.artist,
+          album: t.album || 'Radio Mix',
+          duration: t.duration || '3:30',
+          durationSec: t.durationSec || 210,
+          dateAdded: new Date().toISOString(),
+          source: (t.source || 'YT') as SourceType,
+          sourceLabel: t.sourceLabel || (t.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
+          sourceId: t.sourceId || t.id,
+          artworkUrl: t.artworkUrl,
+          iconName: 'radio',
+          gradientFrom: '#8B5CF6',
+          gradientTo: '#EC4899',
+          isLiked: false,
+        }));
+
+        for (const rt of radioTracks) {
+          await repo.putTrack(rt).catch(() => {});
+        }
+
+        const newQueue = [track, ...radioTracks];
+        set({ queue: newQueue });
+
+        useToastStore.getState().success(
+          'Radio Connected',
+          `Added ${radioTracks.length} related tracks to the queue.`
+        );
+      }
+    } catch (err) {
+      console.warn('[Player] startTrackRadio error:', err);
     }
   },
 

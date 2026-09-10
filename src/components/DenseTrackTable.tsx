@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Play,
   Pause,
@@ -12,10 +11,10 @@ import {
 } from 'lucide-react';
 import { Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
-import { TrackContextMenu } from './TrackContextMenu';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
+import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface DenseTrackTableProps {
   tracks: Track[];
@@ -327,12 +326,6 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   onSelectArtist,
   onSelectAlbum,
 }) => {
-  const [contextMenu, setContextMenu] = useState<{
-    track: Track;
-    x: number;
-    y: number;
-  } | null>(null);
-
   const playlists = useLibraryStore((s) => s.playlists);
   const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
   const addTrackToPlaylist = useLibraryStore((s) => s.addTrackToPlaylist);
@@ -370,7 +363,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       y = rect.bottom + 6;
     }
 
-    setContextMenu({ track, x, y });
+    useContextMenuStore.getState().openTrackMenu(track, x, y, selectedPlaylistId);
   };
 
   return (
@@ -423,25 +416,6 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
           ))
         )}
       </div>
-
-      {contextMenu &&
-        createPortal(
-          <TrackContextMenu
-            track={contextMenu.track}
-            x={contextMenu.x}
-            y={contextMenu.y}
-            playlists={playlists}
-            currentPlaylistId={selectedPlaylistId}
-            onClose={() => setContextMenu(null)}
-            onPlay={(t) => onTrackSelect(t, tracks)}
-            onAddToPlaylist={(plId, t) => addTrackToPlaylist(plId, t)}
-            onRemoveFromPlaylist={(plId, trkId) => removeTrackFromPlaylist(plId, trkId)}
-            onCreatePlaylistWithTrack={handleCreatePlaylistWithTrack}
-            onToggleLike={onToggleLike}
-            onSelectArtist={onSelectArtist}
-          />,
-          document.body
-        )}
     </div>
   );
 };

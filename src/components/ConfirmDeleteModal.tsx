@@ -15,11 +15,26 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen || !playlist) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/90 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 rounded-3xl w-full max-w-sm p-6 m-4 shadow-[0_20px_50px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-center flex flex-col items-center">
+    <div
+      onClick={onCancel}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white/90 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 rounded-3xl w-full max-w-sm p-6 m-4 shadow-[0_20px_50px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-center flex flex-col items-center"
+      >
         <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4 shadow-xs">
           <Trash2 size={24} />
         </div>
