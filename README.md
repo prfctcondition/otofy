@@ -60,11 +60,11 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 * **Smart Concurrency Queue**: Background download manager throttles parallel workers (up to 3 simultaneous streams) with live progress tracking, per-track pause/resume/cancel, and batch controls to keep your PC smooth.
 * **True Offline Mode**: Switch to your downloads library and enjoy full playback without any internet connection.
 
-### 🔄 3. Universal Multi-Platform Playlist Importer
+### 🔄 3. Universal Multi-Platform Importer & Link-Free Sharing
 * **Spotify Importer**: Paste any Spotify public playlist URL. Otofy extracts the tracklist and metadata, searches across high-fidelity sources, and reconstructs the playlist locally.
 * **YouTube Music & SoundCloud Support**: Import playlists from YouTube Music or SoundCloud directly via URL.
-* **Otofy Share Codes**: Export your curated playlists to compact JSON share codes and send them to friends.
-* **Smart Matching Engine**: Employs fuzzy string matching, multi-artist parsing (`feat.`, `ft.`, `&`), and duration verification to find the exact studio version of every track.
+* **Link-Free Playlist Sharing (Portable Codes)**: Share your curated collections without generating web links, relying on third-party cloud servers, or exposing your account. Export and import playlists instantly using compact, offline-friendly JSON share codes.
+* **Smart Matching Engine**: Employs fuzzy string matching, multi-artist parsing (`feat.`, `ft.`, `&`, `,`), and duration verification to find the exact studio version of every track.
 * **Interactive Conflict Resolver**: If a track has multiple versions or rare remixes, an interactive candidate modal lets you audition, replace, or skip tracks with one click.
 
 ### 🌐 4. Boundless Dual-Engine Catalog
@@ -73,17 +73,16 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 * **Unified Discovery**: Seamlessly search both platforms simultaneously or filter results with instant `[ YT ]` and `[ SC ]` toggles.
 
 ### 🎛️ 5. Studio-Grade 10-Band Graphic Equalizer
-* **Precision Parametric EQ**: Tailor your sound across 10 discrete frequency bands (32Hz to 16kHz) using Web Audio API hardware-accelerated biquad filters.
+* **10-Band Precision Filter Bank**: While mainstream desktop clients like Spotify restrict audio tuning to only 6 fixed sliders, Otofy provides a hardware-accelerated 10-band equalizer (32Hz to 16kHz) powered by Web Audio API biquad filters.
 * **One-Click Presets**: Switch instantly between *Bass Boost*, *Vocal Clarity*, *Electronic*, *Rock*, *Acoustic*, and *Flat*.
-* **Real-Time Soundstage**: Hear changes in real-time with zero latency or playback distortion.
+* **Real-Time Soundstage**: Fine-tune your frequency curve from -12dB to +12dB with centered precision sliders and zero playback latency.
 
 ### ⚡ 6. Dual-Deck Audio Engine & Infinite Autoplay
 * **Seamless Crossfading (0–12s)**: Powered by an A/B dual-deck audio pipeline, smoothly blending tracks together like a live radio DJ.
 * **Infinite Radio Mode**: When your queue ends, Otofy automatically analyzes the acoustic profile of your last track and generates an endless queue of matching songs.
 
 ### 🎤 7. Interactive Synchronized Lyrics (Karaoke & Cinema View)
-* **Real-Time Timestamps**: Sub-second synchronized lyrics fetched on the fly.
-* **Click-to-Seek Karaoke**: Click on any lyric line or phrase to instantly jump to that exact millisecond in the song.
+* **Universal Click-to-Seek Karaoke**: Click on any lyric line or phrase to instantly jump to that exact millisecond in the song. On mainstream services like Spotify, clicking lyrics to navigate playback is rare and restricted only to select songs where publishers manually configured timings; in Otofy, lyrics feature universal sub-second synchronized timestamps.
 * **Ambient Cinema Fullscreen**: Immersive visualizer with dynamic lighting that extracts dominant color gradients from current album artwork.
 
 ### 📁 8. Power Library & Local Audio Discovery
@@ -103,18 +102,19 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 
 ## 🖥️ Platform Comparison
 
-| Feature | Otofy | Spotify Free | YouTube Music | Typical Offline Players |
-| :--- | :---: | :---: | :---: | :---: |
-| **Price** | **100% Free** | Free (Ad-Supported) | Free (Ad-Supported) | Free / Paid |
-| **Account Required** | **❌ None** | ✔️ Required | ✔️ Required | ❌ None |
-| **Audio Ads** | **❌ Zero** | ⚠️ Every 15 mins | ⚠️ Every 2 tracks | ❌ Zero |
-| **Batch Playlist Download** | **✔️ Unlimited** | ❌ Premium Only | ❌ Premium Only | ❌ Manual files only |
-| **Offline Playback with Artwork** | **✔️ Yes (Embedded ID3)** | ✔️ DRM Locked | ✔️ DRM Locked | ⚠️ If tagged manually |
-| **Spotify Playlist Import** | **✔️ One-click** | N/A | ❌ Third-party tool | ❌ N/A |
-| **SoundCloud Catalog** | **✔️ Built-in** | ❌ No | ❌ No | ❌ No |
-| **10-Band Precision EQ** | **✔️ Built-in** | ⚠️ Basic (Mobile only)| ❌ No | ⚠️ Varies |
-| **Synchronized Lyrics** | **✔️ Click-to-Seek** | ⚠️ Non-interactive | ⚠️ Static only | ❌ Rare |
-| **Telemetry & Tracking** | **❌ Zero** | ⚠️ Extensive | ⚠️ Extensive | ❌ None |
+| Feature | Otofy | Spotify Free | Apple Music | YouTube Music | SoundCloud Free | Typical Offline Players |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Price** | **100% Free** | Free (Ad-Supported) | $10.99/mo (No Free Tier) | Free (Ad-Supported) | Free (Ad-Supported) | Free / Paid |
+| **Account Required** | **❌ None** | ✔️ Required | ✔️ Apple ID Required | ✔️ Required | ⚠️ Required for Playlists | ❌ None |
+| **Audio Ads** | **❌ Zero** | ⚠️ Every 15 mins | ❌ Zero (Paid Only) | ⚠️ Every 2 tracks | ⚠️ Frequent Audio Ads | ❌ Zero |
+| **Batch Playlist Download** | **✔️ Unlimited** | ❌ Premium Only | ⚠️ Paid Only (DRM Locked) | ❌ Premium Only | ❌ Go+ Only | ❌ Manual files only |
+| **Offline Playback & Tags** | **✔️ Yes (Embedded ID3 & 500x500 Artwork)** | ⚠️ Encrypted Cache | ⚠️ DRM Encrypted | ⚠️ Encrypted Cache | ⚠️ Mobile Cache Only | ⚠️ If tagged manually |
+| **Link-Free Playlist Sharing** | **✔️ Portable Codes (No Links Needed)** | ❌ Web Links Only | ❌ Web Links Only | ❌ Web Links Only | ❌ Web Links Only | ⚠️ Manual File Copy |
+| **Multi-Platform Import** | **✔️ Spotify, YT, SC, Codes** | ❌ No | ❌ Third-party paid tools | ❌ No | ❌ No | ❌ N/A |
+| **Catalog Scope** | **Dual (YT Music + SoundCloud)** | Commercial Catalog | Commercial Catalog | YouTube Catalog | Remixes / Indie Only | Local Storage Only |
+| **Graphic Equalizer** | **✔️ 10-Band Parametric** | ⚠️ Limited (6-Band on PC) | ⚠️ Presets Only (No Sliders on Windows) | ❌ No EQ on Desktop | ❌ No EQ | ⚠️ Varies (usually 5-Band) |
+| **Interactive Synced Lyrics** | **✔️ Universal Click-to-Seek** | ⚠️ Rare (Author-dependent) | ✔️ Syllable-synced (Paid) | ⚠️ Static text only | ❌ No lyrics | ❌ Rare / Manual .lrc |
+| **Telemetry & Tracking** | **❌ Zero (100% Private)** | ⚠️ Aggressive Profiling | ⚠️ Account Analytics | ⚠️ Google Ad Tracking | ⚠️ Behavioral Tracking | ❌ None |
 
 ---
 
@@ -160,12 +160,12 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 
 - [x] **Universal Playlist Importer**: Spotify, YouTube Music, SoundCloud, and JSON codes with conflict resolution.
 - [x] **Batch Playlist Downloader**: Concurrent FFmpeg engine with ID3 & 500x500 artwork embedding.
-- [x] **10-Band Graphic Equalizer**: Web Audio hardware filter bank with audio presets.
+- [x] **Link-Free Playlist Sharing**: Export and import playlists via portable Otofy JSON share codes without web links or external hosting.
+- [x] **10-Band Graphic Equalizer**: Web Audio hardware filter bank with audio presets (up from standard 6-band limitations).
 - [x] **Multi-Select & Advanced Sorting**: Bulk library operations and tracklist organization.
 - [x] **Local Files Discovery**: Scan and play local `.mp3`, `.flac`, `.opus`, `.m4a`.
 - [ ] **Discord Rich Presence**: Broadcast currently playing track, artist, album art, and progress to Discord.
 - [ ] **Native Global Media Keys & Windows SMTC**: Enhanced hardware keyboard controls when minimized to tray.
-- [ ] **Cross-Device P2P Library Sync**: Sync custom playlists and history between desktop and mobile across local Wi-Fi without cloud servers.
 
 ---
 
