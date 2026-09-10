@@ -231,13 +231,20 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
         )
       : items;
 
-    // Sorting
-    filtered.sort((a, b) => {
-      // 1. Pinned items always on top
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
+    // Isolate pinned items completely: pinned items NEVER participate in sorting
+    const pinned: LibraryItem[] = [];
+    const unpinned: LibraryItem[] = [];
 
-      // 2. Selected library sort mode
+    filtered.forEach((item) => {
+      if (item.isPinned) {
+        pinned.push(item);
+      } else {
+        unpinned.push(item);
+      }
+    });
+
+    // Only unpinned items are sorted by librarySortBy
+    unpinned.sort((a, b) => {
       if (librarySortBy === 'alphabetical') {
         return a.title.localeCompare(b.title);
       }
@@ -260,7 +267,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
       return tB - tA;
     });
 
-    return filtered;
+    return [...pinned, ...unpinned];
   }, [displayedPlaylists, followedArtists, savedAlbums, filterTag, searchFilter, librarySortBy]);
 
   return (
@@ -341,7 +348,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
 
         {/* Filter Pills & Search in Expanded State */}
         {!isCollapsed && (
-          <div className="px-3 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-10">
+          <div className="px-3 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-30">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setFilterTag(filterTag === 'playlists' ? 'all' : 'playlists')}
@@ -418,7 +425,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   </button>
 
                   {isSortMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-44 rounded-xl bg-white/95 dark:bg-[#1E2028]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute right-0 top-full mt-1 w-44 rounded-xl bg-white dark:bg-neutral-900 border border-slate-200/90 dark:border-neutral-700 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                       <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white/40">
                         Sort by
                       </div>
@@ -530,7 +537,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   }}
                   onClick={() => {
                     onSelectPlaylist(pl.id);
-                    recordEntityOpened(pl.id, 'playlist');
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
@@ -620,7 +626,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`art-${art.id}`}
                   onClick={() => {
                     onSelectArtist?.(art.name, art.source);
-                    recordEntityOpened(art.id, 'artist');
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed
@@ -685,7 +690,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`alb-${alb.id}`}
                   onClick={() => {
                     onSelectAlbum?.(alb.id, alb.title, alb.artist, alb.source);
-                    recordEntityOpened(alb.id, 'album');
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed

@@ -152,6 +152,7 @@ interface LibraryActions {
   isArtistFollowed: (name: string) => boolean;
   toggleSaveAlbum: (album: { id: string; title: string; artist: string; artworkUrl?: string; year?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
   isAlbumSaved: (id: string, title?: string) => boolean;
+  recordEntityPlayed: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration', order?: 'asc' | 'desc') => void;
   setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
@@ -327,7 +328,6 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   selectPlaylist: async (id) => {
-    get().recordEntityOpened(id, 'playlist');
     let pl = get().playlists.find((p) => p.id === id) || null;
     let tracks: Track[] = [];
 
@@ -557,21 +557,31 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     return false;
   },
 
-  recordEntityOpened: async (id, type) => {
+  recordEntityPlayed: async (id, type) => {
     const now = Date.now();
     if (type === 'playlist') {
-      const playlists = get().playlists.map((p) => p.id === id ? { ...p, lastOpenedAt: now } : p);
-      set({ playlists });
-      await repo.updatePlaylist(id, { lastOpenedAt: now } as any);
+      const pl = get().playlists.find((p) => p.id === id);
+      // Pinned playlists are completely static and never participate in recents shifting
+      if (pl && !pl.isPinned) {
+        const playlists = get().playlists.map((p) => (p.id === id ? { ...p, lastOpenedAt: now } : p));
+        set({ playlists });
+        await repo.updatePlaylist(id, { lastOpenedAt: now } as any);
+      }
     } else if (type === 'artist') {
-      const followedArtists = get().followedArtists.map((a) => a.id === id || a.name.toLowerCase() === id.toLowerCase() ? { ...a, lastOpenedAt: now } : a);
+      const followedArtists = get().followedArtists.map((a) =>
+        a.id === id || a.name.toLowerCase() === id.toLowerCase() ? { ...a, lastOpenedAt: now } : a
+      );
       set({ followedArtists });
       await repo.setFollowedArtists(followedArtists);
     } else if (type === 'album') {
-      const savedAlbums = get().savedAlbums.map((a) => a.id === id ? { ...a, lastOpenedAt: now } : a);
+      const savedAlbums = get().savedAlbums.map((a) => (a.id === id ? { ...a, lastOpenedAt: now } : a));
       set({ savedAlbums });
       await repo.setSavedAlbums(savedAlbums);
     }
+  },
+
+  recordEntityOpened: async (id, type) => {
+    return get().recordEntityPlayed(id, type);
   },
 
   setTracklistSort: (sortBy, order) => {

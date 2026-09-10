@@ -240,11 +240,33 @@ export default function App() {
     return activeQueuePlaylistId === currentPlaylist.id;
   }, [activeTrack, sortedTracks, activeQueuePlaylistId, currentPlaylist.id]);
 
+  const recordCurrentEntityPlayed = () => {
+    if (!currentPlaylist) return;
+    if (currentPlaylist.type === 'Artist') {
+      const art = libraryStore.followedArtists.find(
+        (a) => a.name.toLowerCase() === currentPlaylist.title.toLowerCase() || a.id === currentPlaylist.id
+      );
+      if (art) {
+        libraryStore.recordEntityPlayed(art.id, 'artist');
+      }
+    } else if (currentPlaylist.type === 'Album') {
+      const alb = libraryStore.savedAlbums.find(
+        (a) => a.id === currentPlaylist.id || a.title.toLowerCase() === currentPlaylist.title.toLowerCase()
+      );
+      if (alb) {
+        libraryStore.recordEntityPlayed(alb.id, 'album');
+      }
+    } else {
+      libraryStore.recordEntityPlayed(currentPlaylist.id, 'playlist');
+    }
+  };
+
   const handleTogglePlaylistPlay = () => {
     if (isCurrentPlaylistActive) {
       playerStore.togglePlay();
     } else if (sortedTracks.length > 0) {
       setActiveQueuePlaylistId(currentPlaylist.id);
+      recordCurrentEntityPlayed();
       playerStore.playTrack(sortedTracks[0], sortedTracks);
     }
   };
@@ -253,6 +275,7 @@ export default function App() {
     playerStore.toggleShuffle();
     if (sortedTracks.length > 0) {
       setActiveQueuePlaylistId(currentPlaylist.id);
+      recordCurrentEntityPlayed();
       const randomIdx = Math.floor(Math.random() * sortedTracks.length);
       playerStore.playTrack(sortedTracks[randomIdx], sortedTracks);
     }
@@ -260,6 +283,7 @@ export default function App() {
 
   const handleSelectTrack = (track: Track, queue: Track[]) => {
     setActiveQueuePlaylistId(currentPlaylist.id);
+    recordCurrentEntityPlayed();
     playerStore.playTrack(track, queue);
   };
 
