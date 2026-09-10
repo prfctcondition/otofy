@@ -176,6 +176,17 @@ declare global {
       onWindowState?: (callback: (isMaximized: boolean) => void) => () => void;
       onMediaKey: (callback: (key: string) => void) => () => void;
       getUserProfile?: () => Promise<{ username: string; avatarUrl?: string | null }>;
+      quitApp?: () => Promise<void>;
+      relaunchApp?: () => Promise<void>;
+      getConfig?: () => Promise<{ hardwareAcceleration?: boolean; closeToTray?: boolean; downloadsPath?: string; autoLaunch?: string }>;
+      setAutoLaunch?: (mode: 'no' | 'yes' | 'minimized') => Promise<boolean>;
+      setCloseToTray?: (enabled: boolean) => Promise<boolean>;
+      setHardwareAcceleration?: (enabled: boolean) => Promise<boolean>;
+      getCacheSize?: () => Promise<{ bytes: number; formatted: string }>;
+      clearCache?: () => Promise<boolean>;
+      getDownloadsPath?: () => Promise<string>;
+      selectDownloadsFolder?: () => Promise<string | null>;
+      openFolder?: (folderPath?: string) => Promise<boolean>;
     };
   }
 }

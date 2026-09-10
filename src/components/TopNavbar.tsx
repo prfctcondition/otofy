@@ -18,6 +18,7 @@ import { ViewportMode } from '../types';
 import { useSearchStore } from '../store/searchStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useThemeStore } from '../store/themeStore';
+import { UserProfileDropdown } from './UserProfileDropdown';
 
 interface TopNavbarProps {
   viewportMode: ViewportMode;
@@ -54,6 +55,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const { theme, toggleTheme } = useThemeStore();
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('User');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false);
 
   const isElectron = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
@@ -245,22 +247,34 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </button>
         )}
 
-        <div
-          id="user-profile-avatar-btn"
-          className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(99,102,241,0.25)] shrink-0 overflow-hidden"
-          title={`Profile (${userName})`}
-        >
-          {userAvatar ? (
-            <img
-              src={userAvatar}
-              alt={userName}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#0F172A] dark:text-white uppercase">
-              {userName ? userName.charAt(0) : 'U'}
-            </div>
-          )}
+        <div className="relative">
+          <div
+            id="user-profile-avatar-btn"
+            onClick={() => setIsProfileMenuOpen((v) => !v)}
+            className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(99,102,241,0.25)] shrink-0 overflow-hidden"
+            title={`Profile (${userName})`}
+          >
+            {userAvatar ? (
+              <img
+                src={userAvatar}
+                alt={userName}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#0F172A] dark:text-white uppercase">
+                {userName ? userName.charAt(0) : 'U'}
+              </div>
+            )}
+          </div>
+
+          <UserProfileDropdown
+            isOpen={isProfileMenuOpen}
+            onClose={() => setIsProfileMenuOpen(false)}
+            onOpenSettings={() => useLibraryStore.getState().openSettings()}
+            onOpenEqualizer={() => useLibraryStore.getState().toggleEqModal()}
+            userName={userName}
+            userAvatar={userAvatar}
+          />
         </div>
 
         {/* Windows Desktop Control Buttons */}

@@ -21,7 +21,7 @@ export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
 ];
 
 export interface NavigationSnapshot {
-  currentView: 'home' | 'playlist' | 'search' | 'catalog';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings';
   selectedPlaylistId: string;
   viewingPlaylist: Playlist | null;
   currentPlaylistTracks: Track[];
@@ -59,7 +59,7 @@ interface LibraryState {
   selectedPlaylistId: string;
   currentPlaylistTracks: Track[];
   viewingPlaylist: Playlist | null;
-  currentView: 'home' | 'playlist' | 'search' | 'catalog';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings';
   viewportMode: 'desktop' | 'mobile';
   isSidebarCollapsed: boolean;
   isRightPanelOpen: boolean;
@@ -94,8 +94,9 @@ interface LibraryActions {
   createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string }) => Promise<Playlist>;
   deletePlaylist: (id: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
-  setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog') => void;
+  setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
   openCatalog: () => void;
+  openSettings: () => void;
   navigateBack: () => void;
   navigateForward: () => void;
   setViewportMode: (mode: 'desktop' | 'mobile') => void;
@@ -451,6 +452,26 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const historyUpdate = pushHistoryEntry(state, snapshot);
     set({
       currentView: 'catalog',
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
+      ...historyUpdate,
+    });
+  },
+
+  openSettings: () => {
+    const state = get();
+    if (state.currentView === 'settings') return;
+    const snapshot: NavigationSnapshot = {
+      currentView: 'settings',
+      selectedPlaylistId: state.selectedPlaylistId,
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
+    };
+    const historyUpdate = pushHistoryEntry(state, snapshot);
+    set({
+      currentView: 'settings',
       viewingPlaylist: null,
       currentPlaylistTracks: [],
       currentArtistDetails: null,

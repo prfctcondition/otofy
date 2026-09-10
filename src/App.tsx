@@ -9,11 +9,13 @@ import { DockPlayerBar } from './components/DockPlayerBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { HomeScreen } from './components/HomeScreen';
 import { GenreCatalogScreen } from './components/GenreCatalogScreen';
+import { SettingsScreen } from './components/SettingsScreen';
 import { StationItem, MadeForYouItem } from './data/homeData';
 
 import { usePlayerStore } from './store/playerStore';
 import { useLibraryStore } from './store/libraryStore';
 import { useSearchStore } from './store/searchStore';
+import { useSettingsStore } from './store/settingsStore';
 
 import { EqualizerModal } from './components/EqualizerModal';
 import { QueueModal } from './components/QueueModal';
@@ -91,6 +93,7 @@ export default function App() {
 
       await seedDatabaseIfEmpty();
       await libraryStore.loadLibrary();
+      await useSettingsStore.getState().initFromSystem();
 
       // Check / Generate 24-hour Daily Dynamic Mixes
       try {
@@ -766,6 +769,8 @@ export default function App() {
                 <GenreCatalogScreen
                   onBack={() => libraryStore.setCurrentView('home')}
                 />
+              ) : currentView === 'settings' ? (
+                <SettingsScreen />
               ) : (
                 <div
                   ref={mainScrollRef}
@@ -830,6 +835,8 @@ export default function App() {
               <GenreCatalogScreen
                 onBack={() => libraryStore.setCurrentView('home')}
               />
+            ) : currentView === 'settings' ? (
+              <SettingsScreen />
             ) : mobileActiveTab === 'home' ? (
               <HomeScreen
                 onSelectCollection={handleSelectCollection}

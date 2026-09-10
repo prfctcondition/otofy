@@ -33,4 +33,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('media-key', handler);
   },
   getUserProfile: () => ipcRenderer.invoke('app:get-user-profile'),
+  quitApp: () => ipcRenderer.invoke('app:quit'),
+  relaunchApp: () => ipcRenderer.invoke('app:relaunch'),
+  getConfig: () => ipcRenderer.invoke('app:get-config'),
+  setAutoLaunch: (mode: 'no' | 'yes' | 'minimized') => ipcRenderer.invoke('app:set-autolaunch', mode),
+  setCloseToTray: (enabled: boolean) => ipcRenderer.invoke('app:set-close-to-tray', enabled),
+  setHardwareAcceleration: (enabled: boolean) => ipcRenderer.invoke('app:set-hardware-acceleration', enabled),
+  getCacheSize: () => ipcRenderer.invoke('app:get-cache-size'),
+  clearCache: () => ipcRenderer.invoke('app:clear-cache'),
+  getDownloadsPath: () => ipcRenderer.invoke('storage:get-downloads-path'),
+  selectDownloadsFolder: () => ipcRenderer.invoke('storage:select-downloads-folder'),
+  openFolder: (folderPath?: string) => ipcRenderer.invoke('storage:open-folder', folderPath),
 });

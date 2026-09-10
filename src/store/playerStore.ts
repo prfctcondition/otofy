@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Track } from '../types';
 import audioEngine from '../audio/AudioEngine';
 import useToastStore from './toastStore';
+import { useSettingsStore } from './settingsStore';
 
 interface PlayerState {
   activeTrack: Track | null;
@@ -16,6 +17,8 @@ interface PlayerState {
   repeatMode: 'off' | 'all' | 'one';
   isBuffering: boolean;
   playbackError: string | null;
+  isCrossfading: boolean;
+  isAutoplayLoading: boolean;
 }
 
 interface PlayerActions {
@@ -39,6 +42,7 @@ interface PlayerActions {
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
   initAudioListeners: () => () => void;
+  appendAutoplayTracks: () => Promise<void>;
 }
 
 export const cleanTrackId = (id: string): string => {
@@ -189,6 +193,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   repeatMode: 'off',
   isBuffering: false,
   playbackError: null,
+  isCrossfading: false,
+  isAutoplayLoading: false,
 
   clearPlaybackError: () => set({ playbackError: null }),
 
@@ -325,9 +331,41 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     }
   },
 
+  appendAutoplayTracks: async () => {
+    const { activeTrack, queue, isAutoplayLoading } = get();
+    if (!activeTrack || isAutoplayLoading) return;
+    set({ isAutoplayLoading: true });
+    try {
+      if (window.electronAPI?.getGenreTracks) {
+        const query = activeTrack.artist || activeTrack.title;
+        const tracks = await window.electronAPI.getGenreTracks(`${query} radio`);
+        if (tracks && tracks.length > 0) {
+          const existingIds = new Set(queue.map((t) => t.id));
+          const newTracks = tracks.filter((t) => !existingIds.has(t.id));
+          if (newTracks.length > 0) {
+            set({ queue: [...queue, ...newTracks] });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Player] Autoplay fetch failed:', err);
+    } finally {
+      set({ isAutoplayLoading: false });
+    }
+  },
+
   nextTrack: async () => {
     const { queue, queueIndex, isShuffle, repeatMode } = get();
     if (queue.length === 0) return;
+
+    if (queueIndex >= queue.length - 1 && useSettingsStore.getState().autoplay) {
+      await get().appendAutoplayTracks();
+      const updatedQueue = get().queue;
+      if (updatedQueue.length > queue.length) {
+        await get().jumpToQueueIndex(queueIndex + 1);
+        return;
+      }
+    }
 
     let nextIdx: number;
     if (isShuffle) {
@@ -410,18 +448,80 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   initAudioListeners: () => {
-    const el = audioEngine.element;
+    const onTimeUpdate = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target !== audioEngine.activeAudioElement) return;
 
-    const onTimeUpdate = () => {
-      set({ currentTime: el.currentTime });
+      const current = target.currentTime;
+      const dur = target.duration || get().duration || 0;
+      set({ currentTime: current });
+
+      // Crossfade Trigger Logic
+      const settings = useSettingsStore.getState();
+      const crossfadeEnabled = settings.crossfadeEnabled;
+      const crossfadeDuration = settings.crossfadeDuration || 3;
+      const { isCrossfading, queue, queueIndex, isShuffle } = get();
+
+      const timeRemaining = dur - current;
+      if (
+        crossfadeEnabled &&
+        dur > crossfadeDuration * 2 &&
+        timeRemaining <= crossfadeDuration &&
+        timeRemaining > 0 &&
+        !isCrossfading &&
+        queue.length > 0
+      ) {
+        let nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : queueIndex + 1;
+        if (nextIdx >= queue.length) {
+          if (settings.autoplay) {
+            get().appendAutoplayTracks();
+          }
+          nextIdx = 0;
+        }
+
+        const nextTrack = queue[nextIdx];
+        if (nextTrack && nextIdx !== queueIndex) {
+          set({ isCrossfading: true });
+          resolveStreamUrl(nextTrack)
+            .then(async ({ url }) => {
+              if (url) {
+                await audioEngine.crossfadeTo(url, crossfadeDuration);
+                set({
+                  activeTrack: nextTrack,
+                  queueIndex: nextIdx,
+                  currentTime: 0,
+                  duration: nextTrack.durationSec || 0,
+                  isPlaying: true,
+                  isBuffering: false,
+                });
+                setTimeout(() => {
+                  set({ isCrossfading: false });
+                }, crossfadeDuration * 1000);
+              } else {
+                set({ isCrossfading: false });
+              }
+            })
+            .catch(() => {
+              set({ isCrossfading: false });
+            });
+        }
+      }
     };
 
-    const onDurationChange = () => {
-      set({ duration: el.duration || 0 });
+    const onDurationChange = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        set({ duration: target.duration || 0 });
+      }
     };
 
-    const onEnded = () => {
-      const { repeatMode } = get();
+    const onEnded = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target !== audioEngine.activeAudioElement) return;
+
+      const { repeatMode, isCrossfading } = get();
+      if (isCrossfading) return; // Handled by crossfade transition
+
       if (repeatMode === 'one') {
         audioEngine.seek(0);
         audioEngine.play();
@@ -430,13 +530,38 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
     };
 
-    const onPlay = () => set({ isPlaying: true, isBuffering: false });
-    const onPause = () => set({ isPlaying: false });
-    const onWaiting = () => set({ isBuffering: true });
-    const onCanPlay = () => set({ isBuffering: false });
+    const onPlay = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        set({ isPlaying: true, isBuffering: false });
+      }
+    };
+
+    const onPause = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        set({ isPlaying: false });
+      }
+    };
+
+    const onWaiting = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        set({ isBuffering: true });
+      }
+    };
+
+    const onCanPlay = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        set({ isBuffering: false });
+      }
+    };
 
     const onError = (e: Event) => {
       const target = e.target as HTMLAudioElement;
+      if (target !== audioEngine.activeAudioElement) return;
+
       const errorCode = target.error?.code;
       let errorMsg = 'Failed to load audio stream.';
       if (errorCode === 4) {
@@ -455,14 +580,14 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       );
     };
 
-    el.addEventListener('timeupdate', onTimeUpdate);
-    el.addEventListener('durationchange', onDurationChange);
-    el.addEventListener('ended', onEnded);
-    el.addEventListener('play', onPlay);
-    el.addEventListener('pause', onPause);
-    el.addEventListener('waiting', onWaiting);
-    el.addEventListener('canplay', onCanPlay);
-    el.addEventListener('error', onError);
+    audioEngine.addEventListener('timeupdate', onTimeUpdate);
+    audioEngine.addEventListener('durationchange', onDurationChange);
+    audioEngine.addEventListener('ended', onEnded);
+    audioEngine.addEventListener('play', onPlay);
+    audioEngine.addEventListener('pause', onPause);
+    audioEngine.addEventListener('waiting', onWaiting);
+    audioEngine.addEventListener('canplay', onCanPlay);
+    audioEngine.addEventListener('error', onError);
 
     // Register Electron media key listener
     let removeMediaKeyListener: (() => void) | undefined;
@@ -486,14 +611,14 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     }
 
     return () => {
-      el.removeEventListener('timeupdate', onTimeUpdate);
-      el.removeEventListener('durationchange', onDurationChange);
-      el.removeEventListener('ended', onEnded);
-      el.removeEventListener('play', onPlay);
-      el.removeEventListener('pause', onPause);
-      el.removeEventListener('waiting', onWaiting);
-      el.removeEventListener('canplay', onCanPlay);
-      el.removeEventListener('error', onError);
+      audioEngine.removeEventListener('timeupdate', onTimeUpdate);
+      audioEngine.removeEventListener('durationchange', onDurationChange);
+      audioEngine.removeEventListener('ended', onEnded);
+      audioEngine.removeEventListener('play', onPlay);
+      audioEngine.removeEventListener('pause', onPause);
+      audioEngine.removeEventListener('waiting', onWaiting);
+      audioEngine.removeEventListener('canplay', onCanPlay);
+      audioEngine.removeEventListener('error', onError);
       removeMediaKeyListener?.();
     };
   },

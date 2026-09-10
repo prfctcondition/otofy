@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, session } from 'electron';
+import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
@@ -12,6 +12,101 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let isQuitting = false;
+
+// App persistent configuration (hardware acceleration, close to tray, downloads)
+const configPath = path.join(app.getPath('userData'), 'otofy-config.json');
+
+interface AppConfig {
+  hardwareAcceleration?: boolean;
+  closeToTray?: boolean;
+  downloadsPath?: string;
+  autoLaunch?: 'no' | 'yes' | 'minimized';
+}
+
+function loadAppConfig(): AppConfig {
+  try {
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+  } catch {}
+  return { hardwareAcceleration: true, closeToTray: false, autoLaunch: 'no' };
+}
+
+function saveAppConfig(cfg: Partial<AppConfig>) {
+  try {
+    const current = loadAppConfig();
+    const updated = { ...current, ...cfg };
+    fs.writeFileSync(configPath, JSON.stringify(updated, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Failed to save otofy-config.json:', err);
+  }
+}
+
+const initialConfig = loadAppConfig();
+let closeToTray = initialConfig.closeToTray ?? false;
+
+// Apply hardware acceleration flag before app is ready
+if (initialConfig.hardwareAcceleration === false) {
+  app.disableHardwareAcceleration();
+}
+
+function createTray() {
+  if (tray) return;
+  try {
+    const iconPath = path.join(__dirname, '../public/icon.png');
+    let icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) {
+      icon = nativeImage.createFromPath(path.join(process.cwd(), 'public/icon.png'));
+    }
+    tray = new Tray(icon.resize({ width: 16, height: 16 }));
+    tray.setToolTip('Otofy Music');
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Open Otofy',
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Play / Pause',
+        click: () => mainWindow?.webContents.send('media-key', 'play-pause'),
+      },
+      {
+        label: 'Next Track',
+        click: () => mainWindow?.webContents.send('media-key', 'next'),
+      },
+      {
+        label: 'Previous Track',
+        click: () => mainWindow?.webContents.send('media-key', 'prev'),
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit Otofy',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]);
+
+    tray.setContextMenu(contextMenu);
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    console.warn('Failed to create system tray:', err);
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -44,6 +139,19 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.on('close', (event) => {
+    if (!isQuitting && closeToTray) {
+      event.preventDefault();
+      mainWindow?.hide();
+      return;
+    }
+  });
+
+  const isStartedMinimized = process.argv.includes('--minimized') || initialConfig.autoLaunch === 'minimized';
+  if (isStartedMinimized) {
+    mainWindow.hide();
   }
 
   mainWindow.on('closed', () => {
@@ -410,7 +518,149 @@ ipcMain.handle('window:control', (_event, action: 'minimize' | 'maximize' | 'clo
       mainWindow.maximize();
     }
   } else if (action === 'close') {
-    mainWindow.close();
+    if (closeToTray) {
+      mainWindow.hide();
+    } else {
+      mainWindow.close();
+    }
+  }
+});
+
+ipcMain.handle('app:quit', () => {
+  isQuitting = true;
+  app.quit();
+});
+
+ipcMain.handle('app:relaunch', () => {
+  isQuitting = true;
+  app.relaunch();
+  app.exit(0);
+});
+
+ipcMain.handle('app:get-config', () => {
+  return loadAppConfig();
+});
+
+ipcMain.handle('app:set-autolaunch', (_event, mode: 'no' | 'yes' | 'minimized') => {
+  saveAppConfig({ autoLaunch: mode });
+  const openAtLogin = mode !== 'no';
+  const openAsHidden = mode === 'minimized';
+  try {
+    app.setLoginItemSettings({
+      openAtLogin,
+      openAsHidden,
+      path: process.execPath,
+      args: openAsHidden ? ['--minimized'] : [],
+    });
+  } catch (err) {
+    console.warn('Failed to set login item settings:', err);
+  }
+  return true;
+});
+
+ipcMain.handle('app:set-close-to-tray', (_event, enabled: boolean) => {
+  closeToTray = enabled;
+  saveAppConfig({ closeToTray: enabled });
+  if (enabled) {
+    createTray();
+  }
+  return true;
+});
+
+ipcMain.handle('app:set-hardware-acceleration', (_event, enabled: boolean) => {
+  saveAppConfig({ hardwareAcceleration: enabled });
+  return true;
+});
+
+function getDirectorySize(dirPath: string): number {
+  let size = 0;
+  try {
+    if (!fs.existsSync(dirPath)) return 0;
+    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const file of files) {
+      const fullPath = path.join(dirPath, file.name);
+      if (file.isDirectory()) {
+        size += getDirectorySize(fullPath);
+      } else if (file.isFile()) {
+        try {
+          size += fs.statSync(fullPath).size;
+        } catch {}
+      }
+    }
+  } catch {}
+  return size;
+}
+
+ipcMain.handle('app:get-cache-size', async () => {
+  try {
+    const userData = app.getPath('userData');
+    const cacheDir = path.join(userData, 'Cache');
+    const codeCacheDir = path.join(userData, 'Code Cache');
+    const totalBytes = getDirectorySize(cacheDir) + getDirectorySize(codeCacheDir);
+    const mb = (totalBytes / (1024 * 1024)).toFixed(1);
+    return { bytes: totalBytes, formatted: `${mb} MB` };
+  } catch {
+    return { bytes: 0, formatted: '0 MB' };
+  }
+});
+
+ipcMain.handle('app:clear-cache', async () => {
+  try {
+    await session.defaultSession.clearCache();
+    await session.defaultSession.clearStorageData({
+      storages: ['cachestorage', 'shadercache', 'serviceworkers'],
+    });
+    return true;
+  } catch (err) {
+    console.warn('Failed to clear cache:', err);
+    return false;
+  }
+});
+
+function getDefaultDownloadsPath(): string {
+  const cfg = loadAppConfig();
+  if (cfg.downloadsPath && fs.existsSync(cfg.downloadsPath)) {
+    return cfg.downloadsPath;
+  }
+  const defaultPath = path.join(app.getPath('userData'), 'Downloads');
+  if (!fs.existsSync(defaultPath)) {
+    try {
+      fs.mkdirSync(defaultPath, { recursive: true });
+    } catch {}
+  }
+  return defaultPath;
+}
+
+ipcMain.handle('storage:get-downloads-path', () => {
+  return getDefaultDownloadsPath();
+});
+
+ipcMain.handle('storage:select-downloads-folder', async () => {
+  if (!mainWindow) return null;
+  const res = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Downloads Folder',
+    defaultPath: getDefaultDownloadsPath(),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (!res.canceled && res.filePaths.length > 0) {
+    const selected = res.filePaths[0];
+    saveAppConfig({ downloadsPath: selected });
+    return selected;
+  }
+  return null;
+});
+
+ipcMain.handle('storage:open-folder', async (_event, folderPath?: string) => {
+  const target = folderPath || getDefaultDownloadsPath();
+  try {
+    if (!fs.existsSync(target)) {
+      fs.mkdirSync(target, { recursive: true });
+    }
+    await shell.openPath(target);
+    return true;
+  } catch (err) {
+    console.warn('Failed to open folder:', target, err);
+    return false;
   }
 });
 
@@ -471,6 +721,10 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  if (closeToTray) {
+    createTray();
+  }
+
   // Register global shortcuts
   try {
     globalShortcut.register('MediaPlayPause', () => {
@@ -489,8 +743,14 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+    } else {
+      mainWindow?.show();
     }
   });
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.on('will-quit', () => {
