@@ -287,8 +287,8 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
           className="absolute -top-20 -left-16 w-[560px] h-[340px] rounded-full opacity-30 dark:opacity-20 blur-3xl"
           style={{
             background: playlist.type === 'Artist'
-              ? 'radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, rgba(99, 102, 241, 0.15) 50%, transparent 75%)'
-              : `radial-gradient(circle, ${playlist.gradientFrom || '#6366F1'}44 0%, ${playlist.gradientTo || '#9333EA'}11 60%, transparent 80%)`,
+              ? 'radial-gradient(circle, rgba(15, 23, 42, 0.35) 0%, rgba(51, 65, 85, 0.15) 50%, transparent 75%)'
+              : `radial-gradient(circle, ${playlist.gradientFrom || '#334155'}44 0%, ${playlist.gradientTo || '#0F172A'}11 60%, transparent 80%)`,
           }}
         />
       </div>
@@ -306,7 +306,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </span>
               <span className="text-[#94A3B8] dark:text-white/40">·</span>
               <span className="text-xs text-[#64748B] dark:text-white/80 font-medium flex items-center gap-1">
-                <Sparkles size={12} className="text-violet-600 dark:text-violet-400" />
+                <Sparkles size={12} className="text-[#0F172A] dark:text-white" />
                 Hi-Res Master Audio
               </span>
             </div>
@@ -390,7 +390,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               onClick={onShuffleToggle}
               className={`p-2.5 rounded-full transition-all relative cursor-pointer ${
                 isShuffle
-                  ? 'text-violet-600 dark:text-white bg-white/90 dark:bg-white/10 border border-white dark:border-white/10 shadow-xs'
+                  ? 'text-[#0F172A] dark:text-white font-bold bg-white/90 dark:bg-white/10 border border-white dark:border-white/10 shadow-xs'
                   : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
               }`}
               title="Shuffle collection"
@@ -398,7 +398,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             >
               <Shuffle size={20} />
               {isShuffle && (
-                <span className="absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-violet-600 dark:bg-white shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
+                <span className="absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-[#0F172A] dark:bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
               )}
             </button>
 
@@ -422,7 +422,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                   </>
                 ) : (
                   <>
-                    <Plus size={16} strokeWidth={2.5} className="text-violet-600 dark:text-violet-400" />
+                    <Plus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
                     <span>Save to My Playlists</span>
                   </>
                 )}
@@ -442,7 +442,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 allDownloaded
                   ? 'text-emerald-500 hover:bg-emerald-500/10'
                   : isBatchDownloading
-                  ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-500/10'
+                  ? 'text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                   : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
               }`}
               title={
@@ -520,7 +520,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     onClick={handleCreateNewPlaylistFromThis}
                     className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
                   >
-                    <FolderPlus size={15} className="text-violet-600 dark:text-violet-400" />
+                    <FolderPlus size={15} className="text-[#0F172A] dark:text-white" />
                     <span>Create new playlist from this</span>
                   </button>
 
@@ -613,7 +613,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               type="text"
               value={renameTitle}
               onChange={(e) => setRenameTitle(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/15 rounded-xl focus:outline-none focus:border-violet-500 text-[#0F172A] dark:text-white"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/15 rounded-xl focus:outline-none focus:border-black/30 dark:focus:border-white/40 text-[#0F172A] dark:text-white"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleRename();
@@ -629,7 +629,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </button>
               <button
                 onClick={handleRename}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-xs"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black transition-colors shadow-xs"
               >
                 Save
               </button>

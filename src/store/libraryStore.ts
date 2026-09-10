@@ -15,8 +15,8 @@ export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
     duration: '0m',
     isPinned: true,
     iconName: 'heart',
-    gradientFrom: '#4F46E5',
-    gradientTo: '#9333EA',
+    gradientFrom: '#2C303B',
+    gradientTo: '#13151A',
     description: 'Your personal collection of saved and favorite songs.',
   },
   {
@@ -140,6 +140,7 @@ interface LibraryActions {
     }
   ) => Promise<void>;
   togglePinPlaylist: (id: string) => Promise<void>;
+  reorderPlaylists: (sourceId: string, targetId: string) => Promise<void>;
   clearAndRefreshAllCollections: () => Promise<void>;
 
   // Modal toggles
@@ -208,6 +209,38 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
           playlists = await repo.getPlaylists();
         }
       }
+
+      // Migrate Liked Songs to luxury graphite palette if on legacy purple
+      const likedPl = playlists.find((p) => p.id === 'pl-liked');
+      if (likedPl && (likedPl.gradientFrom === '#4F46E5' || likedPl.gradientTo === '#9333EA')) {
+        await repo.updatePlaylist('pl-liked', { gradientFrom: '#2C303B', gradientTo: '#13151A' });
+        likedPl.gradientFrom = '#2C303B';
+        likedPl.gradientTo = '#13151A';
+      }
+
+      // Restore custom playlist order if saved
+      const savedOrderJson = await repo.getSetting('playlist_order');
+      if (savedOrderJson) {
+        try {
+          const order: string[] = JSON.parse(savedOrderJson);
+          playlists.sort((a, b) => {
+            const idxA = order.indexOf(a.id);
+            const idxB = order.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return 0;
+          });
+        } catch {}
+      }
+
+      // Ensure pinned items are always at top
+      playlists.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      });
+
       set({ playlists, isDbReady: true });
       await get().refreshPlaylistTracks();
     } catch (err) {
@@ -368,8 +401,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       songCount: tracks.length,
       duration: `${tracks.length} tracks`,
       iconName: 'music',
-      gradientFrom: '#6366F1',
-      gradientTo: '#9333EA',
+      gradientFrom: '#334155',
+      gradientTo: '#0F172A',
     });
 
     for (const track of tracks) {
@@ -442,6 +475,34 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     );
   },
 
+  reorderPlaylists: async (sourceId: string, targetId: string) => {
+    const { playlists } = get();
+    const sourceIndex = playlists.findIndex((p) => p.id === sourceId);
+    const targetIndex = playlists.findIndex((p) => p.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const source = playlists[sourceIndex];
+    const target = playlists[targetIndex];
+
+    // Pinned Isolation: Pinned playlists can only reorder within the pinned section;
+    // regular playlists only within the regular section. Cross-boundary dragging is strictly disallowed.
+    if (Boolean(source.isPinned) !== Boolean(target.isPinned)) {
+      return;
+    }
+
+    const nextPlaylists = [...playlists];
+    nextPlaylists.splice(sourceIndex, 1);
+    nextPlaylists.splice(targetIndex, 0, source);
+
+    set({ playlists: nextPlaylists });
+    try {
+      await repo.setSetting('playlist_order', JSON.stringify(nextPlaylists.map((p) => p.id)));
+    } catch (err) {
+      console.error('[Library] Failed to persist playlist order:', err);
+    }
+  },
+
   toggleLike: async (trackId, trackData) => {
     try {
       const newLiked = await repo.toggleLike(trackId, trackData);
@@ -486,8 +547,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       title: data.title,
       creator: data.creator || 'You',
       iconName: (data.iconName || 'music') as any,
-      gradientFrom: data.gradientFrom || '#6366F1',
-      gradientTo: data.gradientTo || '#9333EA',
+      gradientFrom: data.gradientFrom || '#334155',
+      gradientTo: data.gradientTo || '#0F172A',
       artworkUrl: data.artworkUrl,
       description: data.description,
     });
@@ -725,8 +786,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   toggleLyricsModal: () =>
     set((s) => {
       if (!s.isLyricsModalOpen && typeof window !== 'undefined' && window.innerWidth < 1100 && s.viewportMode !== 'mobile') {
-        useToastStore.getState().info('Window Too Narrow', 'Expand window to >= 1100px to display lyrics sidebar.');
-        return { isLyricsModalOpen: false };
+        window.electronAPI?.expandWindowForLyrics?.(1150);
+        return { isLyricsModalOpen: true };
       }
       return { isLyricsModalOpen: !s.isLyricsModalOpen };
     }),

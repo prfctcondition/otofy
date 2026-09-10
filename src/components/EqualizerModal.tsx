@@ -95,13 +95,13 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl text-white shadow-md">
+              <div className="p-2.5 bg-[#0F172A] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
                 <Sliders size={22} />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">10-Band Equalizer</h2>
                 <p className="text-xs text-[#64748B] dark:text-white/70 flex items-center gap-1.5 mt-0.5">
-                  <Activity size={12} className="text-violet-600 dark:text-violet-400 animate-pulse" />
+                  <Activity size={12} className="text-emerald-500 animate-pulse" />
                   Web Audio Parametric Engine (-12dB to +12dB)
                 </p>
               </div>
@@ -116,8 +116,8 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                     checked={isEnabled}
                     onChange={() => toggleEnabled()}
                   />
-                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-violet-600' : 'bg-[#94A3B8] dark:bg-white/20'}`} />
-                  <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform shadow-sm ${isEnabled ? 'transform translate-x-6' : ''}`} />
+                  <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-[#0F172A] dark:bg-white' : 'bg-[#94A3B8] dark:bg-white/20'}`} />
+                  <div className={`dot absolute left-1 top-1 bg-white dark:bg-black w-5 h-5 rounded-full transition-transform shadow-sm ${isEnabled ? 'transform translate-x-6' : ''}`} />
                 </div>
               </label>
               <button

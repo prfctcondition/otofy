@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('auth:sync-library', { platform }),
   windowControl: (action: 'minimize' | 'maximize' | 'close') =>
     ipcRenderer.invoke('window:control', action),
+  expandWindowForLyrics: (targetWidth?: number) =>
+    ipcRenderer.invoke('window:expand-for-lyrics', { targetWidth }),
   isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
   onWindowState: (callback: (isMaximized: boolean) => void) => {
     const handler = (_event: unknown, isMax: boolean) => callback(isMax);

@@ -458,7 +458,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 placeholder="Filter genres..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all shadow-xs"
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20 transition-all shadow-xs"
               />
             </div>
           </div>

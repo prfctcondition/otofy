@@ -211,15 +211,15 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
           </div>
         </div>
 
-        <span className="text-violet-700 dark:text-violet-400 font-bold">
+        <span className="text-[#0F172A] dark:text-white font-bold">
           {contentType === 'tracks' ? `Tracks (${results.length})` : `Playlists (${playlistResults.length})`}
         </span>
       </div>
 
       {isSearching && (
         <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#334155] dark:text-white/70">
-          <div className="w-10 h-10 rounded-full bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
-            <span className="inline-block w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#0F172A] dark:text-white">
+            <span className="inline-block w-5 h-5 border-2 border-[#0F172A] dark:border-white border-t-transparent rounded-full animate-spin" />
           </div>
           <p className="text-xs font-bold uppercase tracking-wider text-[#0F172A] dark:text-white">
             {contentType === 'playlists' ? 'Searching Playlists...' : 'Searching YouTube Music & SoundCloud...'}
@@ -262,7 +262,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-800 text-white">
+                    <div className="w-full h-full flex items-center justify-center bg-[#0F172A] dark:bg-white text-white dark:text-black">
                       <ListMusic size={32} />
                     </div>
                   )}
@@ -302,7 +302,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                   {playlist.creator}
                 </p>
                 {playlist.songCount ? (
-                  <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 mt-1">
+                  <span className="text-[10px] font-semibold text-[#64748B] dark:text-white/70 mt-1">
                     {playlist.songCount} tracks
                   </span>
                 ) : null}
@@ -318,11 +318,11 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
           {/* Official Artist Card Banner */}
           {artistCard && (
             <div
-              className="mb-2.5 p-3 rounded-xl bg-gradient-to-r from-violet-600/15 via-indigo-600/10 to-transparent border border-violet-500/25 flex items-center justify-between gap-3 hover:bg-violet-600/20 transition-all cursor-pointer group shadow-xs"
+              className="mb-2.5 p-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 flex items-center justify-between gap-3 hover:bg-black/[0.08] dark:hover:bg-white/[0.12] transition-all cursor-pointer group shadow-xs"
               onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT')}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-violet-900 border-2 border-white/90 shadow-md">
+                <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-black/80 dark:bg-white/20 border-2 border-white/90 shadow-md">
                   {artistCard.avatarUrl ? (
                     <img
                       src={artistCard.avatarUrl}
@@ -353,7 +353,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
 
               <button
                 onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT')}
-                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/20 hover:bg-white dark:hover:bg-white/30 text-violet-700 dark:text-violet-300 shadow-xs border border-violet-200/60 dark:border-violet-500/30 flex-shrink-0 transition-all"
+                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/20 hover:bg-white dark:hover:bg-white/30 text-[#0F172A] dark:text-white shadow-xs border border-black/10 dark:border-white/20 flex-shrink-0 transition-all"
               >
                 <span>View Discography</span>
                 <ExternalLink size={12} />
@@ -396,7 +396,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                     </span>
                   </div>
                   <span
-                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-white/80 hover:text-violet-700 dark:hover:text-violet-400 hover:underline transition-colors mt-0.5"
+                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:underline transition-colors mt-0.5"
                     onClick={(e) => handleArtistClick(result.artist, e, result.source)}
                     title={`View ${result.artist} discography`}
                   >

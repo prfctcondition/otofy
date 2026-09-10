@@ -44,7 +44,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
       <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/80 dark:border-white/10 rounded-3xl w-full max-w-lg flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl text-white shadow-md">
+            <div className="p-2.5 bg-[#0F172A] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
               <Share2 size={22} />
             </div>
             <div>
@@ -72,7 +72,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
             </p>
             <button
               onClick={handleCopy}
-              className="p-1.5 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white shadow-sm transition-all active:scale-95 flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              className="p-1.5 px-3 rounded-xl bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black shadow-sm transition-all active:scale-95 flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
               title="Copy to clipboard"
             >
               {copied ? (
@@ -89,7 +89,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
             </button>
           </div>
           <div className="w-full max-h-36 overflow-y-auto p-3.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-2xl font-mono text-xs break-all select-all text-[#0F172A] dark:text-white shadow-inner">
-            <span className="text-violet-600 dark:text-violet-400 font-bold mr-0.5">{codePrefix}</span>
+            <span className="text-[#0F172A] dark:text-white font-bold mr-0.5">{codePrefix}</span>
             <span>{codeBody}</span>
           </div>
         </div>

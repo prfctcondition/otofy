@@ -49,7 +49,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
           className="text-xs font-bold text-[#0F172A] dark:text-white truncate uppercase tracking-wider pr-2 flex items-center gap-1.5"
           title={track.title}
         >
-          <Sparkles size={12} className="text-violet-600 dark:text-violet-400" />
+          <Sparkles size={12} className="text-[#0F172A] dark:text-white" />
           {track.title}
         </span>
         <button
@@ -91,7 +91,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
             </h2>
             <p
               onClick={() => onSelectArtist?.(track.artist)}
-              className="text-xs text-[#64748B] dark:text-white/70 hover:text-violet-700 dark:hover:text-white hover:underline cursor-pointer truncate mt-0.5 font-normal transition-colors"
+              className="text-xs text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer truncate mt-0.5 font-normal transition-colors"
               title={`View ${track.artist}`}
             >
               {track.artist}
@@ -114,7 +114,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
             </button>
             <button
               onClick={() => toggleLyricsModal()}
-              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-violet-600 dark:hover:text-white hover:bg-violet-50 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Lyrics & Karaoke"
             >
               <Mic2 size={18} />
@@ -132,7 +132,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
         <div className="rounded-xl bg-white/50 dark:bg-white/[0.04] backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.03),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none overflow-hidden">
           {/* Artist Banner */}
           <div
-            className="h-20 w-full relative flex items-end p-3 bg-gradient-to-tr from-violet-100/60 via-pink-50/40 to-transparent dark:from-white/[0.06] dark:via-transparent dark:to-transparent"
+            className="h-20 w-full relative flex items-end p-3 bg-gradient-to-tr from-black/[0.05] via-transparent to-transparent dark:from-white/[0.06] dark:via-transparent dark:to-transparent"
           >
             <span className="relative z-10 text-[11px] font-bold text-[#94A3B8] dark:text-white/60 uppercase tracking-wider">
               About the artist
@@ -144,7 +144,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
               <div>
                 <span
                   onClick={() => onSelectArtist?.(artistData.name)}
-                  className="text-sm font-bold text-[#0F172A] dark:text-white hover:text-violet-700 dark:hover:text-violet-400 hover:underline cursor-pointer block transition-colors"
+                  className="text-sm font-bold text-[#0F172A] dark:text-white hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer block transition-colors"
                   title={`View ${artistData.name}`}
                 >
                   {artistData.name}

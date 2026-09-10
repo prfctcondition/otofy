@@ -10,7 +10,7 @@ interface EditPlaylistModalProps {
 }
 
 const GRADIENTS = [
-  { from: '#8B5CF6', to: '#4F46E5', name: 'Violet Indigo' },
+  { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
   { from: '#34D399', to: '#0D9488', name: 'Emerald Teal' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
@@ -115,7 +115,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl text-white shadow-md">
+            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl text-white shadow-md">
               <Edit3 size={20} />
             </div>
             <div>
@@ -147,7 +147,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Playlist name"
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-violet-500 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
               autoFocus
             />
           </div>
@@ -162,7 +162,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add an optional description"
-              className="w-full px-4 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-violet-500 rounded-xl focus:outline-none text-[#0F172A] dark:text-white text-xs font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all resize-none"
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white text-xs font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all resize-none"
             />
           </div>
 
@@ -182,7 +182,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
                   }}
                   className={`w-8 h-8 rounded-full transition-all shadow-xs cursor-pointer ${
                     selectedGradient === idx && !customArtwork
-                      ? 'scale-110 ring-3 ring-violet-500 ring-offset-2 ring-offset-white dark:ring-offset-black'
+                      ? 'scale-110 ring-3 ring-[#0F172A] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
                       : 'hover:scale-105 opacity-80 hover:opacity-100'
                   }`}
                   title={grad.name}

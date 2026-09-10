@@ -83,16 +83,15 @@ export default function App() {
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
   useEffect(() => {
+    let prevWidth = window.innerWidth;
     const handleResize = () => {
       const width = window.innerWidth;
       setWindowWidth(width);
-      if (width < 1100 && libraryStore.isLyricsModalOpen) {
+      if (width < 1100 && prevWidth >= 1100 && libraryStore.isLyricsModalOpen) {
         libraryStore.setIsLyricsModalOpen(false);
       }
+      prevWidth = width;
     };
-    if (window.innerWidth < 1100 && libraryStore.isLyricsModalOpen) {
-      libraryStore.setIsLyricsModalOpen(false);
-    }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [libraryStore.isLyricsModalOpen]);
@@ -1006,15 +1005,34 @@ export default function App() {
       {trackMenu && (
         <TrackContextMenu
           track={trackMenu.track}
+          selectedTracks={trackMenu.selectedTracks}
           x={trackMenu.x}
           y={trackMenu.y}
           playlists={playlists}
           currentPlaylistId={trackMenu.currentPlaylistId || selectedPlaylistId}
           onClose={closeTrackMenu}
-          onPlay={(t) => handleSelectTrack(t, [t])}
+          onPlay={(t) => {
+            const queue =
+              trackMenu.selectedTracks && trackMenu.selectedTracks.length > 1
+                ? trackMenu.selectedTracks
+                : filteredTracks.length > 0
+                ? filteredTracks
+                : [t];
+            handleSelectTrack(t, queue);
+          }}
           onAddToPlaylist={(plId, t) => libraryStore.addTrackToPlaylist(plId, t)}
           onRemoveFromPlaylist={(plId, trkId) => libraryStore.removeTrackFromPlaylist(plId, trkId)}
-          onCreatePlaylistWithTrack={(t) => libraryStore.createPlaylistFromTracks(t.title, [t])}
+          onCreatePlaylistWithTrack={(t) => {
+            const tracksToSave =
+              trackMenu.selectedTracks && trackMenu.selectedTracks.length > 1
+                ? trackMenu.selectedTracks
+                : [t];
+            const title =
+              trackMenu.selectedTracks && trackMenu.selectedTracks.length > 1
+                ? `${t.title} & more`
+                : t.title;
+            libraryStore.createPlaylistFromTracks(title, tracksToSave);
+          }}
           onToggleLike={(id, t) => libraryStore.toggleLike(id, t)}
           onSelectArtist={(a) => handleOpenArtistView(a)}
         />

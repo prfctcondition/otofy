@@ -61,7 +61,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-black/[0.06] dark:border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-[#0F172A] dark:bg-white text-white dark:text-black flex items-center justify-center shadow-md">
               <ListMusic size={20} />
             </div>
             <div>
@@ -76,7 +76,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
             {queue.length > 0 && (
               <button
                 onClick={handleSaveAsPlaylist}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white shadow-xs hover:shadow transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black shadow-xs hover:shadow transition-all cursor-pointer"
                 title="Save active queue as a new playlist"
               >
                 <FolderPlus size={13} />
@@ -120,7 +120,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                 )}
               </div>
 
-              <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-violet-50/80 dark:bg-white/[0.06] border border-violet-100/80 dark:border-white/10 shadow-xs">
+              <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 shadow-xs">
                 <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-sm shrink-0 border border-white dark:border-white/10">
                   {currentPlaying.artworkUrl ? (
                     <img
@@ -131,8 +131,8 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                   ) : (
                     <PlaceholderArtwork
                       icon={currentPlaying.iconName || 'music'}
-                      gradientFrom={currentPlaying.gradientFrom || '#6366F1'}
-                      gradientTo={currentPlaying.gradientTo || '#9333EA'}
+                      gradientFrom={currentPlaying.gradientFrom || '#334155'}
+                      gradientTo={currentPlaying.gradientTo || '#0F172A'}
                       size={48}
                       rounded="rounded-xl"
                     />
@@ -183,7 +183,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         </span>
                         <button
                           onClick={() => jumpToQueueIndex(actualIndex)}
-                          className="w-5 hidden group-hover:flex items-center justify-center text-violet-600 dark:text-violet-400 hover:scale-110 transition-transform cursor-pointer"
+                          className="w-5 hidden group-hover:flex items-center justify-center text-[#0F172A] dark:text-white hover:scale-110 transition-transform cursor-pointer"
                           title="Play now"
                         >
                           <Play size={14} fill="currentColor" />
@@ -199,8 +199,8 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                           ) : (
                             <PlaceholderArtwork
                               icon={track.iconName || 'music'}
-                              gradientFrom={track.gradientFrom || '#3B82F6'}
-                              gradientTo={track.gradientTo || '#8B5CF6'}
+                              gradientFrom={track.gradientFrom || '#334155'}
+                              gradientTo={track.gradientTo || '#0F172A'}
                               size={40}
                               rounded="rounded-lg"
                             />
@@ -208,7 +208,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-[#0F172A] dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                          <p className="text-xs font-bold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
                             {track.title}
                           </p>
                           <p className="text-[11px] text-slate-500 dark:text-white/60 truncate mt-0.5">

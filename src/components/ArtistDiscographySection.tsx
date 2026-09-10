@@ -32,9 +32,9 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-              <Disc size={18} className="text-violet-600 dark:text-violet-400" />
+              <Disc size={18} className="text-[#0F172A] dark:text-white" />
               Albums & Discography
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
                 {details.albums.length}
               </span>
             </h3>
@@ -70,7 +70,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                   </div>
 
                   {/* Album Info */}
-                  <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors" title={album.title}>
+                  <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-black dark:group-hover:text-white transition-colors" title={album.title}>
                     {album.title}
                   </span>
                   <span className="text-[11px] text-[#64748B] dark:text-white/70 mt-0.5">
@@ -181,7 +181,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
               About {details.artist}
             </h4>
             {details.subscribers && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100/80 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white border border-black/10 dark:border-white/10">
                 {details.subscribers}
               </span>
             )}

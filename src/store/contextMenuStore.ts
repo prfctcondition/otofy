@@ -6,6 +6,7 @@ export interface TrackMenuState {
   x: number;
   y: number;
   currentPlaylistId?: string;
+  selectedTracks?: Track[];
 }
 
 export interface PlaylistMenuState {
@@ -25,7 +26,13 @@ interface ContextMenuStore {
   confirmDelete: ConfirmDeleteState | null;
   editingPlaylist: Playlist | null;
 
-  openTrackMenu: (track: Track, x: number, y: number, currentPlaylistId?: string) => void;
+  openTrackMenu: (
+    track: Track,
+    x: number,
+    y: number,
+    currentPlaylistId?: string,
+    selectedTracks?: Track[]
+  ) => void;
   closeTrackMenu: () => void;
 
   openPlaylistMenu: (playlist: Playlist, x: number, y: number) => void;
@@ -46,9 +53,9 @@ export const useContextMenuStore = create<ContextMenuStore>((set) => ({
   confirmDelete: null,
   editingPlaylist: null,
 
-  openTrackMenu: (track, x, y, currentPlaylistId) => {
+  openTrackMenu: (track, x, y, currentPlaylistId, selectedTracks) => {
     set({
-      trackMenu: { track, x, y, currentPlaylistId },
+      trackMenu: { track, x, y, currentPlaylistId, selectedTracks },
       playlistMenu: null,
     });
   },

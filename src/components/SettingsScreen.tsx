@@ -136,7 +136,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 1: Autoplay */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Radio size={18} className="text-violet-600 dark:text-violet-400" />
+            <Radio size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">Autoplay</h2>
           </div>
 
@@ -152,7 +152,7 @@ export const SettingsScreen: React.FC = () => {
               id="toggle-autoplay-btn"
               onClick={() => settings.setAutoplay(!settings.autoplay)}
               className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                settings.autoplay ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                settings.autoplay ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
               }`}
             >
               <div
@@ -167,7 +167,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 2: Audio Quality */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Sparkles size={18} className="text-violet-600 dark:text-violet-400" />
+            <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">Audio Quality</h2>
           </div>
 
@@ -184,7 +184,7 @@ export const SettingsScreen: React.FC = () => {
                 id="select-streaming-quality"
                 value={settings.streamingQuality}
                 onChange={(e) => settings.setStreamingQuality(e.target.value as StreamingQuality)}
-                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-violet-500 cursor-pointer shadow-xs"
+                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
               >
                 <option value="low">Low (128 kbps)</option>
                 <option value="normal">Normal (160 kbps)</option>
@@ -204,7 +204,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-auto-adjust-quality-btn"
                 onClick={() => settings.setAutoAdjustQuality(!settings.autoAdjustQuality)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.autoAdjustQuality ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                  settings.autoAdjustQuality ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -220,7 +220,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 3: Playback & Web Audio */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Volume2 size={18} className="text-violet-600 dark:text-violet-400" />
+            <Volume2 size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">Playback</h2>
           </div>
 
@@ -238,7 +238,7 @@ export const SettingsScreen: React.FC = () => {
                   id="toggle-crossfade-btn"
                   onClick={() => settings.setCrossfadeEnabled(!settings.crossfadeEnabled)}
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                    settings.crossfadeEnabled ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                    settings.crossfadeEnabled ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                   }`}
                 >
                   <div
@@ -250,10 +250,10 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               {settings.crossfadeEnabled && (
-                <div className="mt-4 pl-4 border-l-2 border-violet-500/40 space-y-2 animate-in fade-in duration-150">
+                <div className="mt-4 pl-4 border-l-2 border-black/20 dark:border-white/30 space-y-2 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-[#64748B] dark:text-white/70">Crossfade transition duration:</span>
-                    <span className="px-2 py-0.5 rounded-md bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300">
+                    <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
                       {settings.crossfadeDuration}s
                     </span>
                   </div>
@@ -264,7 +264,7 @@ export const SettingsScreen: React.FC = () => {
                     step="1"
                     value={settings.crossfadeDuration}
                     onChange={(e) => settings.setCrossfadeDuration(Number(e.target.value))}
-                    className="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-white/20 rounded-lg appearance-none"
+                    className="w-full accent-[#0F172A] dark:accent-white cursor-pointer h-1.5 bg-slate-200 dark:bg-white/20 rounded-lg appearance-none"
                   />
                 </div>
               )}
@@ -282,7 +282,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-normalize-volume-btn"
                 onClick={() => settings.setNormalizeVolume(!settings.normalizeVolume)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.normalizeVolume ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                  settings.normalizeVolume ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -305,7 +305,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-mono-audio-btn"
                 onClick={() => settings.setMonoAudio(!settings.monoAudio)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.monoAudio ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                  settings.monoAudio ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -328,7 +328,7 @@ export const SettingsScreen: React.FC = () => {
                 id="select-audio-output-device"
                 value={settings.audioOutputDeviceId}
                 onChange={(e) => settings.setAudioOutputDeviceId(e.target.value)}
-                className="max-w-xs bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-violet-500 cursor-pointer shadow-xs truncate"
+                className="max-w-xs bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs truncate"
               >
                 {audioDevices.map((dev) => (
                   <option key={dev.deviceId} value={dev.deviceId}>
@@ -343,7 +343,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 4: Startup and Window Behaviour */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Monitor size={18} className="text-violet-600 dark:text-violet-400" />
+            <Monitor size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">Startup and Window Behaviour</h2>
           </div>
 
@@ -360,7 +360,7 @@ export const SettingsScreen: React.FC = () => {
                 id="select-auto-launch"
                 value={settings.autoLaunch}
                 onChange={(e) => settings.setAutoLaunch(e.target.value as AutoLaunchMode)}
-                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-violet-500 cursor-pointer shadow-xs"
+                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
               >
                 <option value="no">No (disabled)</option>
                 <option value="yes">Yes (open window)</option>
@@ -381,7 +381,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-close-to-tray-btn"
                 onClick={() => settings.setCloseToTray(!settings.closeToTray)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.closeToTray ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                  settings.closeToTray ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -397,7 +397,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 5: Storage & Downloads */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <FolderDown size={18} className="text-violet-600 dark:text-violet-400" />
+            <FolderDown size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">Storage & Downloads</h2>
           </div>
 
@@ -446,7 +446,7 @@ export const SettingsScreen: React.FC = () => {
                   <button
                     id="change-downloads-folder-btn"
                     onClick={handleChangeDownloadsFolder}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <FolderSync size={13} />
                     <span>Change</span>
@@ -463,7 +463,7 @@ export const SettingsScreen: React.FC = () => {
         {/* SECTION 6: System & Performance */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Cpu size={18} className="text-violet-600 dark:text-violet-400" />
+            <Cpu size={18} className="text-[#0F172A] dark:text-white" />
             <h2 className="text-base font-bold">System & Performance</h2>
           </div>
 
@@ -479,7 +479,7 @@ export const SettingsScreen: React.FC = () => {
               id="toggle-hardware-acceleration-btn"
               onClick={handleToggleHwAccel}
               className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                settings.hardwareAcceleration ? 'bg-violet-600' : 'bg-slate-300 dark:bg-white/20'
+                settings.hardwareAcceleration ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
               }`}
             >
               <div
@@ -512,7 +512,7 @@ export const SettingsScreen: React.FC = () => {
               </button>
               <button
                 onClick={handleRelaunch}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw size={14} />
                 <span>Restart Now</span>

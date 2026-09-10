@@ -55,7 +55,7 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.08] bg-white/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center text-white shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-900 flex items-center justify-center text-white shadow-md">
               <Code2 size={20} />
             </div>
             <div>
@@ -63,7 +63,7 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
                 <h2 className="text-base font-bold text-[#111827] tracking-tight">
                   Flutter iOS Liquid White Glass Architecture
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 shadow-sm">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200 shadow-sm">
                   Flutter 3.x+ Null-Safe
                 </span>
               </div>
@@ -103,11 +103,11 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
                 onClick={() => setActiveTab(idx)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-t-xl text-xs font-semibold whitespace-nowrap transition-all border-b-2 ${
                   isActive
-                    ? 'bg-white text-[#111827] border-violet-600 shadow-sm'
+                    ? 'bg-white text-[#111827] border-slate-800 shadow-sm'
                     : 'text-[#6B7280] hover:text-[#111827] border-transparent hover:bg-white/50'
                 }`}
               >
-                <FileCode size={14} className={isActive ? 'text-violet-600' : 'text-[#9CA3AF]'} />
+                <FileCode size={14} className={isActive ? 'text-slate-900' : 'text-[#9CA3AF]'} />
                 <span>{file.name}</span>
               </button>
             );
@@ -142,7 +142,7 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
 
         {/* Code Content Area */}
         <div className="flex-1 p-6 overflow-y-auto bg-[#0F172A] font-mono text-xs leading-relaxed text-slate-200">
-          <pre className="selection:bg-violet-500/40 selection:text-white">
+          <pre className="selection:bg-slate-500/40 selection:text-white">
             <code>{currentFile.code}</code>
           </pre>
         </div>
@@ -150,7 +150,7 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
         {/* Footer info note */}
         <div className="px-6 py-3 bg-white/90 border-t border-black/[0.08] flex items-center justify-between text-xs text-[#6B7280]">
           <div className="flex items-center gap-2">
-            <Sparkles size={13} className="text-violet-600" />
+            <Sparkles size={13} className="text-slate-900" />
             <span>
               Engineered with <code className="text-[#111827] font-semibold">BackdropFilter</code>, directional specular gradient borders, and inner sheen reflection.
             </span>

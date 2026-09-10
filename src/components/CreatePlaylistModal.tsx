@@ -8,7 +8,7 @@ interface CreatePlaylistModalProps {
 }
 
 const GRADIENTS = [
-  { from: '#8B5CF6', to: '#4F46E5', name: 'Violet Indigo' },
+  { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
   { from: '#34D399', to: '#0D9488', name: 'Emerald Teal' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
@@ -86,7 +86,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
       <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-md flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl text-white shadow-md">
+            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl text-white shadow-md">
               <Plus size={22} />
             </div>
             <div>
@@ -112,7 +112,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="My Awesome Playlist"
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-violet-500 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
               autoFocus
             />
           </div>
@@ -126,7 +126,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
               value={creator}
               onChange={(e) => setCreator(e.target.value)}
               placeholder="You"
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-violet-500 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
             />
           </div>
 
@@ -147,7 +147,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
                   }}
                   className={`w-9 h-9 rounded-full transition-all shadow-xs cursor-pointer ${
                     selectedGradient === idx && !customArtwork
-                      ? 'scale-110 ring-3 ring-violet-500 ring-offset-2 ring-offset-white dark:ring-offset-black'
+                      ? 'scale-110 ring-3 ring-[#0F172A] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
                       : 'hover:scale-105 opacity-80 hover:opacity-100'
                   }`}
                   title={grad.name}

@@ -17,11 +17,14 @@ import {
   Radio,
 } from 'lucide-react';
 import { Track, Playlist } from '../types';
+import repo from '../db/repository';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 import { usePlayerStore } from '../store/playerStore';
+import { useToastStore } from '../store/toastStore';
 
 interface TrackContextMenuProps {
   track: Track;
+  selectedTracks?: Track[];
   x: number;
   y: number;
   playlists: Playlist[];
@@ -63,6 +66,7 @@ const getInitialCoords = (clickX: number, clickY: number, menuW = 256, menuH = 3
 
 export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   track,
+  selectedTracks,
   x,
   y,
   playlists,
@@ -77,8 +81,11 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [showPlaylistsSubmenu, setShowPlaylistsSubmenu] = useState(false);
-  const [addedPlaylistId, setAddedPlaylistId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [containingPlaylistIds, setContainingPlaylistIds] = useState<Set<string>>(new Set());
+
+  const activeTracks = selectedTracks && selectedTracks.length > 1 ? selectedTracks : [track];
+  const isMulti = activeTracks.length > 1;
 
   // Position clamping to prevent overflowing outside the screen (pre-calculated synchronously)
   const [coords, setCoords] = useState(() => getInitialCoords(x, y, 256, 360));
@@ -108,6 +115,48 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
 
     setCoords({ top, left });
   }, [x, y]);
+
+  // Load playlists containing the track(s)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        if (!isMulti) {
+          const ids = await repo.getPlaylistIdsForTrack(track.id);
+          const set = new Set(ids);
+          if (track.isLiked) {
+            set.add('pl-liked');
+          }
+          if (isMounted) {
+            setContainingPlaylistIds(set);
+          }
+        } else {
+          // For multi-selection, query IDs for each track and keep ones that contain all
+          const trackIds = activeTracks.map((t) => t.id);
+          const allPlaylistIdsSets = await Promise.all(
+            trackIds.map(async (id) => new Set(await repo.getPlaylistIdsForTrack(id)))
+          );
+          const common = new Set<string>();
+          playlists.forEach((pl) => {
+            const allContain = allPlaylistIdsSets.every((s) => s.has(pl.id));
+            if (allContain) common.add(pl.id);
+          });
+          if (activeTracks.every((t) => t.isLiked)) {
+            common.add('pl-liked');
+          }
+          if (isMounted) {
+            setContainingPlaylistIds(common);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to query containing playlists:', err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [track.id, track.isLiked, isMulti, activeTracks.length, playlists]);
 
   // Click outside, escape, and scroll listener to close
   useEffect(() => {
@@ -163,12 +212,66 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
     !currentPlaylistId.startsWith('album-') &&
     !currentPlaylistId.startsWith('mix-');
 
-  const handlePlaylistSelect = (playlistId: string) => {
-    onAddToPlaylist(playlistId, track);
-    setAddedPlaylistId(playlistId);
-    setTimeout(() => {
-      onClose();
-    }, 600);
+  const handlePlaylistToggle = (playlistId: string) => {
+    const pl = playlists.find((p) => p.id === playlistId);
+    const plTitle = pl ? pl.title : 'Playlist';
+    const isPresent = containingPlaylistIds.has(playlistId);
+
+    if (isMulti) {
+      if (isPresent) {
+        if (onRemoveFromPlaylist) {
+          activeTracks.forEach((t) => onRemoveFromPlaylist(playlistId, t.id));
+        }
+        setContainingPlaylistIds((prev) => {
+          const next = new Set(prev);
+          next.delete(playlistId);
+          return next;
+        });
+        useToastStore
+          .getState()
+          .info('Removed from playlist', `Removed ${activeTracks.length} tracks from "${plTitle}".`);
+      } else {
+        activeTracks.forEach((t) => onAddToPlaylist(playlistId, t));
+        setContainingPlaylistIds((prev) => {
+          const next = new Set(prev);
+          next.add(playlistId);
+          return next;
+        });
+        useToastStore
+          .getState()
+          .success('Added to playlist', `Added ${activeTracks.length} tracks to "${plTitle}".`);
+      }
+    } else {
+      if (isPresent) {
+        if (playlistId === 'pl-liked') {
+          onToggleLike(track.id, track);
+        } else if (onRemoveFromPlaylist) {
+          onRemoveFromPlaylist(playlistId, track.id);
+        }
+        setContainingPlaylistIds((prev) => {
+          const next = new Set(prev);
+          next.delete(playlistId);
+          return next;
+        });
+        useToastStore
+          .getState()
+          .info('Removed from playlist', `Removed "${track.title}" from "${plTitle}".`);
+      } else {
+        if (playlistId === 'pl-liked') {
+          onToggleLike(track.id, track);
+        } else {
+          onAddToPlaylist(playlistId, track);
+        }
+        setContainingPlaylistIds((prev) => {
+          const next = new Set(prev);
+          next.add(playlistId);
+          return next;
+        });
+        useToastStore
+          .getState()
+          .success('Added to playlist', `Added "${track.title}" to "${plTitle}".`);
+      }
+    }
   };
 
   const handleCopyShare = () => {
@@ -187,13 +290,17 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
       className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
     >
-      {/* Track Header preview in menu */}
+      {/* Track / Selection Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
-        <p className="font-bold text-[13px] truncate text-[#0F172A] dark:text-white">{track.title}</p>
-        <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">{track.artist}</p>
+        <p className="font-bold text-[13px] truncate text-[#0F172A] dark:text-white">
+          {isMulti ? `${activeTracks.length} tracks selected` : track.title}
+        </p>
+        <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">
+          {isMulti ? 'Multiple selection' : track.artist}
+        </p>
       </div>
 
-      {/* Play Now */}
+      {/* Play Now / Play Selection */}
       <button
         onClick={() => {
           onPlay(track);
@@ -201,54 +308,80 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         }}
         className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
-        <Play size={15} className="text-violet-600 dark:text-violet-400 fill-violet-600 dark:fill-violet-400" />
-        <span>Play now</span>
+        <Play size={15} className="text-[#0F172A] dark:text-white fill-[#0F172A] dark:fill-white" />
+        <span>{isMulti ? `Play selection (${activeTracks.length})` : 'Play now'}</span>
       </button>
 
-      {/* Start Radio */}
-      <button
-        onClick={() => {
-          usePlayerStore.getState().startTrackRadio(track);
-          onClose();
-        }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
-      >
-        <Radio size={15} className="text-violet-600 dark:text-violet-400" />
-        <span>Start Radio</span>
-      </button>
+      {/* Start Radio (Single track only) */}
+      {!isMulti && (
+        <button
+          onClick={() => {
+            usePlayerStore.getState().startTrackRadio(track);
+            onClose();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          <Radio size={15} className="text-[#0F172A] dark:text-white" />
+          <span>Start Radio</span>
+        </button>
+      )}
 
       {/* Like / Unlike */}
       <button
         onClick={() => {
-          onToggleLike(track.id, track);
+          if (isMulti) {
+            activeTracks.forEach((t) => onToggleLike(t.id, t));
+            useToastStore
+              .getState()
+              .info('Liked Songs', `Updated ${activeTracks.length} tracks in Liked Songs.`);
+          } else {
+            onToggleLike(track.id, track);
+          }
           onClose();
         }}
         className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
         <Heart
           size={15}
-          className={track.isLiked ? 'text-rose-500 fill-rose-500' : 'text-[#64748B] dark:text-white/70'}
+          className={
+            !isMulti && track.isLiked
+              ? 'text-rose-500 fill-rose-500'
+              : 'text-[#64748B] dark:text-white/70'
+          }
         />
-        <span>{track.isLiked || isCurrentLikedSongs ? 'Remove from Liked Songs' : 'Save to Liked Songs'}</span>
+        <span>
+          {isMulti
+            ? `Save ${activeTracks.length} tracks to Liked Songs`
+            : track.isLiked || isCurrentLikedSongs
+            ? 'Remove from Liked Songs'
+            : 'Save to Liked Songs'}
+        </span>
       </button>
 
       {/* Remove from custom playlist if inside one */}
       {canRemoveFromCurrent && onRemoveFromPlaylist && (
         <button
           onClick={() => {
-            onRemoveFromPlaylist(currentPlaylistId!, track.id);
+            if (isMulti) {
+              activeTracks.forEach((t) => onRemoveFromPlaylist(currentPlaylistId!, t.id));
+              useToastStore
+                .getState()
+                .info('Removed', `Removed ${activeTracks.length} tracks from this playlist.`);
+            } else {
+              onRemoveFromPlaylist(currentPlaylistId!, track.id);
+            }
             onClose();
           }}
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
         >
           <Trash2 size={15} />
-          <span>Remove from this playlist</span>
+          <span>{isMulti ? `Remove ${activeTracks.length} tracks from this playlist` : 'Remove from this playlist'}</span>
         </button>
       )}
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
-      {/* Add to Playlist (with submenu) */}
+      {/* Add to Playlist (with submenu and toggle checkmarks) */}
       <div
         className="relative"
         onMouseEnter={() => setShowPlaylistsSubmenu(true)}
@@ -260,12 +393,12 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         >
           <div className="flex items-center gap-2.5">
             <Plus size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>Add to playlist</span>
+            <span>{isMulti ? `Add ${activeTracks.length} tracks to playlist` : 'Add to playlist'}</span>
           </div>
           <ChevronRight size={14} className="text-[#94A3B8] dark:text-white/40" />
         </button>
 
-        {/* Submenu of playlists */}
+        {/* Submenu of playlists with toggle checkmarks */}
         {showPlaylistsSubmenu && (
           <div
             className={`absolute top-0 ${
@@ -277,14 +410,14 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             </div>
             {likedPlaylist && (
               <button
-                onClick={() => handlePlaylistSelect('pl-liked')}
+                onClick={() => handlePlaylistToggle('pl-liked')}
                 className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-rose-500 font-medium"
               >
                 <div className="flex items-center gap-2 truncate pr-2">
                   <Heart size={13} fill="currentColor" />
                   <span className="truncate">Liked Songs</span>
                 </div>
-                {(track.isLiked || addedPlaylistId === 'pl-liked') && (
+                {containingPlaylistIds.has('pl-liked') && (
                   <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                 )}
               </button>
@@ -294,39 +427,56 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                 No playlists yet
               </div>
             ) : (
-              userPlaylists.map((pl) => (
-                <button
-                  key={pl.id}
-                  onClick={() => handlePlaylistSelect(pl.id)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-[#0F172A] dark:text-white"
-                >
-                  <span className="truncate pr-2">{pl.title}</span>
-                  {addedPlaylistId === pl.id && (
-                    <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  )}
-                </button>
-              ))
+              userPlaylists.map((pl) => {
+                const isTrackInPl = containingPlaylistIds.has(pl.id);
+                return (
+                  <button
+                    key={pl.id}
+                    onClick={() => handlePlaylistToggle(pl.id)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-[#0F172A] dark:text-white"
+                  >
+                    <span className="truncate pr-2">{pl.title}</span>
+                    {isTrackInPl && (
+                      <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
         )}
       </div>
 
-      {/* Create Playlist with this track */}
+      {/* Create Playlist with this track / selection */}
       <button
         onClick={() => {
           onCreatePlaylistWithTrack(track);
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-violet-700 dark:text-violet-400 font-semibold cursor-pointer"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#0F172A] dark:text-white font-semibold cursor-pointer"
       >
-        <FolderPlus size={15} className="text-violet-600 dark:text-violet-400" />
-        <span>Create playlist with this track</span>
+        <FolderPlus size={15} className="text-[#0F172A] dark:text-white" />
+        <span>{isMulti ? `Create playlist with ${activeTracks.length} tracks` : 'Create playlist with this track'}</span>
       </button>
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
       {/* Download Options */}
-      {dlStatus.status === 'completed' ? (
+      {isMulti ? (
+        <button
+          onClick={() => {
+            activeTracks.forEach((t) => startDownload(t, 'mp3'));
+            useToastStore
+              .getState()
+              .info('Batch Download', `Queued ${activeTracks.length} tracks for download.`);
+            onClose();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          <Download size={15} className="text-[#64748B] dark:text-white/70" />
+          <span>Download {activeTracks.length} tracks (MP3 320 kbps)</span>
+        </button>
+      ) : dlStatus.status === 'completed' ? (
         <>
           <button
             onClick={() => {
@@ -353,7 +503,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         </>
       ) : dlStatus.status === 'downloading' ? (
         <>
-          <div className="w-full flex items-center justify-between px-3 py-2 text-violet-600 dark:text-violet-400 font-semibold text-[11px]">
+          <div className="w-full flex items-center justify-between px-3 py-2 text-[#0F172A] dark:text-white font-semibold text-[11px]">
             <div className="flex items-center gap-2">
               <Loader2 size={14} className="animate-spin shrink-0" />
               <span>Downloading ({Math.round(dlStatus.progress)}%)</span>
@@ -382,7 +532,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         </>
       ) : dlStatus.status === 'queued' ? (
         <>
-          <div className="w-full flex items-center justify-between px-3 py-2 text-violet-500 font-semibold text-[11px]">
+          <div className="w-full flex items-center justify-between px-3 py-2 text-[#64748B] dark:text-white/70 font-semibold text-[11px]">
             <div className="flex items-center gap-2">
               <Clock size={14} className="animate-pulse shrink-0" />
               <span>In download queue</span>
@@ -453,8 +603,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
-      {/* Go to Artist */}
-      {onSelectArtist &&
+      {/* Go to Artist (Single track only) */}
+      {!isMulti &&
+        onSelectArtist &&
         track.artist &&
         !['song', 'video', 'ep', 'single', 'unknown', 'various artists'].includes(
           track.artist.toLowerCase().trim()
@@ -471,23 +622,25 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           </button>
         )}
 
-      {/* Copy Share Code */}
-      <button
-        onClick={handleCopyShare}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
-      >
-        {copied ? (
-          <>
-            <Check size={15} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-emerald-600 dark:text-emerald-400">Copied to clipboard!</span>
-          </>
-        ) : (
-          <>
-            <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>Copy track details</span>
-          </>
-        )}
-      </button>
+      {/* Copy Share Code (Single track only) */}
+      {!isMulti && (
+        <button
+          onClick={handleCopyShare}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          {copied ? (
+            <>
+              <Check size={15} className="text-emerald-600 dark:text-emerald-400" />
+              <span className="text-emerald-600 dark:text-emerald-400">Copied to clipboard!</span>
+            </>
+          ) : (
+            <>
+              <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
+              <span>Copy track details</span>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 };

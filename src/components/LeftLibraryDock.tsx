@@ -41,9 +41,13 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   const [searchFilter, setSearchFilter] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
 
+  const [draggedPlaylistId, setDraggedPlaylistId] = useState<string | null>(null);
+  const [dragOverPlaylistId, setDragOverPlaylistId] = useState<string | null>(null);
+
   const isOnline = useNetworkStore((state) => state.isOnline);
   const cachedTracks = usePlayerStore((state) => state.cachedTracks);
   const deletePlaylist = useLibraryStore((state) => state.deletePlaylist);
+  const reorderPlaylists = useLibraryStore((state) => state.reorderPlaylists);
   const downloadedCount = useDownloadStore((state) => state.downloadedIds.length);
 
   const displayedPlaylists = React.useMemo(() => {
@@ -265,11 +269,52 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
         >
           {filteredPlaylists.map((pl) => {
             const isSelected = pl.id === selectedPlaylistId;
+            const isDragged = draggedPlaylistId === pl.id;
+            const isDragOver = dragOverPlaylistId === pl.id;
 
             return (
               <div
                 key={pl.id}
                 id={`playlist-item-${pl.id}`}
+                draggable={!searchFilter.trim()}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', pl.id);
+                  e.dataTransfer.effectAllowed = 'move';
+                  setDraggedPlaylistId(pl.id);
+                }}
+                onDragEnd={() => {
+                  setDraggedPlaylistId(null);
+                  setDragOverPlaylistId(null);
+                }}
+                onDragOver={(e) => {
+                  if (!draggedPlaylistId || draggedPlaylistId === pl.id) return;
+                  const sourcePl = displayedPlaylists.find((p) => p.id === draggedPlaylistId);
+                  if (!sourcePl || Boolean(sourcePl.isPinned) !== Boolean(pl.isPinned)) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                  }
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dragOverPlaylistId !== pl.id) {
+                    setDragOverPlaylistId(pl.id);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  if (dragOverPlaylistId === pl.id) {
+                    setDragOverPlaylistId(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const sourceId = e.dataTransfer.getData('text/plain') || draggedPlaylistId;
+                  setDraggedPlaylistId(null);
+                  setDragOverPlaylistId(null);
+                  if (!sourceId || sourceId === pl.id) return;
+                  const sourcePl = displayedPlaylists.find((p) => p.id === sourceId);
+                  if (!sourcePl || Boolean(sourcePl.isPinned) !== Boolean(pl.isPinned)) return;
+                  reorderPlaylists(sourceId, pl.id);
+                }}
                 onClick={() => onSelectPlaylist(pl.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -280,6 +325,12 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     ? 'justify-center w-12 h-12 p-0 mx-auto rounded-xl'
                     : 'gap-3 p-2 rounded-xl w-full'
                 } cursor-pointer transition-all duration-150 ${
+                  isDragged ? 'opacity-40 scale-[0.98]' : ''
+                } ${
+                  isDragOver
+                    ? 'border-t-2 border-[#0F172A] dark:border-white bg-black/[0.04] dark:bg-white/[0.08]'
+                    : ''
+                } ${
                   isSelected
                     ? 'bg-white/85 dark:bg-white/15 border border-white dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
                     : 'hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-transparent'
@@ -338,7 +389,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     )}
 
                     {isSelected && pl.id === 'pl-liked' && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-violet-600 shadow-[0_0_6px_rgba(124,58,237,0.5)] shrink-0 mr-1" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#0F172A] dark:bg-white shadow-[0_0_6px_rgba(255,255,255,0.4)] shrink-0 mr-1" />
                     )}
                   </>
                 )}

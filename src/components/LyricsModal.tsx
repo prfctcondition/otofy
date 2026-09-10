@@ -140,7 +140,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
               <p className="text-xs text-[#64748B] dark:text-white/70 truncate">
                 {activeTrack?.artist || 'Unknown Artist'}
                 {lyricsData?.syncedLyrics && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 font-semibold">
+                  <span className="ml-2 inline-flex items-center gap-1 text-[#0F172A] dark:text-white font-semibold">
                     <Sparkles size={11} /> Synchronized
                   </span>
                 )}
@@ -164,7 +164,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
         >
           {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-[#64748B] dark:text-white/70">
-              <RefreshCw size={24} className="animate-spin text-violet-600 dark:text-violet-400" />
+              <RefreshCw size={24} className="animate-spin text-[#0F172A] dark:text-white" />
               <p className="text-xs font-semibold">Fetching lyrics from LRCLIB...</p>
             </div>
           ) : !activeTrack ? (
@@ -174,7 +174,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
             </div>
           ) : lyricsData?.instrumental ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/70 gap-2">
-              <div className="w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white flex items-center justify-center shadow-inner">
                 <Music size={26} />
               </div>
               <h4 className="text-lg font-bold text-[#0F172A] dark:text-white">♪ Instrumental ♪</h4>
@@ -194,7 +194,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                     onClick={() => seek(line.time)}
                     className={`cursor-pointer transition-all duration-200 rounded-xl px-4 py-2 ${
                       isActive
-                        ? 'bg-gradient-to-r from-violet-500/15 via-purple-500/10 to-transparent border-l-4 border-violet-600 dark:border-violet-400 text-violet-950 dark:text-violet-300 font-black text-xl scale-[1.01] shadow-xs'
+                        ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#0F172A] dark:border-white text-[#0F172A] dark:text-white font-black text-xl scale-[1.01] shadow-xs'
                         : isPast
                         ? 'text-[#64748B] dark:text-white/60 font-medium text-base hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
                         : 'text-[#94A3B8] dark:text-white/40 font-medium text-base hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
@@ -229,7 +229,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                   value={customSearch}
                   onChange={(e) => setCustomSearch(e.target.value)}
                   placeholder="Song name or artist..."
-                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-violet-500 focus:bg-white dark:focus:bg-white/[0.1]"
+                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-black/30 dark:focus:border-white/40 focus:bg-white dark:focus:bg-white/[0.1]"
                 />
                 <button
                   type="submit"

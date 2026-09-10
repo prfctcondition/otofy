@@ -16,12 +16,12 @@ export const BatchDownloadBanner: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white flex items-center justify-center shrink-0">
             {batchState.active ? (
               batchState.isPaused ? (
                 <Pause size={14} className="text-amber-500" />
               ) : (
-                <Loader2 size={14} className="animate-spin text-violet-500" />
+                <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" />
               )
             ) : (
               <Check size={14} className="text-emerald-500" />
@@ -57,7 +57,7 @@ export const BatchDownloadBanner: React.FC = () => {
             ? batchState.currentTrackTitle
             : `${batchState.completed} of ${batchState.total} tracks`}
         </span>
-        <span className="tabular-nums font-bold text-violet-600 dark:text-violet-400">
+        <span className="tabular-nums font-bold text-[#0F172A] dark:text-white">
           {batchState.completed} / {batchState.total} ({percent}%)
         </span>
       </div>
@@ -69,7 +69,7 @@ export const BatchDownloadBanner: React.FC = () => {
             batchState.isPaused
               ? 'bg-amber-500'
               : batchState.active
-              ? 'bg-gradient-to-r from-violet-500 to-indigo-500'
+              ? 'bg-[#0F172A] dark:bg-white'
               : 'bg-emerald-500'
           }`}
           style={{ width: `${percent}%` }}

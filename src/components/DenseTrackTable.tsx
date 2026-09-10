@@ -32,9 +32,11 @@ interface TrackRowProps {
   track: Track;
   index: number;
   isCurrent: boolean;
+  isSelected: boolean;
   isPlaying: boolean;
   isBuffering: boolean;
-  onTrackSelect: (track: Track) => void;
+  onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
+  onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
   onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
@@ -81,9 +83,11 @@ const TrackRow = React.memo<TrackRowProps>(({
   track,
   index,
   isCurrent,
+  isSelected,
   isPlaying,
   isBuffering,
-  onTrackSelect,
+  onRowClick,
+  onDoubleClick,
   onPlayToggle,
   onToggleLike,
   onSelectArtist,
@@ -100,14 +104,20 @@ const TrackRow = React.memo<TrackRowProps>(({
       id={`track-row-${track.id}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onTrackSelect(track)}
+      onClick={(e) => onRowClick(e, track, index)}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onDoubleClick(track);
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         onOpenContextMenu(e, track);
       }}
-      className={`group relative grid grid-cols-[40px_1fr_135px] md:grid-cols-[40px_minmax(180px,1fr)_minmax(120px,200px)_140px] lg:grid-cols-[40px_minmax(180px,4fr)_minmax(120px,3fr)_minmax(90px,2fr)_140px] gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 ${
+      className={`group relative grid grid-cols-[40px_1fr_135px] md:grid-cols-[40px_minmax(180px,1fr)_minmax(120px,200px)_140px] lg:grid-cols-[40px_minmax(180px,4fr)_minmax(120px,3fr)_minmax(90px,2fr)_140px] gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 select-none ${
         isCurrent
-          ? 'bg-white/90 dark:bg-white/15 border border-violet-200/80 dark:border-white/20 shadow-[0_4px_16px_rgba(124,58,237,0.08),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white ring-1 ring-violet-500/20'
+          ? 'bg-black/[0.08] dark:bg-white/[0.14] border border-black/20 dark:border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
+          : isSelected
+          ? 'bg-black/[0.05] dark:bg-white/[0.10] border border-black/10 dark:border-white/20 text-[#0F172A] dark:text-white'
           : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80 border border-transparent'
       }`}
     >
@@ -119,14 +129,14 @@ const TrackRow = React.memo<TrackRowProps>(({
               if (isCurrent) {
                 onPlayToggle();
               } else {
-                onTrackSelect(track);
+                onDoubleClick(track);
               }
             }}
-            className="text-[#0F172A] dark:text-white hover:text-black dark:hover:text-violet-300 active:scale-90 transition-all p-1"
+            className="text-[#0F172A] dark:text-white hover:text-black dark:hover:text-white active:scale-90 transition-all p-1"
             title={isCurrent && isPlaying ? 'Pause' : 'Play'}
           >
             {isCurrent && isBuffering ? (
-              <Loader2 size={14} className="animate-spin text-violet-600 dark:text-violet-400" />
+              <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" />
             ) : isCurrent && isPlaying ? (
               <Pause size={14} fill="currentColor" />
             ) : (
@@ -134,17 +144,17 @@ const TrackRow = React.memo<TrackRowProps>(({
             )}
           </button>
         ) : isCurrent && isBuffering ? (
-          <Loader2 size={14} className="animate-spin text-violet-600 dark:text-violet-400" title="Loading audio..." />
+          <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" title="Loading audio..." />
         ) : isCurrent && isPlaying ? (
           <div className="flex items-end gap-0.5 h-3.5" title="Playing">
-            <span className="w-0.5 bg-violet-600 dark:bg-violet-400 animate-[bounce_0.8s_infinite] h-full rounded-full" />
-            <span className="w-0.5 bg-violet-600/80 dark:bg-violet-400/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
-            <span className="w-0.5 bg-violet-600/90 dark:bg-violet-400/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
+            <span className="w-0.5 bg-[#0F172A] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
+            <span className="w-0.5 bg-[#0F172A]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
+            <span className="w-0.5 bg-[#0F172A]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
           </div>
         ) : (
           <span
             className={`text-xs ${
-              isCurrent ? 'text-violet-700 dark:text-violet-400 font-bold' : 'text-[#94A3B8] dark:text-white/70'
+              isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
             }`}
           >
             {track.number || index + 1}
@@ -177,7 +187,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               onSelectArtist?.(track.artist, track.source === 'SC' ? 'SC' : 'YT');
             }}
-            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:text-violet-700 dark:hover:text-white hover:underline cursor-pointer transition-colors"
+            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer transition-colors"
             title={`View ${track.artist}`}
           >
             {track.artist}
@@ -194,7 +204,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             }
           }}
           className={`text-xs text-[#64748B] dark:text-white/80 truncate transition-colors ${
-            track.album ? 'hover:text-violet-700 dark:hover:text-white hover:underline cursor-pointer' : ''
+            track.album ? 'hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer' : ''
           }`}
           title={track.album ? `View album ${track.album}` : undefined}
         >
@@ -235,7 +245,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
             }}
-            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 hover:bg-amber-500/20 text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:text-amber-500 transition-colors cursor-pointer"
+            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.12] hover:bg-amber-500/20 text-[10px] font-semibold text-[#0F172A] dark:text-white hover:text-amber-500 transition-colors cursor-pointer"
             title={`Downloading... ${Math.round(dlStatus.progress)}% (Click to pause)`}
           >
             <Loader2 size={12} className="animate-spin shrink-0 group-hover/dl:hidden" />
@@ -248,7 +258,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
             }}
-            className="p-1 rounded-full text-violet-500 hover:text-amber-500 transition-colors cursor-pointer"
+            className="p-1 rounded-full text-[#64748B] dark:text-white/70 hover:text-amber-500 transition-colors cursor-pointer"
             title="Queued in download list (Click to pause)"
           >
             <Clock size={15} className="animate-pulse" />
@@ -326,14 +336,12 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   onSelectArtist,
   onSelectAlbum,
 }) => {
-  const playlists = useLibraryStore((s) => s.playlists);
   const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
-  const addTrackToPlaylist = useLibraryStore((s) => s.addTrackToPlaylist);
-  const removeTrackFromPlaylist = useLibraryStore((s) => s.removeTrackFromPlaylist);
-  const createPlaylist = useLibraryStore((s) => s.createPlaylist);
-  const selectPlaylist = useLibraryStore((s) => s.selectPlaylist);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
   const checkStatus = useDownloadStore((s) => s.checkStatus);
+
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (tracks && tracks.length > 0) {
@@ -341,13 +349,69 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     }
   }, [tracks, checkStatus]);
 
-  const handleCreatePlaylistWithTrack = async (trk: Track) => {
-    const newPl = await createPlaylist({
-      title: `${trk.title} Mix`,
-      iconName: 'sparkles',
-    });
-    await addTrackToPlaylist(newPl.id, trk);
-    await selectPlaylist(newPl.id);
+  // Click outside listener to clear row selection
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('#dense-track-table') && !target?.closest('#track-context-menu')) {
+        setSelectedTrackIds(new Set());
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Cmd/Ctrl + A to select all tracks in current table
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        e.preventDefault();
+        setSelectedTrackIds(new Set(tracks.map((t) => t.id)));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tracks]);
+
+  const handleRowClick = (e: React.MouseEvent, track: Track, index: number) => {
+    if (e.metaKey || e.ctrlKey) {
+      // Toggle selection
+      setSelectedTrackIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(track.id)) {
+          next.delete(track.id);
+        } else {
+          next.add(track.id);
+        }
+        return next;
+      });
+      setLastSelectedId(track.id);
+    } else if (e.shiftKey && lastSelectedId) {
+      // Range selection
+      const lastIndex = tracks.findIndex((t) => t.id === lastSelectedId);
+      if (lastIndex !== -1) {
+        const start = Math.min(lastIndex, index);
+        const end = Math.max(lastIndex, index);
+        const next = new Set(selectedTrackIds);
+        for (let i = start; i <= end; i++) {
+          next.add(tracks[i].id);
+        }
+        setSelectedTrackIds(next);
+      } else {
+        setSelectedTrackIds(new Set([track.id]));
+        setLastSelectedId(track.id);
+      }
+    } else {
+      // Single selection (does NOT start playback)
+      setSelectedTrackIds(new Set([track.id]));
+      setLastSelectedId(track.id);
+    }
+  };
+
+  const handleDoubleClick = (track: Track) => {
+    onTrackSelect(track, tracks);
   };
 
   const handleOpenContextMenu = (e: React.MouseEvent, track: Track) => {
@@ -363,7 +427,16 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       y = rect.bottom + 6;
     }
 
-    useContextMenuStore.getState().openTrackMenu(track, x, y, selectedPlaylistId);
+    if (selectedTrackIds.has(track.id) && selectedTrackIds.size > 1) {
+      // Multi-track context menu
+      const selected = tracks.filter((t) => selectedTrackIds.has(t.id));
+      useContextMenuStore.getState().openTrackMenu(track, x, y, selectedPlaylistId, selected);
+    } else {
+      // Single track context menu
+      setSelectedTrackIds(new Set([track.id]));
+      setLastSelectedId(track.id);
+      useContextMenuStore.getState().openTrackMenu(track, x, y, selectedPlaylistId, [track]);
+    }
   };
 
   return (
@@ -381,7 +454,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       <div className="space-y-1 mt-1.5">
         {isLoading ? (
           <div className="py-20 px-4 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 dark:bg-white/10 border border-violet-500/20 dark:border-white/15 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-3 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-white/10 border border-black/10 dark:border-white/15 flex items-center justify-center text-[#0F172A] dark:text-white mb-3 shadow-xs">
               <Loader2 size={24} className="animate-spin" />
             </div>
             <h4 className="text-sm font-bold text-[#0F172A] dark:text-white mb-0.5">Loading tracks...</h4>
@@ -389,7 +462,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
           </div>
         ) : tracks.length === 0 ? (
           <div className="py-16 px-4 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-white/10 border border-white/80 dark:border-white/15 flex items-center justify-center text-violet-500 mb-3 shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-white/10 border border-white/80 dark:border-white/15 flex items-center justify-center text-[#64748B] dark:text-white/70 mb-3 shadow-xs">
               <Clock size={28} className="opacity-80" />
             </div>
             <h4 className="text-base font-bold text-[#0F172A] dark:text-white mb-1">No songs in this collection</h4>
@@ -404,9 +477,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               track={track}
               index={index}
               isCurrent={track.id === activeTrackId}
+              isSelected={selectedTrackIds.has(track.id)}
               isPlaying={isPlaying}
               isBuffering={isBuffering}
-              onTrackSelect={(t) => onTrackSelect(t, tracks)}
+              onRowClick={handleRowClick}
+              onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}
               onToggleLike={onToggleLike}
               onSelectArtist={onSelectArtist}

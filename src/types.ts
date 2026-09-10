@@ -220,6 +220,7 @@ declare global {
       importRemotePlaylist: (source: string, url: string) => Promise<{ title: string; tracks: Track[] }>;
       loginAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; username?: string; error?: string }>;
       windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
+      expandWindowForLyrics?: (targetWidth?: number) => Promise<boolean>;
       isMaximized?: () => Promise<boolean>;
       onWindowState?: (callback: (isMaximized: boolean) => void) => () => void;
       onMediaKey: (callback: (key: string) => void) => () => void;

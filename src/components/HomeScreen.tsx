@@ -134,7 +134,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               {/* Title label */}
-              <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] dark:text-white truncate group-hover:text-violet-950 dark:group-hover:text-violet-300 transition-colors">
+              <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
                 {item.title}
               </span>
 

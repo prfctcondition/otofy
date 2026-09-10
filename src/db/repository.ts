@@ -118,6 +118,11 @@ export const repo = {
       });
   },
 
+  async getPlaylistIdsForTrack(trackId: string): Promise<string[]> {
+    const pts = await db.playlistTracks.where('trackId').equals(trackId).toArray();
+    return pts.map((pt) => pt.playlistId);
+  },
+
   async getAllTracks(): Promise<Track[]> {
     const all = await db.tracks.toArray();
     return all.map(dbTrackToTrack);

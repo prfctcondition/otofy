@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Pause,
@@ -92,7 +92,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         className="h-[84px] w-full shrink-0 px-6 flex items-center justify-between gap-4 select-none liquid-glass-panel rounded-2xl relative z-40"
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-13 h-13 rounded-xl bg-white/50 dark:bg-white/10 border border-white/80 dark:border-white/10 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-xs">
+          <div className="w-13 h-13 rounded-xl bg-white/50 dark:bg-white/10 border border-white/80 dark:border-white/10 flex items-center justify-center text-[#0F172A] dark:text-white shadow-xs">
             <Mic2 size={22} className="opacity-75" />
           </div>
           <div className="flex flex-col">
@@ -107,7 +107,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-xs font-semibold text-[#334155] dark:text-white border border-white/80 dark:border-white/15 transition-all shadow-xs cursor-pointer"
             title="Equalizer"
           >
-            <SlidersHorizontal size={15} className="text-violet-600 dark:text-violet-400" />
+            <SlidersHorizontal size={15} className="text-[#0F172A] dark:text-white" />
             <span>Equalizer</span>
           </button>
         </div>
@@ -148,9 +148,33 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
     setSeekValue(null);
   };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setVolume(val);
+  const volumeSliderRef = useRef<HTMLDivElement>(null);
+
+  const updateVolumeFromPointer = (clientX: number) => {
+    if (!volumeSliderRef.current) return;
+    const rect = volumeSliderRef.current.getBoundingClientRect();
+    const rawX = clientX - rect.left;
+    const percentage = Math.min(Math.max(rawX / rect.width, 0), 1);
+    setVolume(percentage);
+  };
+
+  const handleVolumePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingVolume(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateVolumeFromPointer(e.clientX);
+  };
+
+  const handleVolumePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingVolume) return;
+    updateVolumeFromPointer(e.clientX);
+  };
+
+  const handleVolumePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDraggingVolume(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
   return (
@@ -194,7 +218,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </div>
           <span
             onClick={() => onSelectArtist?.(activeTrack.artist)}
-            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:underline hover:text-violet-700 dark:hover:text-white cursor-pointer mt-0.5"
+            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:underline hover:text-[#0F172A] dark:hover:text-white cursor-pointer mt-0.5"
             title={`View ${activeTrack.artist}`}
           >
             {activeTrack.artist}
@@ -218,7 +242,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           {/* Background download button */}
           {dlStatus.status === 'downloading' ? (
             <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-[11px] font-semibold text-violet-600 dark:text-violet-400 shrink-0"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/[0.06] dark:bg-white/[0.12] text-[11px] font-semibold text-[#0F172A] dark:text-white shrink-0"
               title={`Downloading... ${Math.round(dlStatus.progress)}%`}
             >
               <Loader2 size={13} className="animate-spin shrink-0" />
@@ -257,7 +281,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-shuffle-btn"
             onClick={toggleShuffle}
             className={`transition-colors ${
-              isShuffle ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
+              isShuffle ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
             }`}
             title="Shuffle"
           >
@@ -302,7 +326,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             id="player-repeat-btn"
             onClick={cycleRepeat}
             className={`transition-colors ${
-              repeatMode !== 'off' ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
+              repeatMode !== 'off' ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#64748B] hover:text-[#0F172A] dark:text-white/70 dark:hover:text-white'
             }`}
             title="Repeat"
           >
@@ -315,15 +339,18 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           <div className="relative flex-1 flex items-center group h-6 cursor-pointer">
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] dark:bg-white/[0.12] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
-                className="h-full bg-gradient-to-r from-violet-600 via-indigo-600 to-[#0F172A] dark:to-indigo-400 rounded-full"
+                className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-colors"
                 style={{ width: `${activePercent}%` }}
               />
             </div>
             <div
-              className={`absolute w-3.5 h-3.5 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_6px_rgba(79,70,229,0.35)] pointer-events-none transition-opacity duration-150 -translate-x-1/2 ${
+              className={`absolute top-1/2 w-3 h-3 bg-white rounded-full border border-black/20 dark:border-black/40 shadow-[0_1px_4px_rgba(0,0,0,0.3)] pointer-events-none transition-opacity duration-150 ${
                 isSeeking ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'
               }`}
-              style={{ left: `${activePercent}%` }}
+              style={{
+                left: `${activePercent}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
             />
             <input
               type="range"
@@ -351,7 +378,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           id="player-lyrics-btn"
           onClick={toggleLyricsModal}
           className={`p-1.5 rounded-full hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors shrink-0 ${
-            isLyricsModalOpen ? 'text-violet-600 dark:text-violet-400 bg-violet-100/70 dark:bg-violet-950/50 font-bold shadow-xs' : ''
+            isLyricsModalOpen ? 'text-[#0F172A] dark:text-white bg-black/[0.08] dark:bg-white/[0.18] font-bold shadow-xs' : ''
           }`}
           title={isLyricsModalOpen ? 'Hide Lyrics' : 'Show Lyrics'}
         >
@@ -371,7 +398,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           id="player-queue-btn"
           onClick={toggleQueue}
           className={`p-1.5 rounded-full hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors shrink-0 ${
-            isQueueOpen ? 'text-violet-600 dark:text-violet-400 bg-violet-100/70 dark:bg-violet-950/50 font-bold shadow-xs' : ''
+            isQueueOpen ? 'text-[#0F172A] dark:text-white bg-black/[0.08] dark:bg-white/[0.18] font-bold shadow-xs' : ''
           }`}
           title={isQueueOpen ? 'Close Queue' : 'Open Queue'}
         >
@@ -394,32 +421,29 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             )}
           </button>
 
-          <div className="relative w-14 sm:w-20 md:w-24 flex items-center group h-6 cursor-pointer shrink-0">
+          <div
+            ref={volumeSliderRef}
+            onPointerDown={handleVolumePointerDown}
+            onPointerMove={handleVolumePointerMove}
+            onPointerUp={handleVolumePointerUp}
+            onPointerCancel={handleVolumePointerUp}
+            className="relative w-14 sm:w-20 md:w-24 flex items-center group h-6 cursor-pointer shrink-0 touch-none select-none"
+            title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+          >
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] dark:bg-white/[0.12] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
-                className="h-full bg-gradient-to-r from-violet-600 to-[#0F172A] dark:to-indigo-400 rounded-full transition-colors"
+                className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-colors"
                 style={{ width: `${isMuted ? 0 : volume * 100}%` }}
               />
             </div>
             <div
-              className={`absolute w-3 h-3 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_4px_rgba(79,70,229,0.3)] pointer-events-none transition-opacity duration-150 -translate-x-1/2 ${
+              className={`absolute top-1/2 w-3 h-3 bg-white rounded-full border border-black/20 dark:border-black/40 shadow-[0_1px_4px_rgba(0,0,0,0.3)] pointer-events-none transition-opacity duration-150 ${
                 isDraggingVolume ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'
               }`}
-              style={{ left: `${isMuted ? 0 : volume * 100}%` }}
-            />
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              onMouseDown={() => setIsDraggingVolume(true)}
-              onMouseUp={() => setIsDraggingVolume(false)}
-              onTouchStart={() => setIsDraggingVolume(true)}
-              onTouchEnd={() => setIsDraggingVolume(false)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              title="Volume"
+              style={{
+                left: `${isMuted ? 0 : volume * 100}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
             />
           </div>
         </div>
@@ -429,10 +453,10 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           onClick={toggleFullscreenLyrics}
           className={`p-1.5 rounded-full transition-all ml-1 ${
             isFullscreenLyrics
-              ? 'text-violet-600 dark:text-violet-400 bg-violet-100/70 dark:bg-violet-950/50 font-bold shadow-xs'
+              ? 'text-[#0F172A] dark:text-white bg-black/[0.08] dark:bg-white/[0.18] font-bold shadow-xs'
               : 'hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
           }`}
-          title={isFullscreenLyrics ? 'Exit Full Screen' : 'Full Screen Lyrics'}
+          title={isFullscreenLyrics ? 'Exit Fullscreen' : 'Fullscreen'}
         >
           {isFullscreenLyrics ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>

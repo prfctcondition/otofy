@@ -148,7 +148,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           onClick={onNavigateHome}
           className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
             currentView === 'home'
-              ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-violet-500/30'
+              ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
               : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
           }`}
           title="Home"
@@ -237,7 +237,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onClick={onToggleRightPanel}
             className={`p-2 rounded-full transition-colors cursor-pointer ${
               isRightPanelOpen
-                ? 'text-violet-700 dark:text-violet-300 bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
+                ? 'text-[#0F172A] dark:text-white font-bold bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
                 : 'text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
             }`}
             title={isRightPanelOpen ? 'Hide Now Playing panel' : 'Show Now Playing panel'}

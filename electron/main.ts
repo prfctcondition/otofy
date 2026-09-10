@@ -659,6 +659,21 @@ ipcMain.handle('window:control', (_event, action: 'minimize' | 'maximize' | 'clo
   }
 });
 
+ipcMain.handle('window:expand-for-lyrics', (_event, { targetWidth = 1150 }: { targetWidth?: number } = {}) => {
+  if (!mainWindow) return false;
+  if (mainWindow.isMaximized()) return true;
+  const bounds = mainWindow.getBounds();
+  if (bounds.width < targetWidth) {
+    mainWindow.setBounds({
+      x: bounds.x,
+      y: bounds.y,
+      width: targetWidth,
+      height: bounds.height,
+    });
+  }
+  return true;
+});
+
 ipcMain.handle('app:quit', () => {
   isQuitting = true;
   app.quit();
