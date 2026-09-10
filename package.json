@@ -33,6 +33,7 @@
     ],
     "win": {
       "icon": "public/icon.ico",
+      "artifactName": "${productName} Setup.${ext}",
       "target": [
         {
           "target": "nsis",
