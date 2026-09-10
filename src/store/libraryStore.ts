@@ -35,10 +35,12 @@ const pushHistoryEntry = (
   const current = state.history[state.historyIndex];
   if (
     current &&
-    current.currentView === newSnapshot.currentView &&
-    current.selectedPlaylistId === newSnapshot.selectedPlaylistId &&
-    current.viewingPlaylist?.id === newSnapshot.viewingPlaylist?.id &&
-    current.viewingPlaylist?.title === newSnapshot.viewingPlaylist?.title
+    (current.selectedPlaylistId === newSnapshot.selectedPlaylistId ||
+      (current.viewingPlaylist?.id && current.viewingPlaylist.id === newSnapshot.viewingPlaylist?.id) ||
+      (current.currentView === newSnapshot.currentView &&
+        current.viewingPlaylist?.title &&
+        newSnapshot.viewingPlaylist?.title &&
+        current.viewingPlaylist.title.toLowerCase() === newSnapshot.viewingPlaylist.title.toLowerCase()))
   ) {
     const updated = [...state.history];
     updated[state.historyIndex] = newSnapshot;

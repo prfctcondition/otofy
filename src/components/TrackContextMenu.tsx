@@ -54,11 +54,17 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
     let left = x;
     let top = y;
 
-    if (left + menuWidth > window.innerWidth - 10) {
-      left = Math.max(10, window.innerWidth - menuWidth - 10);
+    if (left + menuWidth > window.innerWidth - 12) {
+      left = Math.max(12, window.innerWidth - menuWidth - 12);
+    }
+    if (left < 12) {
+      left = 12;
     }
     if (top + menuHeight > window.innerHeight - dockHeight) {
-      top = Math.max(10, y - menuHeight);
+      top = Math.max(12, y - menuHeight);
+    }
+    if (top < 12) {
+      top = 12;
     }
 
     setCoords({ top, left });
@@ -117,7 +123,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-50 w-60 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-[9999] w-60 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
     >
       {/* Track Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">

@@ -396,9 +396,11 @@ export default function App() {
   const handleOpenArtistView = async (artistName: string, source?: 'YT' | 'SC') => {
     if (!artistName || artistName.trim().length === 0) return;
     const cleanName = artistName.trim();
+    const artistViewId = `artist-${cleanName.toLowerCase().replace(/\s+/g, '-')}`;
 
     // Instant optimistic navigation
     libraryStore.setCustomPlaylistView(cleanName, [], {
+      id: artistViewId,
       type: 'Artist',
       creator: cleanName,
       description: `${cleanName} Discography`,
@@ -563,6 +565,7 @@ export default function App() {
       artistTracks = artistTracks.map((t, idx) => ({ ...t, number: idx + 1 }));
 
       libraryStore.setCustomPlaylistView(cleanName, artistTracks, {
+        id: artistViewId,
         type: 'Artist',
         creator: artistSubtitle,
         iconName: 'user',
@@ -585,9 +588,11 @@ export default function App() {
   ) => {
     const targetId = browseId || (albumTitle && artistName ? `${artistName} ${albumTitle}` : albumTitle);
     if (!targetId) return;
+    const albumViewId = `album-${targetId.toLowerCase().replace(/\s+/g, '-')}`;
 
     // Instant optimistic navigation
     libraryStore.setCustomPlaylistView(albumTitle || 'Album', [], {
+      id: albumViewId,
       type: 'Album',
       creator: artistName || 'Artist',
       iconName: 'disc',
@@ -626,12 +631,12 @@ export default function App() {
           }
 
           libraryStore.setCustomPlaylistView(title, albumTracks, {
+            id: albumViewId,
             type: 'Album',
             creator: `${artist}${albumData.year ? ` • ${albumData.year}` : ''}`,
             iconName: 'disc',
             artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
           });
-          libraryStore.setCurrentArtistDetails(null);
         }
       } else {
         // Web API fallback for development outside Electron
@@ -667,12 +672,12 @@ export default function App() {
               }
 
               libraryStore.setCustomPlaylistView(title, albumTracks, {
+                id: albumViewId,
                 type: 'Album',
                 creator: `${artist}${albumData.year ? ` • ${albumData.year}` : ''}`,
                 iconName: 'disc',
                 artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
               });
-              libraryStore.setCurrentArtistDetails(null);
             }
           }
         } catch (webErr) {

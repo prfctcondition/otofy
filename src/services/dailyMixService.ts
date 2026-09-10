@@ -429,6 +429,31 @@ export async function fetchGenreTracks(query: string): Promise<Track[]> {
   return [];
 }
 
+export async function fetchGenreTracksBatch(queries: string[]): Promise<Track[]> {
+  const allTracks: Track[] = [];
+  const seenIds = new Set<string>();
+  const seenTitles = new Set<string>();
+
+  for (const q of queries) {
+    if (allTracks.length >= 60) break;
+    try {
+      const batch = await fetchGenreTracks(q);
+      for (const t of batch) {
+        const key = `${t.artist.toLowerCase()} - ${t.title.toLowerCase()}`;
+        if (!seenIds.has(t.sourceId) && !seenTitles.has(key)) {
+          seenIds.add(t.sourceId);
+          seenTitles.add(key);
+          allTracks.push(t);
+        }
+      }
+    } catch (e) {
+      console.warn('[DailyMix] Batch query failed for:', q, e);
+    }
+  }
+
+  return allTracks;
+}
+
 const MIX_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function shouldRefreshMixes(): Promise<boolean> {
@@ -505,9 +530,10 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
   for (let i = 0; i < GENRE_PRESETS.length; i++) {
     const preset = GENRE_PRESETS[i];
     const mixId = `mix-${preset.mixNumber}`;
-    const query = getDailyQueryForMix(preset.mixNumber) || preset.genre;
+    const dailyQuery = getDailyQueryForMix(preset.mixNumber) || preset.genre;
+    const queriesToFetch = [dailyQuery, ...(preset.searchQueries || [])];
 
-    let mixTracks = await fetchGenreTracks(query);
+    let mixTracks = await fetchGenreTracksBatch(queriesToFetch);
 
     // If fewer than 40 tracks, supplement with preset fallback tracks
     if (mixTracks.length < 40) {
@@ -599,8 +625,10 @@ export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Trac
 
   // 3. If fewer than 40 tracks were retrieved, fetch fresh full set of 40-50 tracks
   if (tracks.length < 40) {
-    const query = getDailyQueryForMix(mixConfig.mixNumber) || mixConfig.genre || 'chart';
-    const freshTracks = await fetchGenreTracks(query);
+    const dailyQ = getDailyQueryForMix(mixConfig.mixNumber) || mixConfig.genre || 'chart';
+    const preset = GENRE_PRESETS.find((p) => p.mixNumber === mixConfig.mixNumber);
+    const queriesToFetch = [dailyQ, ...(preset?.searchQueries || [])];
+    const freshTracks = await fetchGenreTracksBatch(queriesToFetch);
     if (freshTracks.length > 0) {
       for (const t of freshTracks) {
         await repo.putTrack(t);

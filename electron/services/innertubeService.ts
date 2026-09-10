@@ -813,7 +813,25 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
         const plArtist = (pl.header as any)?.author?.name || 'Various Artists';
         const plThumb = extractThumbnailUrl((pl.header as any)?.thumbnails || (pl.header as any)?.thumbnail);
         const plTracks: InnertubeTrack[] = [];
-        for (const item of (pl.items as any[]) || []) {
+        const plItems: any[] = [...((pl.items as any[]) || [])];
+
+        let plPage = pl;
+        let plPages = 0;
+        while (plPage && (plPage as any).has_continuation && plPages < 20) {
+          try {
+            plPage = await (plPage as any).getContinuation();
+            if (plPage?.items && Array.isArray(plPage.items)) {
+              plItems.push(...plPage.items);
+            } else if (plPage?.contents && Array.isArray(plPage.contents)) {
+              plItems.push(...plPage.contents);
+            }
+          } catch {
+            break;
+          }
+          plPages++;
+        }
+
+        for (const item of plItems) {
           const vId = item.id;
           if (!vId) continue;
           const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(
@@ -898,7 +916,24 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
   let artworkUrl = extractThumbnailUrl(thumbs);
 
   const tracks: InnertubeTrack[] = [];
-  const contents: any[] = (albumData.contents as any[]) || [];
+  const contents: any[] = [...((albumData.contents as any[]) || [])];
+
+  // Paginate full album tracklist if album has continuation pages
+  try {
+    let page = albumData;
+    let pages = 0;
+    while (page && (page as any).has_continuation && pages < 20) {
+      page = await (page as any).getContinuation();
+      if (page?.contents && Array.isArray(page.contents)) {
+        contents.push(...page.contents);
+      } else if (page?.items && Array.isArray(page.items)) {
+        contents.push(...page.items);
+      }
+      pages++;
+    }
+  } catch (cErr) {
+    console.warn('[InnertubeService] getAlbum continuation error:', cErr);
+  }
 
   for (const item of contents) {
     const vId = item.id;
@@ -960,7 +995,23 @@ export async function getGenreTracks(query: string): Promise<InnertubeTrack[]> {
     if (playlistId) {
       const cleanPlId = playlistId.startsWith('VL') ? playlistId.substring(2) : playlistId;
       const fullPl = await yt.music.getPlaylist(cleanPlId);
-      const items: any[] = (fullPl.items as any[]) || [];
+      const items: any[] = [...((fullPl.items as any[]) || [])];
+
+      let plPage = fullPl;
+      let plPages = 0;
+      while (plPage && (plPage as any).has_continuation && plPages < 5) {
+        try {
+          plPage = await (plPage as any).getContinuation();
+          if (plPage?.items && Array.isArray(plPage.items)) {
+            items.push(...plPage.items);
+          } else if (plPage?.contents && Array.isArray(plPage.contents)) {
+            items.push(...plPage.contents);
+          }
+        } catch {
+          break;
+        }
+        plPages++;
+      }
 
       for (const item of items) {
         const vId = item.id;

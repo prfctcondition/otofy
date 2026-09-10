@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play,
   Pause,
@@ -249,8 +250,19 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   };
 
   const handleOpenContextMenu = (e: React.MouseEvent, track: Track) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setContextMenu({ track, x: rect.left - 180, y: rect.bottom + 6 });
+    e.preventDefault();
+    e.stopPropagation();
+    let x = e.clientX;
+    let y = e.clientY;
+
+    const target = e.currentTarget as HTMLElement | null;
+    if (target && target.tagName.toLowerCase() === 'button') {
+      const rect = target.getBoundingClientRect();
+      x = rect.right - 240;
+      y = rect.bottom + 6;
+    }
+
+    setContextMenu({ track, x, y });
   };
 
   return (
@@ -304,20 +316,22 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         )}
       </div>
 
-      {contextMenu && (
-        <TrackContextMenu
-          track={contextMenu.track}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          playlists={playlists}
-          onClose={() => setContextMenu(null)}
-          onPlay={(t) => onTrackSelect(t, tracks)}
-          onAddToPlaylist={(plId, t) => addTrackToPlaylist(plId, t)}
-          onCreatePlaylistWithTrack={handleCreatePlaylistWithTrack}
-          onToggleLike={onToggleLike}
-          onSelectArtist={onSelectArtist}
-        />
-      )}
+      {contextMenu &&
+        createPortal(
+          <TrackContextMenu
+            track={contextMenu.track}
+            x={contextMenu.x}
+            y={contextMenu.y}
+            playlists={playlists}
+            onClose={() => setContextMenu(null)}
+            onPlay={(t) => onTrackSelect(t, tracks)}
+            onAddToPlaylist={(plId, t) => addTrackToPlaylist(plId, t)}
+            onCreatePlaylistWithTrack={handleCreatePlaylistWithTrack}
+            onToggleLike={onToggleLike}
+            onSelectArtist={onSelectArtist}
+          />,
+          document.body
+        )}
     </div>
   );
 };

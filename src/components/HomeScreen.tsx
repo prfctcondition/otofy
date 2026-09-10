@@ -100,8 +100,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <div id="home-screen-view" className="flex-1 overflow-y-auto px-6 py-5 pb-20 relative select-none">
+      {/* Dark theme vertical gradient: deep charcoal/gray to obsidian pitch-black */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 dark:block hidden"
+        style={{
+          background: 'linear-gradient(180deg, #181822 0%, #0d0d14 30%, #060609 65%, #000000 100%)',
+        }}
+      />
+
       {/* Top Subtle Gloss Sheen */}
-      <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 to-transparent z-0" />
+      <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 dark:from-white/[0.04] to-transparent z-0" />
 
       {/* 1. TOP QUICK-ACCESS GRID (8 items: 2 rows x 4 cols on desktop) */}
       <section id="quick-access-section" className="relative z-10 mb-8">

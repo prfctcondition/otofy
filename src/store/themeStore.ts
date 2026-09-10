@@ -24,7 +24,7 @@ const applyThemeToDocument = (theme: ThemeMode) => {
   }
 };
 
-const initialTheme: ThemeMode = (typeof localStorage !== 'undefined' && (localStorage.getItem(STORAGE_KEY) as ThemeMode)) || 'dark';
+const initialTheme: ThemeMode = (typeof localStorage !== 'undefined' && (localStorage.getItem(STORAGE_KEY) as ThemeMode)) || 'light';
 applyThemeToDocument(initialTheme);
 
 export const useThemeStore = create<ThemeState>((set) => ({

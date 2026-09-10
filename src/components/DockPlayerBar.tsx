@@ -66,6 +66,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState<number | null>(null);
+  const [isDraggingVolume, setIsDraggingVolume] = useState(false);
 
   if (!activeTrack) {
     return (
@@ -133,9 +134,6 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
-    if (isMuted && val > 0) {
-      toggleMute();
-    }
   };
 
   return (
@@ -346,7 +344,9 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
               />
             </div>
             <div
-              className="absolute w-3 h-3 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_4px_rgba(79,70,229,0.3)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 -translate-x-1/2"
+              className={`absolute w-3 h-3 bg-white rounded-full border-2 border-indigo-600 shadow-[0_2px_4px_rgba(79,70,229,0.3)] pointer-events-none transition-opacity duration-150 -translate-x-1/2 ${
+                isDraggingVolume ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'
+              }`}
               style={{ left: `${isMuted ? 0 : volume * 100}%` }}
             />
             <input
@@ -356,6 +356,10 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
               step="0.01"
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
+              onMouseDown={() => setIsDraggingVolume(true)}
+              onMouseUp={() => setIsDraggingVolume(false)}
+              onTouchStart={() => setIsDraggingVolume(true)}
+              onTouchEnd={() => setIsDraggingVolume(false)}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               title="Volume"
             />

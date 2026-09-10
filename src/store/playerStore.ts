@@ -360,8 +360,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   toggleMute: () => {
     const { isMuted, volume } = get();
     if (isMuted) {
-      audioEngine.setVolume(volume || 0.5);
-      set({ isMuted: false });
+      const targetVol = volume > 0.05 ? volume : 0.5;
+      audioEngine.setVolume(targetVol);
+      set({ isMuted: false, volume: targetVol });
     } else {
       audioEngine.setVolume(0);
       set({ isMuted: true });
