@@ -184,7 +184,7 @@ export interface BatchDownloadState {
 declare global {
   interface Window {
     electronAPI?: {
-      resolveStream: (trackId: string, source: string, title?: string, artist?: string) => Promise<StreamInfo>;
+      resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[]) => Promise<StreamInfo>;
       searchMusic: (query: string, source?: SearchSourceFilter) => Promise<UnifiedSearchResponse | SearchResult[]>;
       searchPlaylists?: (query: string, source?: SearchSourceFilter) => Promise<SearchPlaylistResult[]>;
       getPlaylistTracks?: (payload: { id: string; source: 'YT' | 'SC' }) => Promise<{

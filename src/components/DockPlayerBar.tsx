@@ -155,9 +155,9 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   return (
     <footer
       id="dock-player-bar"
-      className="h-[84px] w-full shrink-0 px-4 sm:px-6 grid grid-cols-[minmax(180px,300px)_1fr_minmax(180px,300px)] items-center gap-3 select-none liquid-glass-panel rounded-2xl relative z-40"
+      className="h-[84px] w-full shrink-0 px-3 sm:px-6 grid grid-cols-[minmax(0,280px)_1fr_minmax(0,280px)] items-center gap-2 sm:gap-4 select-none liquid-glass-panel rounded-2xl relative z-40 overflow-hidden"
     >
-      <div className="flex items-center gap-3 min-w-0 justify-self-start">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 w-full max-w-full overflow-hidden">
         <div className="relative group shrink-0 rounded-lg p-0.5 bg-white/70 dark:bg-white/10 border border-white dark:border-white/10 shadow-sm">
           <PlaceholderArtwork
             icon={activeTrack.iconName}
@@ -171,7 +171,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           />
         </div>
 
-        <div className="flex flex-col min-w-0 pr-1">
+        <div className="flex-1 min-w-0 pr-1 overflow-hidden flex flex-col justify-center">
           <div className="flex items-center gap-1.5 min-w-0">
             <span
               className="text-sm font-semibold text-[#0F172A] dark:text-white truncate hover:underline cursor-pointer"
@@ -194,56 +194,58 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </span>
         </div>
 
-        <button
-          id="player-like-btn"
-          onClick={() => toggleLike(activeTrack.id, activeTrack)}
-          className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
-            isLiked
-              ? 'text-rose-500 hover:text-rose-600'
-              : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
-          }`}
-          title={isLiked ? 'Remove from Liked' : 'Save to Liked'}
-        >
-          <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
-        </button>
-
-        {/* Background download button */}
-        {dlStatus.status === 'downloading' ? (
-          <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-[11px] font-semibold text-violet-600 dark:text-violet-400 shrink-0"
-            title={`Downloading... ${Math.round(dlStatus.progress)}%`}
-          >
-            <Loader2 size={13} className="animate-spin shrink-0" />
-            <span className="tabular-nums">{Math.round(dlStatus.progress)}%</span>
-          </div>
-        ) : dlStatus.status === 'completed' ? (
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
-            id="player-download-btn"
-            onClick={() => openDownloadedFile(activeTrack)}
-            className="p-1.5 rounded-full text-emerald-500 hover:text-emerald-400 transition-all active:scale-125 shrink-0"
-            title="Downloaded (Click to show in folder)"
-          >
-            <Check size={18} strokeWidth={2.5} />
-          </button>
-        ) : (
-          <button
-            id="player-download-btn"
-            onClick={() => startDownload(activeTrack)}
+            id="player-like-btn"
+            onClick={() => toggleLike(activeTrack.id, activeTrack)}
             className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
-              dlStatus.status === 'error'
-                ? 'text-rose-500 hover:text-rose-400'
+              isLiked
+                ? 'text-rose-500 hover:text-rose-600'
                 : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
             }`}
-            title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
+            title={isLiked ? 'Remove from Liked' : 'Save to Liked'}
           >
-            <Download size={18} />
+            <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
           </button>
-        )}
+
+          {/* Background download button */}
+          {dlStatus.status === 'downloading' ? (
+            <div
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-[11px] font-semibold text-violet-600 dark:text-violet-400 shrink-0"
+              title={`Downloading... ${Math.round(dlStatus.progress)}%`}
+            >
+              <Loader2 size={13} className="animate-spin shrink-0" />
+              <span className="tabular-nums">{Math.round(dlStatus.progress)}%</span>
+            </div>
+          ) : dlStatus.status === 'completed' ? (
+            <button
+              id="player-download-btn"
+              onClick={() => openDownloadedFile(activeTrack)}
+              className="p-1.5 rounded-full text-emerald-500 hover:text-emerald-400 transition-all active:scale-125 shrink-0"
+              title="Downloaded (Click to show in folder)"
+            >
+              <Check size={18} strokeWidth={2.5} />
+            </button>
+          ) : (
+            <button
+              id="player-download-btn"
+              onClick={() => startDownload(activeTrack)}
+              className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
+                dlStatus.status === 'error'
+                  ? 'text-rose-500 hover:text-rose-400'
+                  : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
+              }`}
+              title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
+            >
+              <Download size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Center playback controls - strictly centered */}
-      <div className="justify-self-center w-full max-w-xl flex flex-col items-center gap-1.5 px-2">
-        <div className="flex items-center gap-5">
+      <div className="justify-self-center w-full max-w-md lg:max-w-xl flex flex-col items-center gap-1 sm:gap-1.5 px-2 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
           <button
             id="player-shuffle-btn"
             onClick={toggleShuffle}
@@ -337,7 +339,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
       </div>
 
       {/* Right side controls */}
-      <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-[#64748B] dark:text-white/70">
+      <div className="flex items-center justify-end gap-1 sm:gap-2 text-[#64748B] dark:text-white/70 min-w-0">
         <button
           id="player-lyrics-btn"
           onClick={toggleLyricsModal}
@@ -369,7 +371,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           <ListMusic size={17} />
         </button>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             id="player-mute-btn"
             onClick={toggleMute}
@@ -385,7 +387,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             )}
           </button>
 
-          <div className="relative w-16 sm:w-20 md:w-24 flex items-center group h-6 cursor-pointer">
+          <div className="relative w-14 sm:w-20 md:w-24 flex items-center group h-6 cursor-pointer shrink-0">
             <div className="w-full h-1.5 group-hover:h-2 bg-black/[0.08] dark:bg-white/[0.12] rounded-full overflow-hidden transition-all duration-200 shadow-[inset_0_1px_1.5px_rgba(0,0,0,0.06)]">
               <div
                 className="h-full bg-gradient-to-r from-violet-600 to-[#0F172A] dark:to-indigo-400 rounded-full transition-colors"

@@ -115,11 +115,195 @@ export function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+async function verifyStreamUrl(url: string): Promise<boolean> {
+  if (!url) return false;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(url, {
+      method: 'HEAD',
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        Referer: 'https://www.youtube.com/',
+      },
+    });
+    clearTimeout(timeout);
+    return res.ok || res.status === 206;
+  } catch {
+    return false;
+  }
+}
+
+export async function extractFromVideoId(
+  vId: string,
+  userCookie?: string
+): Promise<ResolveResult | null> {
+  // 1. VisionOS
+  try {
+    const yt = await getVisionClient();
+    const info = await yt.getBasicInfo(vId);
+    if (!info.playability_status || info.playability_status.status === 'OK') {
+      const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
+      if (audioFormat && audioFormat.url) {
+        const isReachable = await verifyStreamUrl(audioFormat.url);
+        if (isReachable) {
+          const durSec =
+            Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
+            Math.round(info.basic_info?.duration || 0);
+          return {
+            url: audioFormat.url,
+            format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
+            duration: durSec,
+          };
+        }
+      }
+    } else {
+      console.warn(`[YTResolver] Video ${vId} playability status: ${info.playability_status.status} (${info.playability_status.reason || ''})`);
+    }
+  } catch (err: any) {
+    console.warn(`[YTResolver] VisionOS failed for ${vId}:`, err?.message || err);
+  }
+
+  // 2. Android VR
+  try {
+    const ytVr = await getVrClient();
+    const info = await ytVr.getBasicInfo(vId);
+    if (!info.playability_status || info.playability_status.status === 'OK') {
+      const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
+      if (audioFormat && audioFormat.url) {
+        const isReachable = await verifyStreamUrl(audioFormat.url);
+        if (isReachable) {
+          const durSec =
+            Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
+            Math.round(info.basic_info?.duration || 0);
+          return {
+            url: audioFormat.url,
+            format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
+            duration: durSec,
+          };
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[YTResolver] Android VR failed for ${vId}:`, err?.message || err);
+  }
+
+  // 3. iOS
+  try {
+    const ytIos = await getIosClient();
+    const info = await ytIos.getBasicInfo(vId);
+    if (!info.playability_status || info.playability_status.status === 'OK') {
+      const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
+      if (audioFormat && audioFormat.url) {
+        const isReachable = await verifyStreamUrl(audioFormat.url);
+        if (isReachable) {
+          const durSec =
+            Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
+            Math.round(info.basic_info?.duration || 0);
+          return {
+            url: audioFormat.url,
+            format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
+            duration: durSec,
+          };
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[YTResolver] iOS failed for ${vId}:`, err?.message || err);
+  }
+
+  // 4. TV
+  try {
+    const ytTv = await getTvClient();
+    const info = await ytTv.getBasicInfo(vId);
+    if (!info.playability_status || info.playability_status.status === 'OK') {
+      const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
+      if (audioFormat && audioFormat.url) {
+        const isReachable = await verifyStreamUrl(audioFormat.url);
+        if (isReachable) {
+          const durSec =
+            Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
+            Math.round(info.basic_info?.duration || 0);
+          return {
+            url: audioFormat.url,
+            format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
+            duration: durSec,
+          };
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[YTResolver] TV failed for ${vId}:`, err?.message || err);
+  }
+
+  // 5. ANDROID_MUSIC endpoint
+  try {
+    const endpoint = 'https://music.youtube.com/youtubei/v1/player';
+    const body = {
+      context: {
+        client: {
+          clientName: 'ANDROID_MUSIC',
+          clientVersion: '7.27.52',
+          androidSdkVersion: 30,
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+      videoId: vId,
+    };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11; en_US) gzip',
+    };
+    if (userCookie) headers['Cookie'] = userCookie;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (response.ok) {
+      const data: any = await response.json();
+      if (!data?.playabilityStatus || data.playabilityStatus.status === 'OK') {
+        const adaptiveFormats: any[] = data?.streamingData?.adaptiveFormats || [];
+        const audioFormats = adaptiveFormats.filter(
+          (f) => f.mimeType && f.mimeType.startsWith('audio/') && f.url
+        );
+        if (audioFormats.length > 0) {
+          const chosen =
+            audioFormats.find((f) => f.itag === 251) ||
+            audioFormats.find((f) => f.itag === 140) ||
+            audioFormats[0];
+          if (chosen?.url) {
+            const isReachable = await verifyStreamUrl(chosen.url);
+            if (isReachable) {
+              const durSec = Math.round(Number(chosen.approxDurationMs) / 1000) || 0;
+              return {
+                url: chosen.url,
+                format: chosen.mimeType?.includes('opus') ? 'opus' : 'm4a',
+                duration: durSec,
+              };
+            }
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[YTResolver] ANDROID_MUSIC failed for ${vId}:`, err?.message || err);
+  }
+
+  return null;
+}
+
 export async function resolve(
   videoId: string,
   title?: string,
   artist?: string,
-  userCookie?: string
+  userCookie?: string,
+  excludeIds: string[] = []
 ): Promise<ResolveResult> {
   let actualVideoId = videoId;
   const isDirectYtId = Boolean(
@@ -138,221 +322,77 @@ export async function resolve(
     }
   }
 
-  // 0. Check in-memory stream cache (0 ms response)
   const now = Date.now();
-  const cached = streamCache.get(actualVideoId);
-  if (cached && cached.expiresAt > now) {
-    return {
-      url: cached.url,
-      format: cached.format,
-      duration: cached.duration,
-    };
+  const excludedSet = new Set<string>(excludeIds || []);
+
+  // 0. Check in-memory stream cache
+  if (actualVideoId && !excludedSet.has(actualVideoId)) {
+    const cached = streamCache.get(actualVideoId);
+    if (cached && cached.expiresAt > now) {
+      return {
+        url: cached.url,
+        format: cached.format,
+        duration: cached.duration,
+      };
+    }
   }
 
-  // 1. Primary: Ultra-fast unthrottled extraction via VisionOS client (no chunking limits, full range support, direct m4a stream in ~80ms)
-  try {
-    const yt = await getVisionClient();
-    const info = await yt.getBasicInfo(actualVideoId);
-    const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
-    if (audioFormat && audioFormat.url) {
-      const durSec =
-        Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
-        Math.round(info.basic_info?.duration || 0);
-      const res: ResolveResult = {
-        url: audioFormat.url,
-        format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
-        duration: durSec,
-      };
+  // 1. Try primary video ID
+  if (actualVideoId && !excludedSet.has(actualVideoId)) {
+    const primaryRes = await extractFromVideoId(actualVideoId, userCookie);
+    if (primaryRes) {
       streamCache.set(actualVideoId, {
-        ...res,
+        ...primaryRes,
         expiresAt: now + 5 * 60 * 60 * 1000,
       });
-      return res;
+      return primaryRes;
     }
-  } catch (err: any) {
-    console.warn(`[YTResolver] VisionOS client extraction failed for ${actualVideoId}:`, err?.message || err);
+    excludedSet.add(actualVideoId);
   }
 
-  // 2. Secondary: Android VR client extraction (high compatibility for non-ciphered streams)
+  // 2. If primary video is unavailable/geo-blocked, search YouTube for alternative uploads of this song
+  const query = `${title || ''} ${artist || ''}`.trim() || videoId;
+  console.warn(
+    `[YTResolver] Primary video "${actualVideoId}" is unavailable or restricted in this region. Searching YouTube for alternative uploads of "${query}"...`
+  );
+
   try {
-    const ytVr = await getVrClient();
-    const info = await ytVr.getBasicInfo(actualVideoId);
-    const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
-    if (audioFormat && audioFormat.url) {
-      const durSec =
-        Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
-        Math.round(info.basic_info?.duration || 0);
-      const res: ResolveResult = {
-        url: audioFormat.url,
-        format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
-        duration: durSec,
-      };
-      streamCache.set(actualVideoId, {
-        ...res,
-        expiresAt: now + 5 * 60 * 60 * 1000,
-      });
-      return res;
-    }
-  } catch (err: any) {
-    console.warn(`[YTResolver] Android VR client extraction failed for ${actualVideoId}:`, err?.message || err);
-  }
+    const hits = await search(query);
+    for (const cand of hits) {
+      if (!cand.sourceId || excludedSet.has(cand.sourceId)) continue;
+      excludedSet.add(cand.sourceId);
 
-  // 3. Tertiary: iOS client extraction
-  try {
-    const ytIos = await getIosClient();
-    const info = await ytIos.getBasicInfo(actualVideoId);
-    const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
-    if (audioFormat && audioFormat.url) {
-      const durSec =
-        Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
-        Math.round(info.basic_info?.duration || 0);
-      const res: ResolveResult = {
-        url: audioFormat.url,
-        format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
-        duration: durSec,
-      };
-      streamCache.set(actualVideoId, {
-        ...res,
-        expiresAt: now + 5 * 60 * 60 * 1000,
-      });
-      return res;
-    }
-  } catch (err: any) {
-    console.warn(`[YTResolver] iOS client extraction failed for ${actualVideoId}:`, err?.message || err);
-  }
-
-  // 4. Quaternary: TV client extraction
-  try {
-    const ytTv = await getTvClient();
-    const info = await ytTv.getBasicInfo(actualVideoId);
-    const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });
-    if (audioFormat && audioFormat.url) {
-      const durSec =
-        Math.round(Number(audioFormat.approx_duration_ms || 0) / 1000) ||
-        Math.round(info.basic_info?.duration || 0);
-      const res: ResolveResult = {
-        url: audioFormat.url,
-        format: audioFormat.mime_type?.includes('opus') ? 'opus' : 'm4a',
-        duration: durSec,
-      };
-      streamCache.set(actualVideoId, {
-        ...res,
-        expiresAt: now + 5 * 60 * 60 * 1000,
-      });
-      return res;
-    }
-  } catch (err: any) {
-    console.warn(`[YTResolver] TV client extraction failed for ${actualVideoId}:`, err?.message || err);
-  }
-
-  // 3. Tertiary: ANDROID_MUSIC player request (for official YouTube Music releases)
-  try {
-    const endpoint = 'https://music.youtube.com/youtubei/v1/player';
-    const body = {
-      context: {
-        client: {
-          clientName: 'ANDROID_MUSIC',
-          clientVersion: '7.27.52',
-          androidSdkVersion: 30,
-          hl: 'en',
-          gl: 'US',
-        },
-      },
-      videoId: actualVideoId,
-    };
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11; en_US) gzip',
-    };
-    if (userCookie) {
-      headers['Cookie'] = userCookie;
-    }
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (response.ok) {
-      const data: any = await response.json();
-      const adaptiveFormats: any[] = data?.streamingData?.adaptiveFormats || [];
-      const audioFormats = adaptiveFormats.filter(
-        (f) => f.mimeType && f.mimeType.startsWith('audio/') && f.url
-      );
-
-      if (audioFormats.length > 0) {
-        let chosen =
-          audioFormats.find((f) => f.itag === 251) ||
-          audioFormats.find((f) => f.itag === 140) ||
-          audioFormats[0];
-
-        if (chosen && chosen.url) {
-          const durSec = Math.round(Number(chosen.approxDurationMs) / 1000) || 0;
-          const res: ResolveResult = {
-            url: chosen.url,
-            format: chosen.mimeType?.includes('opus') ? 'opus' : 'm4a',
-            duration: durSec,
-          };
+      const altRes = await extractFromVideoId(cand.sourceId, userCookie);
+      if (altRes) {
+        console.log(
+          `[YTResolver] Found working alternative YouTube stream: ${cand.sourceId} ("${cand.title}" by ${cand.artist})`
+        );
+        if (actualVideoId) {
           streamCache.set(actualVideoId, {
-            ...res,
+            ...altRes,
             expiresAt: now + 5 * 60 * 60 * 1000,
           });
-          return res;
         }
+        return altRes;
       }
     }
-  } catch (err) {
-    console.warn('[YTResolver] Direct ANDROID_MUSIC failed:', err);
+  } catch (searchErr) {
+    console.warn('[YTResolver] YouTube alternative search failed:', searchErr);
   }
 
-  // 2. Fallback: query SoundCloud counterpart for the exact same track
+  // 3. Fallback: SoundCloud search
+  console.warn(`[YTResolver] No working YouTube alternatives found for "${query}". Trying SoundCloud fallback...`);
   try {
-    let query = `${title || ''} ${artist || ''}`.trim();
-    if (!query || query.length < 2) {
-      // Get title from YouTube oembed
-      const oembedRes = await fetch(
-        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      );
-      if (oembedRes.ok) {
-        const oembed = await oembedRes.json();
-        query = oembed.title || videoId;
-      }
+    const scStream = await scResolver.resolveBySearch(title || query, artist);
+    if (scStream) {
+      return {
+        url: scStream.url,
+        format: scStream.format || 'mp3',
+        duration: scStream.duration,
+      };
     }
-
-    if (query) {
-      const scResults = await scResolver.search(query);
-      if (scResults && scResults.length > 0) {
-        // Prioritize candidates that are full tracks (> 45s)
-        const validCandidates = scResults.filter((c) => c.durationSec > 45);
-        const candidatesToTry = validCandidates.length > 0 ? validCandidates : scResults;
-
-        for (const candidate of candidatesToTry.slice(0, 8)) {
-          if (candidate.durationSec <= 35) continue;
-          try {
-            const scStream = await scResolver.resolve(candidate.sourceId);
-            if (
-              scStream &&
-              scStream.url &&
-              scStream.duration > 35 &&
-              !scStream.url.includes('/preview/') &&
-              !scStream.url.includes('preview-media')
-            ) {
-              return {
-                url: scStream.url,
-                format: scStream.format || 'mp3',
-                duration: scStream.duration || candidate.durationSec || 0,
-              };
-            }
-          } catch {
-            // Try next SoundCloud candidate
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[YTResolver] Fallback resolution failed:', err);
+  } catch (scErr) {
+    console.warn('[YTResolver] SoundCloud fallback failed:', scErr);
   }
 
   throw new Error(`Could not resolve playable audio stream for video: ${videoId}`);

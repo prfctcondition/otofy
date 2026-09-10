@@ -243,6 +243,32 @@ export async function search(query: string): Promise<SCSearchResult[]> {
   });
 }
 
+export async function resolveBySearch(title: string, artist?: string): Promise<SCResolveResult | null> {
+  try {
+    const query = `${title || ''} ${artist || ''}`.trim();
+    if (!query) return null;
+    const hits = await search(query);
+    if (!hits.length) return null;
+
+    const validHits = hits.filter((h) => h.durationSec > 45);
+    const candidates = validHits.length > 0 ? validHits : hits;
+
+    for (const cand of candidates.slice(0, 6)) {
+      try {
+        const res = await resolve(cand.sourceId, true);
+        if (res && res.url && !res.url.includes('/preview/') && !res.url.includes('preview-media')) {
+          return res;
+        }
+      } catch {
+        continue;
+      }
+    }
+  } catch (err) {
+    console.warn('[scResolver] resolveBySearch error:', err);
+  }
+  return null;
+}
+
 export async function getArtistDetails(artistNameOrId: string) {
   let user: any = null;
 
@@ -659,4 +685,4 @@ export async function searchPlaylists(query: string) {
   }
 }
 
-export default { resolve, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };
+export default { resolve, resolveBySearch, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };

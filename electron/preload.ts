@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  resolveStream: (trackId: string, source: string, title?: string, artist?: string) =>
-    ipcRenderer.invoke('music:resolve-stream', { trackId, source, title, artist }),
+  resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[]) =>
+    ipcRenderer.invoke('music:resolve-stream', { trackId, source, title, artist, excludeIds }),
   searchMusic: (query: string, source?: 'YT' | 'SC' | 'ALL') =>
     ipcRenderer.invoke('music:search', { query, source }),
   getArtistDetails: (artistName: string, source?: 'YT' | 'SC') =>

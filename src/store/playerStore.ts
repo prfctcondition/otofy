@@ -82,19 +82,21 @@ export const toPlayableStreamUrl = (url: string): string => {
   return url;
 };
 
-const resolveStreamUrl = async (track: Track): Promise<{ url: string; error?: string }> => {
+const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promise<{ url: string; error?: string }> => {
   // 0. Check if track is downloaded locally on disk
-  const dlState = useDownloadStore.getState().downloads[track.id];
-  if (dlState?.status === 'completed' && dlState.filePath) {
-    return { url: `atom://local/${encodeURIComponent(dlState.filePath)}` };
-  }
-  if (window.electronAPI?.checkDownloadStatus) {
-    try {
-      const statusMap = await window.electronAPI.checkDownloadStatus([track]);
-      if (statusMap && statusMap[track.id]?.downloaded && statusMap[track.id]?.filePath) {
-        return { url: `atom://local/${encodeURIComponent(statusMap[track.id].filePath!)}` };
-      }
-    } catch {}
+  if (!excludeIds.length) {
+    const dlState = useDownloadStore.getState().downloads[track.id];
+    if (dlState?.status === 'completed' && dlState.filePath) {
+      return { url: `atom://local/${encodeURIComponent(dlState.filePath)}` };
+    }
+    if (window.electronAPI?.checkDownloadStatus) {
+      try {
+        const statusMap = await window.electronAPI.checkDownloadStatus([track]);
+        if (statusMap && statusMap[track.id]?.downloaded && statusMap[track.id]?.filePath) {
+          return { url: `atom://local/${encodeURIComponent(statusMap[track.id].filePath!)}` };
+        }
+      } catch {}
+    }
   }
 
   // 0.1 Check offline mode
@@ -107,8 +109,8 @@ const resolveStreamUrl = async (track: Track): Promise<{ url: string; error?: st
     return { url: '', error: 'You are offline. Only downloaded or cached tracks are available.' };
   }
 
-  // If track already has a direct stream URL, use it
-  if (track.streamUrl) return { url: toPlayableStreamUrl(track.streamUrl) };
+  // If track already has a direct stream URL and no exclusions requested, use it
+  if (track.streamUrl && !excludeIds.length) return { url: toPlayableStreamUrl(track.streamUrl) };
 
   const rawId = track.sourceId || track.id;
   const targetId = cleanTrackId(rawId);
@@ -121,7 +123,8 @@ const resolveStreamUrl = async (track: Track): Promise<{ url: string; error?: st
         targetId,
         track.source,
         track.title,
-        track.artist
+        track.artist,
+        excludeIds
       );
       if (info && info.url) return { url: toPlayableStreamUrl(info.url) };
     } catch (err: any) {
@@ -207,6 +210,56 @@ const resolveStreamUrl = async (track: Track): Promise<{ url: string; error?: st
   }
 
   return { url: '', error: lastError };
+};
+
+let isRecoveringStream = false;
+
+const attemptStreamFallback = async (
+  failedTrack: Track,
+  set: any,
+  get: any
+): Promise<boolean> => {
+  if (isRecoveringStream) return false;
+  if ((failedTrack as any)._fallbackTried) return false;
+  (failedTrack as any)._fallbackTried = true;
+  isRecoveringStream = true;
+
+  console.warn(`[Player] Primary stream failed for "${failedTrack.title}". Attempting automatic alternative fallback...`);
+  set({ isBuffering: true, playbackError: null });
+
+  useToastStore.getState().info(
+    'Switching Stream',
+    `Primary stream unavailable in your region. Finding alternative source for "${failedTrack.title}"...`
+  );
+
+  try {
+    const rawId = failedTrack.sourceId || failedTrack.id;
+    const targetId = cleanTrackId(rawId);
+    const { url: altUrl } = await resolveStreamUrl(failedTrack, [targetId]);
+
+    if (altUrl) {
+      await audioEngine.loadTrack(altUrl);
+      await audioEngine.play();
+      set((s: any) => ({
+        isPlaying: true,
+        isBuffering: false,
+        playbackError: null,
+        duration: audioEngine.duration || failedTrack.durationSec || 0,
+        cachedTracks: s.cachedTracks.map((t: any) => (t.id === failedTrack.id ? { ...t, streamUrl: altUrl } : t)),
+      }));
+      useToastStore.getState().success(
+        'Stream Restored',
+        `Connected to alternative source for "${failedTrack.title}".`
+      );
+      isRecoveringStream = false;
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Player] Alternative stream recovery failed:', err);
+  }
+
+  isRecoveringStream = false;
+  return false;
 };
 
 export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) => ({
@@ -313,21 +366,27 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           }
         }, 1500);
       } else {
-        const errMsg = error || 'Audio stream not found. The track may be restricted by the copyright owner.';
-        set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
-        useToastStore.getState().error(
-          `Failed to play "${track.title}"`,
-          errMsg
-        );
+        const recovered = await attemptStreamFallback(track, set, get);
+        if (!recovered) {
+          const errMsg = error || 'Audio stream not found. The track may be restricted in your region.';
+          set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+          useToastStore.getState().error(
+            `Failed to play "${track.title}"`,
+            errMsg
+          );
+        }
       }
     } catch (err: any) {
       console.error('[Player] Playback failed:', err);
-      const errMsg = err?.message || 'Failed to decode or start audio stream.';
-      set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
-      useToastStore.getState().error(
-        `Playback error: "${track.title}"`,
-        errMsg
-      );
+      const recovered = await attemptStreamFallback(track, set, get);
+      if (!recovered) {
+        const errMsg = 'Audio stream unavailable in your region due to copyright restrictions.';
+        set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+        useToastStore.getState().error(
+          `Playback error: "${track.title}"`,
+          errMsg
+        );
+      }
     }
 
     // Update media session
@@ -718,9 +777,15 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
     };
 
-    const onError = (e: Event) => {
+    const onError = async (e: Event) => {
       const target = e.target as HTMLAudioElement;
       if (target !== audioEngine.activeAudioElement) return;
+
+      const currentTrack = get().activeTrack;
+      if (currentTrack) {
+        const recovered = await attemptStreamFallback(currentTrack, set, get);
+        if (recovered) return;
+      }
 
       const errorCode = target.error?.code;
       let errorMsg = 'Failed to load audio stream.';
@@ -731,7 +796,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       } else if (errorCode === 3) {
         errorMsg = 'Audio decoding error.';
       }
-      const currentTrack = get().activeTrack;
       const trackTitle = currentTrack ? `"${currentTrack.title}"` : 'track';
       set({ isPlaying: false, isBuffering: false, playbackError: errorMsg });
       useToastStore.getState().error(

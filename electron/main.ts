@@ -242,16 +242,37 @@ function setIpcCache<T>(key: string, data: T): void {
 
 ipcMain.handle(
   'music:resolve-stream',
-  async (_event, { trackId, source, title, artist }: { trackId: string; source: string; title?: string; artist?: string }) => {
+  async (
+    _event,
+    { trackId, source, title, artist, excludeIds }: { trackId: string; source: string; title?: string; artist?: string; excludeIds?: string[] }
+  ) => {
     const normalizedSource = source?.toUpperCase();
     if (normalizedSource === 'YT' || source?.toLowerCase() === 'youtube') {
-      return await ytResolver.resolve(trackId, title, artist);
+      try {
+        return await ytResolver.resolve(trackId, title, artist, undefined, excludeIds);
+      } catch (ytErr: any) {
+        console.warn('[Main] YouTube resolve failed, attempting cross-source SoundCloud fallback:', ytErr?.message || ytErr);
+        if (title) {
+          const scRes = await scResolver.resolveBySearch(title, artist);
+          if (scRes) return scRes;
+        }
+        throw ytErr;
+      }
     }
-  if (normalizedSource === 'SC' || source?.toLowerCase() === 'soundcloud') {
-    return await scResolver.resolve(trackId);
+    if (normalizedSource === 'SC' || source?.toLowerCase() === 'soundcloud') {
+      try {
+        return await scResolver.resolve(trackId);
+      } catch (scErr: any) {
+        console.warn('[Main] SoundCloud resolve failed, attempting cross-source YouTube fallback:', scErr?.message || scErr);
+        if (title) {
+          return await ytResolver.resolve('', title, artist, undefined, excludeIds);
+        }
+        throw scErr;
+      }
+    }
+    throw new Error(`Unsupported music source: ${source}`);
   }
-  throw new Error(`Unsupported music source: ${source}`);
-});
+);
 
 import innertubeService from './services/innertubeService.js';
 
@@ -916,6 +937,23 @@ ipcMain.handle('app:get-user-profile', async () => {
 });
 
 app.whenReady().then(() => {
+  // Normalize request headers for audio CDNs (strip file:// origin, attach standard desktop browser headers)
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const requestHeaders = { ...details.requestHeaders };
+    if (details.url.includes('googlevideo.com')) {
+      delete requestHeaders['Origin'];
+      requestHeaders['Referer'] = 'https://www.youtube.com/';
+      requestHeaders['User-Agent'] =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+    } else if (details.url.includes('sndcdn.com') || details.url.includes('soundcloud.com')) {
+      requestHeaders['Referer'] = 'https://soundcloud.com/';
+      requestHeaders['Origin'] = 'https://soundcloud.com';
+      requestHeaders['User-Agent'] =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+    }
+    callback({ requestHeaders });
+  });
+
   // Enable CORS bypass for Web Audio API audio streaming from CDNs
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
