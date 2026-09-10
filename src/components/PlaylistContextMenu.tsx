@@ -5,9 +5,10 @@ import {
   Share2,
   Trash2,
   Check,
-  ListMusic,
+  Edit3,
 } from 'lucide-react';
-import type { Playlist } from '../types';
+import { isSystemPlaylist, type Playlist } from '../types';
+import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface PlaylistContextMenuProps {
   playlist: Playlist;
@@ -18,6 +19,32 @@ interface PlaylistContextMenuProps {
   onShare: (playlist: Playlist) => void;
   onDelete?: (playlist: Playlist) => void;
 }
+
+const getInitialCoords = (clickX: number, clickY: number, menuW = 224, menuH = 220) => {
+  const dockHeight = 90;
+  const padding = 12;
+  const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  let left = clickX;
+  let top = clickY;
+
+  if (left + menuW > winW - padding) {
+    left = Math.max(padding, winW - menuW - padding);
+  }
+  if (left < padding) {
+    left = padding;
+  }
+
+  if (top + menuH > winH - dockHeight) {
+    top = Math.max(padding, clickY - menuH);
+  }
+  if (top < padding) {
+    top = padding;
+  }
+
+  return { top, left };
+};
 
 export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
   playlist,
@@ -30,14 +57,14 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
-  const [coords, setCoords] = useState({ top: y, left: x });
+  const [coords, setCoords] = useState(() => getInitialCoords(x, y, 224, 220));
 
   useEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
-    const menuWidth = 220;
-    const menuHeight = rect.height || 180;
-    const dockHeight = 84 + 16;
+    const menuWidth = 224;
+    const menuHeight = rect.height || 220;
+    const dockHeight = 90;
 
     let left = x;
     let top = y;
@@ -95,10 +122,7 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
     };
   }, [onClose]);
 
-  const isSystemPlaylist =
-    playlist.id === 'pl-liked' ||
-    playlist.id === 'pl-downloads' ||
-    playlist.id === 'pl-cached';
+  const isSystem = isSystemPlaylist(playlist);
 
   const handleShareClick = () => {
     onShare(playlist);
@@ -108,12 +132,17 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
     }, 800);
   };
 
+  const handleEditDetails = () => {
+    onClose();
+    useContextMenuStore.getState().openEditPlaylist(playlist);
+  };
+
   return (
     <div
       ref={menuRef}
       id="playlist-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-56 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in duration-75 ease-out"
+      className="fixed z-[9999] w-56 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
     >
       {/* Playlist Header preview */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
@@ -121,7 +150,7 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
           {playlist.title}
         </p>
         <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">
-          {playlist.type} {playlist.songCount ? `• ${playlist.songCount} songs` : ''}
+          {playlist.type} {playlist.songCount ? ` Â· ${playlist.songCount} songs` : ''}
         </p>
       </div>
 
@@ -164,8 +193,19 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
         )}
       </button>
 
-      {/* Delete option (Only for custom user playlists) */}
-      {!isSystemPlaylist && onDelete && (
+      {/* Edit details (Only for custom user playlists) */}
+      {!isSystem && (
+        <button
+          onClick={handleEditDetails}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          <Edit3 size={15} className="text-[#64748B] dark:text-white/70" />
+          <span>Edit details</span>
+        </button>
+      )}
+
+      {/* Delete option (Only for custom user playlists, strictly forbidden for system playlists) */}
+      {!isSystem && onDelete && (
         <>
           <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
           <button

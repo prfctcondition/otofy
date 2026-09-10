@@ -145,3 +145,19 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
 }
+
+/* Native Instant Context Menu Fade (No jump, no translate, no spring, strictly 20ms opacity fade) */
+@keyframes nativeContextMenuFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.native-context-menu {
+  animation: nativeContextMenuFade 20ms ease-out forwards;
+  transform: none !important;
+  will-change: opacity;
+}

@@ -44,6 +44,19 @@ export interface Playlist {
   description?: string;
 }
 
+export const isSystemPlaylist = (
+  playlist: Playlist | { id: string; title?: string; creator?: string } | null | undefined
+): boolean => {
+  if (!playlist) return false;
+  const id = playlist.id;
+  if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached') return true;
+  if (id.startsWith('pl-downloads') || id.startsWith('pl-cached') || id.startsWith('pl-liked')) return true;
+  if (playlist.creator === 'System') return true;
+  const title = playlist.title?.trim().toLowerCase();
+  if (title === 'downloads' || title === 'liked songs' || title === 'cached songs') return true;
+  return false;
+};
+
 export interface ArtistInfo {
   name: string;
   listeners: string;

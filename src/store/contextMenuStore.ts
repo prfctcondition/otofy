@@ -23,6 +23,7 @@ interface ContextMenuStore {
   trackMenu: TrackMenuState | null;
   playlistMenu: PlaylistMenuState | null;
   confirmDelete: ConfirmDeleteState | null;
+  editingPlaylist: Playlist | null;
 
   openTrackMenu: (track: Track, x: number, y: number, currentPlaylistId?: string) => void;
   closeTrackMenu: () => void;
@@ -33,6 +34,9 @@ interface ContextMenuStore {
   openConfirmDelete: (playlist: Playlist, onConfirm?: () => void | Promise<void>) => void;
   closeConfirmDelete: () => void;
 
+  openEditPlaylist: (playlist: Playlist) => void;
+  closeEditPlaylist: () => void;
+
   closeAll: () => void;
 }
 
@@ -40,6 +44,7 @@ export const useContextMenuStore = create<ContextMenuStore>((set) => ({
   trackMenu: null,
   playlistMenu: null,
   confirmDelete: null,
+  editingPlaylist: null,
 
   openTrackMenu: (track, x, y, currentPlaylistId) => {
     set({
@@ -73,6 +78,18 @@ export const useContextMenuStore = create<ContextMenuStore>((set) => ({
 
   closeConfirmDelete: () => {
     set({ confirmDelete: null });
+  },
+
+  openEditPlaylist: (playlist) => {
+    set({
+      editingPlaylist: playlist,
+      trackMenu: null,
+      playlistMenu: null,
+    });
+  },
+
+  closeEditPlaylist: () => {
+    set({ editingPlaylist: null });
   },
 
   closeAll: () => {

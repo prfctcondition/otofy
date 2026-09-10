@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Track, Playlist, ArtistDetails } from '../types';
+import { isSystemPlaylist, type Track, type Playlist, type ArtistDetails } from '../types';
 import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
 import { useDownloadStore } from './downloadStore';
@@ -129,6 +129,16 @@ interface LibraryActions {
   saveViewingPlaylistToLibrary: () => Promise<void>;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
+  updatePlaylistDetails: (
+    id: string,
+    updates: {
+      title?: string;
+      description?: string;
+      gradientFrom?: string;
+      gradientTo?: string;
+      artworkUrl?: string | null;
+    }
+  ) => Promise<void>;
   togglePinPlaylist: (id: string) => Promise<void>;
   clearAndRefreshAllCollections: () => Promise<void>;
 
@@ -139,6 +149,7 @@ interface LibraryActions {
   toggleCreatePlaylistModal: () => void;
   toggleSyncModal: () => void;
   toggleLyricsModal: () => void;
+  setIsLyricsModalOpen: (val: boolean) => void;
   toggleQueue: () => void;
   toggleFullscreenLyrics: () => void;
   setFullscreenLyrics: (val: boolean) => void;
@@ -401,6 +412,19 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     });
   },
 
+  updatePlaylistDetails: async (id, updates) => {
+    if (isSystemPlaylist({ id })) return;
+    await repo.updatePlaylist(id, updates);
+    const updated = await repo.getPlaylists();
+    const currentVP = get().viewingPlaylist;
+    set({
+      playlists: updated,
+      viewingPlaylist:
+        currentVP && currentVP.id === id ? { ...currentVP, ...updates } : currentVP,
+    });
+    useToastStore.getState().success('Playlist Updated', 'Details saved successfully.');
+  },
+
   togglePinPlaylist: async (id: string) => {
     const pl = get().playlists.find((p) => p.id === id);
     if (!pl) return;
@@ -472,7 +496,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   deletePlaylist: async (id) => {
-    if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached') return;
+    if (isSystemPlaylist({ id })) return;
     await repo.deletePlaylist(id);
     set((s) => ({
       playlists: s.playlists.filter((p) => p.id !== id),
@@ -698,7 +722,15 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   toggleImportModal: () => set((s) => ({ isImportModalOpen: !s.isImportModalOpen })),
   toggleCreatePlaylistModal: () => set((s) => ({ isCreatePlaylistModalOpen: !s.isCreatePlaylistModalOpen })),
   toggleSyncModal: () => set((s) => ({ isSyncModalOpen: !s.isSyncModalOpen })),
-  toggleLyricsModal: () => set((s) => ({ isLyricsModalOpen: !s.isLyricsModalOpen })),
+  toggleLyricsModal: () =>
+    set((s) => {
+      if (!s.isLyricsModalOpen && typeof window !== 'undefined' && window.innerWidth < 1100 && s.viewportMode !== 'mobile') {
+        useToastStore.getState().info('Window Too Narrow', 'Expand window to >= 1100px to display lyrics sidebar.');
+        return { isLyricsModalOpen: false };
+      }
+      return { isLyricsModalOpen: !s.isLyricsModalOpen };
+    }),
+  setIsLyricsModalOpen: (val: boolean) => set({ isLyricsModalOpen: val }),
   toggleQueue: () => set((s) => ({ isQueueOpen: !s.isQueueOpen })),
   toggleFullscreenLyrics: () => set((s) => ({ isFullscreenLyrics: !s.isFullscreenLyrics })),
   setFullscreenLyrics: (val: boolean) => set({ isFullscreenLyrics: val }),

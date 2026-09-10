@@ -30,6 +30,7 @@ import { QueueModal } from './components/QueueModal';
 import { SharePlaylistModal } from './components/SharePlaylistModal';
 import { ImportPlaylistModal } from './components/ImportPlaylistModal';
 import { CreatePlaylistModal } from './components/CreatePlaylistModal';
+import { EditPlaylistModal } from './components/EditPlaylistModal';
 import { AccountSyncModal } from './components/AccountSyncModal';
 import { LyricsModal } from './components/LyricsModal';
 import { LyricsPanel } from './components/LyricsPanel';
@@ -82,19 +83,30 @@ export default function App() {
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setWindowWidth(width);
+      if (width < 1100 && libraryStore.isLyricsModalOpen) {
+        libraryStore.setIsLyricsModalOpen(false);
+      }
+    };
+    if (window.innerWidth < 1100 && libraryStore.isLyricsModalOpen) {
+      libraryStore.setIsLyricsModalOpen(false);
+    }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [libraryStore.isLyricsModalOpen]);
 
   const isCompactLayout = windowWidth < 1100;
 
   const trackMenu = useContextMenuStore((s) => s.trackMenu);
   const playlistMenu = useContextMenuStore((s) => s.playlistMenu);
   const confirmDelete = useContextMenuStore((s) => s.confirmDelete);
+  const editingPlaylist = useContextMenuStore((s) => s.editingPlaylist);
   const closeTrackMenu = useContextMenuStore((s) => s.closeTrackMenu);
   const closePlaylistMenu = useContextMenuStore((s) => s.closePlaylistMenu);
   const closeConfirmDelete = useContextMenuStore((s) => s.closeConfirmDelete);
+  const closeEditPlaylist = useContextMenuStore((s) => s.closeEditPlaylist);
 
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const mobileScrollRef = useRef<HTMLDivElement>(null);
@@ -862,23 +874,9 @@ export default function App() {
               )}
             </main>
 
-            {/* Lyrics Panel: inline sidebar when >= 1100px, floating liquid drawer when < 1100px */}
-            {isLyricsModalOpen && (
-              isCompactLayout ? (
-                <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
-                  {/* Smooth backdrop blur */}
-                  <div
-                    className="absolute inset-0 bg-black/40 backdrop-blur-xs pointer-events-auto transition-opacity animate-in fade-in duration-200"
-                    onClick={libraryStore.toggleLyricsModal}
-                  />
-                  {/* Floating liquid glass drawer */}
-                  <div className="relative z-10 h-full p-3 pointer-events-auto animate-in slide-in-from-right duration-200 shadow-2xl">
-                    <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
-                  </div>
-                </div>
-              ) : (
-                <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
-              )
+            {/* Lyrics Panel: inline sidebar when >= 1100px */}
+            {isLyricsModalOpen && !isCompactLayout && (
+              <LyricsPanel onClose={libraryStore.toggleLyricsModal} />
             )}
           </>
         ) : (
@@ -987,6 +985,13 @@ export default function App() {
       {isImportModalOpen && <ImportPlaylistModal isOpen={isImportModalOpen} onClose={libraryStore.toggleImportModal} />}
       {isCreatePlaylistModalOpen && (
         <CreatePlaylistModal isOpen={isCreatePlaylistModalOpen} onClose={libraryStore.toggleCreatePlaylistModal} />
+      )}
+      {editingPlaylist && (
+        <EditPlaylistModal
+          playlist={editingPlaylist}
+          isOpen={Boolean(editingPlaylist)}
+          onClose={closeEditPlaylist}
+        />
       )}
       {isSyncModalOpen && <AccountSyncModal isOpen={isSyncModalOpen} onClose={libraryStore.toggleSyncModal} />}
       {viewportMode === 'mobile' && isLyricsModalOpen && (

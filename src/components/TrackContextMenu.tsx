@@ -35,6 +35,32 @@ interface TrackContextMenuProps {
   onSelectArtist?: (artist: string) => void;
 }
 
+const getInitialCoords = (clickX: number, clickY: number, menuW = 256, menuH = 360) => {
+  const dockHeight = 90;
+  const padding = 12;
+  const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  let left = clickX;
+  let top = clickY;
+
+  if (left + menuW > winW - padding) {
+    left = Math.max(padding, winW - menuW - padding);
+  }
+  if (left < padding) {
+    left = padding;
+  }
+
+  if (top + menuH > winH - dockHeight) {
+    top = Math.max(padding, clickY - menuH);
+  }
+  if (top < padding) {
+    top = padding;
+  }
+
+  return { top, left };
+};
+
 export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   track,
   x,
@@ -54,8 +80,8 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   const [addedPlaylistId, setAddedPlaylistId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Position clamping to prevent overflowing outside the screen
-  const [coords, setCoords] = useState({ top: y, left: x });
+  // Position clamping to prevent overflowing outside the screen (pre-calculated synchronously)
+  const [coords, setCoords] = useState(() => getInitialCoords(x, y, 256, 360));
 
   useEffect(() => {
     if (!menuRef.current) return;
@@ -159,7 +185,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in duration-75 ease-out"
+      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
     >
       {/* Track Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">

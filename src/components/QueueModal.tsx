@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
-import { ListMusic, X, Play, Trash2, Music, Volume2 } from 'lucide-react';
+import { ListMusic, X, Play, Trash2, Music, Volume2, FolderPlus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
+import { useLibraryStore } from '../store/libraryStore';
+import { useContextMenuStore } from '../store/contextMenuStore';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 
 interface QueueModalProps {
@@ -9,6 +11,7 @@ interface QueueModalProps {
 }
 
 export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
+  const createPlaylistFromTracks = useLibraryStore((state) => state.createPlaylistFromTracks);
   const {
     queue,
     queueIndex,
@@ -34,6 +37,18 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
   const currentPlaying = activeTrack || queue[queueIndex];
   const upcomingTracks = queue.slice(queueIndex + 1);
 
+  const handleSaveAsPlaylist = async () => {
+    if (queue.length === 0) return;
+    const dateStr = new Date().toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+    const defaultTitle = `Queue Mix · ${dateStr}`;
+    const newPl = await createPlaylistFromTracks(defaultTitle, queue);
+    onClose();
+    useContextMenuStore.getState().openEditPlaylist(newPl);
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-150 p-4 select-none"
@@ -58,6 +73,16 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex items-center gap-2">
+            {queue.length > 0 && (
+              <button
+                onClick={handleSaveAsPlaylist}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white shadow-xs hover:shadow transition-all cursor-pointer"
+                title="Save active queue as a new playlist"
+              >
+                <FolderPlus size={13} />
+                <span>Save as playlist</span>
+              </button>
+            )}
             {queue.length > 1 && (
               <button
                 onClick={clearQueue}

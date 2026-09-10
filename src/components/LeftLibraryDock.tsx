@@ -10,7 +10,7 @@ import {
   Cloud,
   Trash2,
 } from 'lucide-react';
-import { Playlist } from '../types';
+import { Playlist, isSystemPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { useLibraryStore } from '../store/libraryStore';
 import { useNetworkStore } from '../store/networkStore';
@@ -284,7 +284,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     ? 'bg-white/85 dark:bg-white/15 border border-white dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
                     : 'hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-transparent'
                 }`}
-                title={`${pl.title} • ${pl.type} (${pl.songCount} songs)`}
+                title={`${pl.title} · ${pl.type} (${pl.songCount} songs)`}
               >
                 <PlaceholderArtwork
                   icon={pl.iconName}
@@ -312,17 +312,17 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         {pl.isPinned && (
                           <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5">
                             <Pin size={10} className="rotate-45" />
-                            Pinned •
+                            Pinned ·
                           </span>
                         )}
                         <span>{pl.type}</span>
-                        <span>•</span>
+                        <span>·</span>
                         <span>{pl.creator}</span>
                       </div>
                     </div>
 
-                    {/* Delete button on hover for custom playlists */}
-                    {pl.id !== 'pl-liked' && pl.id !== 'pl-downloads' && pl.id !== 'pl-cached' && (
+                    {/* Delete button on hover for custom playlists (strictly hidden for system playlists) */}
+                    {!isSystemPlaylist(pl) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
