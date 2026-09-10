@@ -71,6 +71,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState<number | null>(null);
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
+  const volumeSliderRef = useRef<HTMLDivElement>(null);
 
   const dlStatus = useDownloadStore((s) =>
     activeTrack ? s.downloads[activeTrack.id] || IDLE_DOWNLOAD : IDLE_DOWNLOAD
@@ -147,8 +148,6 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
     setIsSeeking(false);
     setSeekValue(null);
   };
-
-  const volumeSliderRef = useRef<HTMLDivElement>(null);
 
   const updateVolumeFromPointer = (clientX: number) => {
     if (!volumeSliderRef.current) return;
