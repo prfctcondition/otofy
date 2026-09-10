@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="./readme-assets/preview.png" alt="Otofy Main Interface" width="100%" />
+  <img src="./readme-assets/ui.png" alt="Otofy Main Interface" width="100%" />
 
   <br />
   <br />
@@ -94,7 +94,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 ---
 
 <div align="center">
-  <img src="./readme-assets/lyrics.png" alt="Otofy Synchronized Lyrics Mode" width="100%" />
+  <img src="./readme-assets/lyr.png" alt="Otofy Synchronized Lyrics Mode" width="100%" />
   <p><em>Real-time synchronized lyrics with dynamic ambient glow and click-to-seek playback.</em></p>
 </div>
 
