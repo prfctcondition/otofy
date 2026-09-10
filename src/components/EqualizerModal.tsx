@@ -38,9 +38,15 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
         const y = canvas.height - barHeight;
 
         // Gradient for bars
+        const isDark = document.documentElement.classList.contains('dark');
         const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        grad.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-        grad.addColorStop(1, 'rgba(192, 132, 252, 0.9)');
+        if (isDark) {
+          grad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+          grad.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
+        } else {
+          grad.addColorStop(0, 'rgba(15, 23, 42, 0.25)');
+          grad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+        }
 
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -64,29 +70,44 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           .eq-slider {
             -webkit-appearance: none;
             appearance: none;
-            width: 34px;
+            width: 18px;
             height: 150px;
             background: transparent;
             cursor: pointer;
+            padding: 0;
+            margin: 0;
+            outline: none;
           }
           .eq-slider::-webkit-slider-runnable-track {
             width: 6px;
-            background: rgba(15, 23, 42, 0.12);
+            background: rgba(15, 23, 42, 0.15);
             border-radius: 9999px;
-            margin: auto;
+            margin: 0 auto;
           }
           .dark .eq-slider::-webkit-slider-runnable-track {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
           }
           .eq-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: #8B5CF6;
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+            background: #0F172A;
+            border: 2.5px solid #FFFFFF;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
             cursor: grab;
-            margin-left: 8px;
+            margin: 0;
+            transition: transform 0.1s ease;
+          }
+          .dark .eq-slider::-webkit-slider-thumb {
+            background: #FFFFFF;
+            border: 2.5px solid #0C0C10;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+          }
+          .eq-slider:active::-webkit-slider-thumb {
+            cursor: grabbing;
+            transform: scale(1.15);
           }
         `}
       </style>

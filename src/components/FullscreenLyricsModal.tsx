@@ -131,16 +131,20 @@ export const FullscreenLyricsModal: React.FC = () => {
   if (!isFullscreenLyrics) return null;
 
   const formatTime = (secs: number) => {
+    if (!Number.isFinite(secs) || secs < 0 || isNaN(secs)) return '0:00';
     const mins = Math.floor(secs / 60);
     const remainder = Math.floor(secs % 60);
     return `${mins}:${remainder < 10 ? '0' : ''}${remainder}`;
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : (activeTrack?.durationSec || 0);
+  const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (currentTime / safeDuration) * 100)) : 0;
 
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newProgress = parseFloat(e.target.value);
-    seek((newProgress / 100) * duration);
+    if (Number.isFinite(newProgress) && safeDuration > 0) {
+      seek((newProgress / 100) * safeDuration);
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,7 +480,7 @@ export const FullscreenLyricsModal: React.FC = () => {
                 title="Seek"
               />
             </div>
-            <span className="w-10 tabular-nums">{formatTime(duration)}</span>
+            <span className="w-10 tabular-nums">{formatTime(safeDuration)}</span>
           </div>
         </div>
 

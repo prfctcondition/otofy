@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Playlist, Track, isSystemPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
+import { splitArtists } from '../utils/trackUtils';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { useDownloadStore } from '../store/downloadStore';
@@ -43,6 +44,7 @@ interface LiquidHeroHeaderProps {
   onPlaylistSearchChange: (q: string) => void;
   isSavedInLibrary?: boolean;
   onToggleSaveToLibrary?: () => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
 }
 
 export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
@@ -61,6 +63,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   onPlaylistSearchChange,
   isSavedInLibrary = false,
   onToggleSaveToLibrary,
+  onSelectArtist,
 }) => {
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const isLikedSongs =
@@ -167,31 +170,25 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   }, [tracks]);
 
   // Subtitle: Spotify style "With DVRST, Kaito Shoma, Pharmacist and more"
-  const artistsSubtitle = useMemo(() => {
+  const artistsList = useMemo(() => {
     if (playlist.type === 'Artist') {
-      return playlist.creator || 'Official Artist';
+      return [];
     }
     const artistSet = new Set<string>();
     for (const t of tracks || []) {
-      const a = t.artist?.trim();
-      if (
-        a &&
-        a.toLowerCase() !== 'unknown artist' &&
-        a.toLowerCase() !== 'unknown' &&
-        a.toLowerCase() !== 'song'
-      ) {
-        artistSet.add(a);
+      for (const a of splitArtists(t.artist)) {
+        if (
+          a &&
+          a.toLowerCase() !== 'unknown artist' &&
+          a.toLowerCase() !== 'unknown' &&
+          a.toLowerCase() !== 'song'
+        ) {
+          artistSet.add(a);
+        }
       }
     }
-    const list = Array.from(artistSet);
-    if (list.length >= 3) {
-      return `With ${list.slice(0, 3).join(', ')} and more`;
-    }
-    if (list.length > 0) {
-      return `With ${list.join(', ')}`;
-    }
-    return playlist.creator || 'Otofy collection';
-  }, [tracks, playlist.creator, playlist.type]);
+    return Array.from(artistSet);
+  }, [tracks, playlist.type]);
 
   // Duration & song count stats
   const { formattedDuration, totalSongCount } = useMemo(() => {
@@ -214,7 +211,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const renderCoverArtwork = () => {
     if (isLikedSongs) {
       return (
-        <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-[0_16px_36px_rgba(79,70,229,0.35)] border border-white/30 overflow-hidden group select-none shrink-0">
+        <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl bg-gradient-to-br from-[#2C303B] via-[#1E2128] to-[#13151A] flex items-center justify-center shadow-[0_16px_36px_rgba(0,0,0,0.4)] border border-white/20 overflow-hidden group select-none shrink-0">
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           <Heart size={68} className="text-white fill-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
         </div>
@@ -316,12 +313,35 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               {playlist.title}
             </h1>
 
-            {/* Playlist Description */}
-            {(playlist.description || artistsSubtitle) && (
+            {/* Playlist Description or Clickable Artists Subtitle */}
+            {playlist.description ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
-                {playlist.description || artistsSubtitle}
+                {playlist.description}
               </p>
-            )}
+            ) : artistsList.length > 0 ? (
+              <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
+                <span className="text-[#64748B] dark:text-white/70">With </span>
+                {artistsList.slice(0, 5).map((art, idx, arr) => (
+                  <React.Fragment key={`${art}-${idx}`}>
+                    <span
+                      onClick={() => onSelectArtist?.(art, 'YT')}
+                      className="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white text-[#0F172A] dark:text-white font-semibold transition-colors"
+                      title={`View ${art}`}
+                    >
+                      {art}
+                    </span>
+                    {idx < arr.length - 1 && <span className="text-[#64748B] dark:text-white/60">, </span>}
+                  </React.Fragment>
+                ))}
+                {artistsList.length > 5 && (
+                  <span className="text-[#64748B] dark:text-white/70"> and more</span>
+                )}
+              </p>
+            ) : playlist.creator ? (
+              <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
+                {playlist.creator}
+              </p>
+            ) : null}
 
             {/* Creator & Stats Row */}
             <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] dark:text-white/80 font-normal">

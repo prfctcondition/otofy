@@ -156,8 +156,8 @@ export const SettingsScreen: React.FC = () => {
               }`}
             >
               <div
-                className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                  settings.autoplay ? 'translate-x-6' : 'translate-x-0.5'
+                className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                  settings.autoplay ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                 }`}
               />
             </button>
@@ -208,8 +208,8 @@ export const SettingsScreen: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                    settings.autoAdjustQuality ? 'translate-x-6' : 'translate-x-0.5'
+                  className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                    settings.autoAdjustQuality ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                   }`}
                 />
               </button>
@@ -242,8 +242,8 @@ export const SettingsScreen: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                      settings.crossfadeEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                    className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                      settings.crossfadeEnabled ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                     }`}
                   />
                 </button>
@@ -286,8 +286,8 @@ export const SettingsScreen: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                    settings.normalizeVolume ? 'translate-x-6' : 'translate-x-0.5'
+                  className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                    settings.normalizeVolume ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                   }`}
                 />
               </button>
@@ -309,8 +309,8 @@ export const SettingsScreen: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                    settings.monoAudio ? 'translate-x-6' : 'translate-x-0.5'
+                  className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                    settings.monoAudio ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                   }`}
                 />
               </button>
@@ -385,8 +385,8 @@ export const SettingsScreen: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                    settings.closeToTray ? 'translate-x-6' : 'translate-x-0.5'
+                  className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                    settings.closeToTray ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                   }`}
                 />
               </button>
@@ -483,8 +483,8 @@ export const SettingsScreen: React.FC = () => {
               }`}
             >
               <div
-                className={`w-5 h-5 rounded-full bg-white transition-transform transform shadow-sm ${
-                  settings.hardwareAcceleration ? 'translate-x-6' : 'translate-x-0.5'
+                className={`w-5 h-5 rounded-full transition-transform transform shadow-sm ${
+                  settings.hardwareAcceleration ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0.5 bg-white dark:bg-zinc-300'
                 }`}
               />
             </button>

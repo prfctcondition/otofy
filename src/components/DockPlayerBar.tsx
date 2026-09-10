@@ -23,6 +23,7 @@ import {
   Check,
 } from 'lucide-react';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
+import { ArtistLinks } from './ArtistLinks';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useEqStore } from '../store/eqStore';
@@ -49,6 +50,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
     nextTrack,
     prevTrack,
     seek,
+    setIsSeeking: storeSetIsSeeking,
     setVolume,
     toggleMute,
     toggleShuffle,
@@ -119,17 +121,22 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   const isLiked = activeTrack.isLiked || false;
 
   const formatTime = (secs: number) => {
+    if (!Number.isFinite(secs) || secs < 0 || isNaN(secs)) return '0:00';
     const mins = Math.floor(secs / 60);
     const remainingSecs = Math.floor(secs % 60);
     return `${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
   };
 
+  const safeDuration = Number.isFinite(duration) && duration > 0
+    ? duration
+    : (activeTrack.durationSec || 0);
+
   const activePercent = isSeeking && seekValue !== null
     ? seekValue
-    : duration > 0 ? (currentTime / duration) * 100 : 0;
+    : safeDuration > 0 ? Math.min(100, Math.max(0, (currentTime / safeDuration) * 100)) : 0;
 
   const displayCurrentTime = isSeeking && seekValue !== null
-    ? (seekValue / 100) * duration
+    ? (seekValue / 100) * safeDuration
     : currentTime;
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,14 +145,18 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
 
   const handleSeekStart = () => {
     setIsSeeking(true);
+    storeSetIsSeeking(true);
   };
 
   const handleSeekCommit = () => {
-    if (seekValue !== null && duration > 0) {
-      const targetTime = (seekValue / 100) * duration;
-      seek(targetTime);
+    if (seekValue !== null && safeDuration > 0) {
+      const targetTime = (seekValue / 100) * safeDuration;
+      if (Number.isFinite(targetTime)) {
+        seek(targetTime);
+      }
     }
     setIsSeeking(false);
+    storeSetIsSeeking(false);
     setSeekValue(null);
   };
 
@@ -215,13 +226,13 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
               </span>
             )}
           </div>
-          <span
-            onClick={() => onSelectArtist?.(activeTrack.artist)}
-            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:underline hover:text-[#0F172A] dark:hover:text-white cursor-pointer mt-0.5"
-            title={`View ${activeTrack.artist}`}
-          >
-            {activeTrack.artist}
-          </span>
+          <ArtistLinks
+            artist={activeTrack.artist}
+            source={activeTrack.source === 'SC' ? 'SC' : 'YT'}
+            onSelectArtist={onSelectArtist ? (art) => onSelectArtist(art) : undefined}
+            className="text-xs text-[#64748B] dark:text-white/80 truncate mt-0.5 inline-block max-w-[200px] sm:max-w-[280px]"
+            artistClassName="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors"
+          />
         </div>
 
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
@@ -367,7 +378,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
               title="Seek"
             />
           </div>
-          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-white/80">{formatTime(duration)}</span>
+          <span className="w-10 tabular-nums font-medium text-[#475569] dark:text-white/80">{formatTime(safeDuration)}</span>
         </div>
       </div>
 

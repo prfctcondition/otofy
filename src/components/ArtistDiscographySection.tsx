@@ -139,7 +139,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {hasRelated && (
         <section className="space-y-3">
           <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-            <User size={18} className="text-indigo-600 dark:text-indigo-400" />
+            <User size={18} className="text-[#0F172A] dark:text-white" />
             Fans Might Also Like
           </h3>
 
@@ -154,14 +154,14 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                   <PlaceholderArtwork
                     icon="user"
                     imageUrl={rel.avatarUrl}
-                    gradientFrom="#6366F1"
-                    gradientTo="#4338CA"
+                    gradientFrom="#374151"
+                    gradientTo="#1F2937"
                     size="100%"
                     rounded="rounded-full"
                     className="w-full h-full"
                   />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate w-full group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title={rel.name}>
+                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate w-full group-hover:underline transition-colors" title={rel.name}>
                   {rel.name}
                 </span>
                 <span className="text-[10px] text-[#64748B] dark:text-white/70 mt-0.5 uppercase tracking-wider font-semibold">

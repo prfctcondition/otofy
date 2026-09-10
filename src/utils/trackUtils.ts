@@ -134,4 +134,29 @@ export function cleanArtistAndTitle(
   return { title, artist };
 }
 
-export default { cleanArtistAndTitle };
+/**
+ * Splits collaborating artists from a combined artist string.
+ * Supports popular delimiters: commas `,`, `&`, `feat.`, `ft.`, `featuring`, `/`, `;`
+ */
+export function splitArtists(artistString?: string): string[] {
+  if (!artistString || typeof artistString !== 'string') return [];
+  const rawParts = artistString
+    .split(/\s*(?:,|\/|;|&|\b(?:feat\.?|ft\.?|featuring)\b)\s*/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of rawParts) {
+    const lower = part.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      result.push(part);
+    }
+  }
+
+  return result.length > 0 ? result : [artistString.trim()];
+}
+
+export default { cleanArtistAndTitle, splitArtists };
+

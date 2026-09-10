@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
+import { ArtistLinks } from './ArtistLinks';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
@@ -182,16 +183,13 @@ const TrackRow = React.memo<TrackRowProps>(({
           >
             {track.title}
           </span>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectArtist?.(track.artist, track.source === 'SC' ? 'SC' : 'YT');
-            }}
-            className="text-xs text-[#64748B] dark:text-white/80 truncate hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer transition-colors"
-            title={`View ${track.artist}`}
-          >
-            {track.artist}
-          </span>
+          <ArtistLinks
+            artist={track.artist}
+            source={track.source === 'SC' ? 'SC' : 'YT'}
+            onSelectArtist={onSelectArtist}
+            className="text-xs text-[#64748B] dark:text-white/80 truncate"
+            artistClassName="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors"
+          />
         </div>
       </div>
 
@@ -349,22 +347,40 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     }
   }, [tracks, checkStatus]);
 
-  // Click outside listener to clear row selection
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest('#dense-track-table') && !target?.closest('#track-context-menu')) {
-        setSelectedTrackIds(new Set());
-      }
-    };
-    window.addEventListener('mousedown', handleOutsideClick);
-    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  const clearSelection = useCallback(() => {
+    setSelectedTrackIds(new Set());
+    setLastSelectedId(null);
   }, []);
 
-  // Cmd/Ctrl + A to select all tracks in current table
+  // Clear selection when navigating to another playlist
+  useEffect(() => {
+    clearSelection();
+  }, [selectedPlaylistId, clearSelection]);
+
+  // Click outside listener to clear row selection when clicking empty space
+  useEffect(() => {
+    const handleGlobalMouseDown = (e: MouseEvent) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.closest('[id^="track-row-"]') ||
+        target?.closest('#track-context-menu') ||
+        target?.closest('.track-context-menu')
+      ) {
+        return;
+      }
+      clearSelection();
+    };
+    window.addEventListener('mousedown', handleGlobalMouseDown);
+    return () => window.removeEventListener('mousedown', handleGlobalMouseDown);
+  }, [clearSelection]);
+
+  // Cmd/Ctrl + A to select all tracks in current table, Escape to clear selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      if (e.key === 'Escape') {
+        clearSelection();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         const activeEl = document.activeElement;
         if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
         e.preventDefault();
@@ -373,7 +389,21 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tracks]);
+  }, [tracks, clearSelection]);
+
+  const handleContainerClick = (e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.closest('[id^="track-row-"]') ||
+      target?.closest('#track-context-menu') ||
+      target?.closest('button') ||
+      target?.closest('input')
+    ) {
+      return;
+    }
+    clearSelection();
+  };
 
   const handleRowClick = (e: React.MouseEvent, track: Track, index: number) => {
     if (e.metaKey || e.ctrlKey) {
@@ -440,7 +470,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   };
 
   return (
-    <div id="dense-track-table" className="w-full px-6 py-2 select-none">
+    <div
+      id="dense-track-table"
+      onClick={handleContainerClick}
+      className="w-full px-6 py-2 select-none"
+    >
       <div className="grid grid-cols-[40px_1fr_135px] md:grid-cols-[40px_minmax(180px,1fr)_minmax(120px,200px)_140px] lg:grid-cols-[40px_minmax(180px,4fr)_minmax(120px,3fr)_minmax(90px,2fr)_140px] gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
         <div className="flex items-center justify-center">#</div>
         <div className="flex items-center">Title</div>

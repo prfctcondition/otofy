@@ -224,7 +224,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="account-sync-btn"
           onClick={() => useLibraryStore.getState().toggleSyncModal()}
-          className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title="Account Sync (YouTube Music / SoundCloud)"
           aria-label="Account Sync"
         >
@@ -251,7 +251,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           <div
             id="user-profile-avatar-btn"
             onClick={() => setIsProfileMenuOpen((v) => !v)}
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(99,102,241,0.25)] shrink-0 overflow-hidden"
+            className="w-8 h-8 rounded-full bg-gradient-to-tr from-neutral-300 via-neutral-100 to-neutral-400 dark:from-neutral-700 dark:via-neutral-400 dark:to-neutral-600 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(0,0,0,0.15)] shrink-0 overflow-hidden"
             title={`Profile (${userName})`}
           >
             {userAvatar ? (

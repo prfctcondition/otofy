@@ -188,8 +188,12 @@ class AudioEngine {
   }
 
   seek(time: number): void {
-    if (isFinite(time) && time >= 0) {
-      this.activeAudioElement.currentTime = time;
+    if (Number.isFinite(time) && time >= 0) {
+      try {
+        this.activeAudioElement.currentTime = time;
+      } catch (err) {
+        console.warn('[AudioEngine] Seek error:', err);
+      }
     }
   }
 
@@ -397,11 +401,13 @@ class AudioEngine {
   }
 
   get currentTime(): number {
-    return this.activeAudioElement.currentTime;
+    const t = this.activeAudioElement.currentTime;
+    return Number.isFinite(t) && t >= 0 ? t : 0;
   }
 
   get duration(): number {
-    return this.activeAudioElement.duration || 0;
+    const d = this.activeAudioElement.duration;
+    return Number.isFinite(d) && d > 0 ? d : 0;
   }
 
   get paused(): boolean {

@@ -844,6 +844,7 @@ export default function App() {
                       onPlaylistSearchChange={libraryStore.setPlaylistSearch}
                       isSavedInLibrary={isCurrentPlaylistInLibrary}
                       onToggleSaveToLibrary={libraryStore.saveViewingPlaylistToLibrary}
+                      onSelectArtist={handleOpenArtistView}
                     />
                   </div>
 
@@ -920,6 +921,7 @@ export default function App() {
                     onPlaylistSearchChange={libraryStore.setPlaylistSearch}
                     isSavedInLibrary={isCurrentPlaylistInLibrary}
                     onToggleSaveToLibrary={libraryStore.saveViewingPlaylistToLibrary}
+                    onSelectArtist={handleOpenArtistView}
                   />
                 </div>
                 <div className="pb-6">

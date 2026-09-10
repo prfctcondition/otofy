@@ -18,6 +18,7 @@ interface PlayerState {
   isMuted: boolean;
   isShuffle: boolean;
   repeatMode: 'off' | 'all' | 'one';
+  isSeeking: boolean;
   isBuffering: boolean;
   playbackError: string | null;
   isCrossfading: boolean;
@@ -33,6 +34,7 @@ interface PlayerActions {
   nextTrack: () => Promise<void>;
   prevTrack: () => Promise<void>;
   seek: (time: number) => void;
+  setIsSeeking: (seeking: boolean) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   toggleShuffle: () => void;
@@ -64,6 +66,19 @@ export const cleanTrackId = (id: string): string => {
     .replace(/^artist-(?:yt|sc)-[^-]+-\d+-/, '')
     .replace(/^album-(?:yt|sc)-\d+-/, '')
     .replace(/^(?:sc-|yt-|dm-)/, '');
+};
+
+export const parseDurationToSeconds = (dur: string | number | undefined | null): number => {
+  if (typeof dur === 'number' && Number.isFinite(dur) && dur > 0) return dur;
+  if (!dur || typeof dur !== 'string') return 0;
+  const parts = dur.split(':').map((p) => parseFloat(p));
+  if (parts.some((p) => isNaN(p))) return 0;
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  } else if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  return 0;
 };
 
 export const toPlayableStreamUrl = (url: string): string => {
@@ -275,6 +290,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   isMuted: false,
   isShuffle: false,
   repeatMode: 'off',
+  isSeeking: false,
   isBuffering: false,
   playbackError: null,
   isCrossfading: false,
@@ -282,6 +298,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   isLoadingAutoplay: false,
   cachedTracks: [],
   getCachedTracks: () => get().cachedTracks,
+
+  setIsSeeking: (seeking: boolean) => set({ isSeeking: seeking }),
 
   clearPlaybackError: () => set({ playbackError: null }),
 
@@ -294,9 +312,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   setActiveTrackOnly: (track: Track) => {
+    const fallbackDur = track.durationSec || parseDurationToSeconds(track.duration) || 0;
     set({
       activeTrack: track,
-      duration: track.durationSec || 0,
+      duration: fallbackDur,
       currentTime: 0,
       playbackError: null,
     });
@@ -318,12 +337,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (idx >= 0) set({ queueIndex: idx });
     }
 
+    const initialDur = track.durationSec || parseDurationToSeconds(track.duration) || 0;
     set({
       activeTrack: track,
       isBuffering: true,
       playbackError: null,
       currentTime: 0,
-      duration: track.durationSec || 0,
+      duration: initialDur,
     });
 
     try {
@@ -333,11 +353,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         await audioEngine.play();
         set((s) => {
           const exists = s.cachedTracks.some((t) => t.id === track.id);
+          const audioDur = Number.isFinite(audioEngine.duration) && audioEngine.duration > 0 ? audioEngine.duration : 0;
+          const finalDuration = audioDur || track.durationSec || parseDurationToSeconds(track.duration) || s.duration || 0;
           return {
             isPlaying: true,
             isBuffering: false,
             playbackError: null,
-            duration: audioEngine.duration || track.durationSec || 0,
+            duration: finalDuration,
             cachedTracks: exists
               ? s.cachedTracks.map((t) => (t.id === track.id ? { ...t, streamUrl: url } : t))
               : [...s.cachedTracks, { ...track, streamUrl: url }],
@@ -668,6 +690,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   seek: (time: number) => {
+    if (!Number.isFinite(time) || time < 0) return;
     audioEngine.seek(time);
     set({ currentTime: time });
   },
@@ -736,8 +759,28 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (target !== audioEngine.activeAudioElement) return;
 
       const current = target.currentTime;
-      const dur = target.duration || get().duration || 0;
-      set({ currentTime: current });
+      if (!Number.isFinite(current)) return;
+      if (target.seeking || get().isSeeking) return;
+
+      const rawDur = target.duration;
+      let dur = get().duration;
+      if (Number.isFinite(rawDur) && rawDur > 0) {
+        dur = rawDur;
+        if (get().duration !== rawDur) {
+          set({ currentTime: current, duration: rawDur });
+        } else {
+          set({ currentTime: current });
+        }
+      } else {
+        const active = get().activeTrack;
+        const fallback = active?.durationSec || parseDurationToSeconds(active?.duration) || dur || 0;
+        if (fallback > 0 && dur !== fallback) {
+          dur = fallback;
+          set({ currentTime: current, duration: fallback });
+        } else {
+          set({ currentTime: current });
+        }
+      }
 
       // Crossfade Trigger Logic
       const settings = useSettingsStore.getState();
@@ -791,11 +834,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
                   await audioEngine.crossfadeTo(url, crossfadeDuration);
                   set((s) => {
                     const exists = s.cachedTracks.some((t) => t.id === nextTrack.id);
+                    const validNextDur = nextTrack.durationSec || parseDurationToSeconds(nextTrack.duration) || 0;
                     return {
                       activeTrack: nextTrack,
                       queueIndex: nextIdx as number,
                       currentTime: 0,
-                      duration: nextTrack.durationSec || 0,
+                      duration: validNextDur,
                       isPlaying: true,
                       isBuffering: false,
                       cachedTracks: exists
@@ -821,7 +865,25 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const onDurationChange = (e: Event) => {
       const target = e.target as HTMLAudioElement;
       if (target === audioEngine.activeAudioElement) {
-        set({ duration: target.duration || 0 });
+        const rawDur = target.duration;
+        if (Number.isFinite(rawDur) && rawDur > 0) {
+          set({ duration: rawDur });
+        } else {
+          const active = get().activeTrack;
+          const fallback = active?.durationSec || parseDurationToSeconds(active?.duration) || get().duration || 0;
+          if (fallback > 0) {
+            set({ duration: fallback });
+          }
+        }
+      }
+    };
+
+    const onSeeked = (e: Event) => {
+      const target = e.target as HTMLAudioElement;
+      if (target === audioEngine.activeAudioElement) {
+        if (Number.isFinite(target.currentTime)) {
+          set({ currentTime: target.currentTime });
+        }
       }
     };
 
@@ -897,6 +959,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
     audioEngine.addEventListener('timeupdate', onTimeUpdate);
     audioEngine.addEventListener('durationchange', onDurationChange);
+    audioEngine.addEventListener('seeked', onSeeked);
     audioEngine.addEventListener('ended', onEnded);
     audioEngine.addEventListener('play', onPlay);
     audioEngine.addEventListener('pause', onPause);
@@ -928,6 +991,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     return () => {
       audioEngine.removeEventListener('timeupdate', onTimeUpdate);
       audioEngine.removeEventListener('durationchange', onDurationChange);
+      audioEngine.removeEventListener('seeked', onSeeked);
       audioEngine.removeEventListener('ended', onEnded);
       audioEngine.removeEventListener('play', onPlay);
       audioEngine.removeEventListener('pause', onPause);

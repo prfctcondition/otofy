@@ -152,7 +152,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               <button
                 id="account-sync-dock-btn"
                 onClick={() => useLibraryStore.getState().toggleSyncModal()}
-                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white transition-colors"
                 title="Account Sync (YouTube Music / SoundCloud)"
                 aria-label="Sync playlists"
               >

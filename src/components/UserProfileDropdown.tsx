@@ -69,7 +69,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
     >
       {/* User Header Profile Card */}
       <div className="px-4 py-3 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 p-0.5 shrink-0 overflow-hidden shadow-sm">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-neutral-300 via-neutral-100 to-neutral-400 dark:from-neutral-700 dark:via-neutral-400 dark:to-neutral-600 p-0.5 shrink-0 overflow-hidden shadow-sm">
           {userAvatar ? (
             <img src={userAvatar} alt={userName} className="w-full h-full rounded-full object-cover" />
           ) : (
