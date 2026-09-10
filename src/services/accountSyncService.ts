@@ -70,11 +70,16 @@ export async function importSoundCloudPlaylist(playlistUrl: string): Promise<{
       iconName: 'waves',
       gradientFrom: '#F97316',
       gradientTo: '#C2410C',
+      artworkUrl: result.artworkUrl,
     });
 
     for (const track of tracks) {
-      await repo.putTrack(track);
-      await repo.addTrackToPlaylist(playlistId, track.id);
+      const fixedTrack = {
+        ...track,
+        artworkUrl: track.artworkUrl || result.artworkUrl,
+      };
+      await repo.putTrack(fixedTrack);
+      await repo.addTrackToPlaylist(playlistId, fixedTrack.id);
     }
 
     return { playlist, tracks };

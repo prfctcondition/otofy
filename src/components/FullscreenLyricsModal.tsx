@@ -417,12 +417,17 @@ export const FullscreenLyricsModal: React.FC = () => {
           <div className="flex items-center gap-5">
             <button
               onClick={toggleShuffle}
-              className={`transition-colors ${
-                isShuffle ? 'text-emerald-400 font-bold' : 'text-white/60 hover:text-white'
+              className={`relative flex flex-col items-center justify-center p-1 rounded-md transition-all ${
+                isShuffle
+                  ? 'text-white [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.95))_drop-shadow(0_0_14px_rgba(255,255,255,0.6))] font-bold'
+                  : 'text-white/40 hover:text-white'
               }`}
-              title="Shuffle"
+              title={`Shuffle: ${isShuffle ? 'On' : 'Off'}`}
             >
               <Shuffle size={16} />
+              {isShuffle && (
+                <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
+              )}
             </button>
 
             <button
@@ -451,12 +456,17 @@ export const FullscreenLyricsModal: React.FC = () => {
 
             <button
               onClick={cycleRepeat}
-              className={`transition-colors ${
-                repeatMode !== 'off' ? 'text-emerald-400 font-bold' : 'text-white/60 hover:text-white'
+              className={`relative flex flex-col items-center justify-center p-1 rounded-md transition-all ${
+                repeatMode !== 'off'
+                  ? 'text-white [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.95))_drop-shadow(0_0_14px_rgba(255,255,255,0.6))] font-bold'
+                  : 'text-white/40 hover:text-white'
               }`}
-              title="Repeat"
+              title={`Repeat: ${repeatMode}`}
             >
               {repeatMode === 'one' ? <Repeat1 size={16} /> : <Repeat size={16} />}
+              {repeatMode !== 'off' && (
+                <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
+              )}
             </button>
           </div>
 

@@ -252,6 +252,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             iconName: 'music',
             gradientFrom: '#1E293B',
             gradientTo: '#0F172A',
+            artworkUrl: t.artworkUrl || remoteData.artworkUrl,
           };
           await addTrackToPlaylist(newPl.id, track);
         }

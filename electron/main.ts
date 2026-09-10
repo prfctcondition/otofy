@@ -466,30 +466,82 @@ ipcMain.handle('music:import-remote-playlist', async (_event, { source, url }: {
       );
       if (!resolveRes.ok) throw new Error(`Failed to resolve SoundCloud playlist: ${resolveRes.statusText}`);
       const data: any = await resolveRes.json();
-      const tracks = (data.tracks || []).map((t: any) => {
+
+      let rawTracks: any[] = data.tracks || (data.kind === 'track' ? [data] : []);
+
+      // SoundCloud only returns full track details for the first ~5 tracks in a set; the remaining are stubs
+      const stubIds = rawTracks
+        .filter((t: any) => t && t.id && (!t.title || typeof t.title !== 'string' || !t.duration))
+        .map((t: any) => String(t.id));
+
+      if (stubIds.length > 0) {
+        try {
+          const resolvedTrackMap = new Map<string, any>();
+          for (let i = 0; i < stubIds.length; i += 50) {
+            const chunk = stubIds.slice(i, i + 50);
+            const tracksRes = await fetch(
+              `https://api-v2.soundcloud.com/tracks?ids=${chunk.join('%2C')}&client_id=${clientId}`
+            );
+            if (tracksRes.ok) {
+              const list: any[] = await tracksRes.json();
+              for (const rt of list) {
+                if (rt && rt.id) {
+                  resolvedTrackMap.set(String(rt.id), rt);
+                }
+              }
+            }
+          }
+          rawTracks = rawTracks.map((t: any) => {
+            if (t && t.id && resolvedTrackMap.has(String(t.id))) {
+              return { ...t, ...resolvedTrackMap.get(String(t.id)) };
+            }
+            return t;
+          });
+        } catch (stubErr) {
+          console.warn('[main] Failed to resolve SoundCloud stub tracks:', stubErr);
+        }
+      }
+
+      const playlistArt = (data.artwork_url || (rawTracks[0]?.artwork_url) || '').replace('-large.', '-t500x500.');
+
+      const validTracks = rawTracks.filter((t: any) => {
+        if (!t || !t.id) return false;
+        if (t.policy === 'SNIP' || t.snipped === true) return false;
+        return true;
+      });
+
+      const tracks = validTracks.map((t: any) => {
         const durSec = Math.round((t.duration || 0) / 1000);
-        const rawArtist =
-          t.publisher_metadata?.artist ||
-          t.publisher_metadata?.album_artist ||
-          t.user?.username ||
-          'Unknown Artist';
-        const cleaned = cleanArtistAndTitle(t.title || 'Untitled', rawArtist);
+        
+        // Exact SoundCloud metadata preservation
+        const title = (t.title || 'Untitled').trim();
+        const artist = (t.user?.username || t.publisher_metadata?.artist || data.user?.username || 'SoundCloud Artist').trim();
+
+        // Artwork resolution with user avatar and playlist fallback
+        let rawArt = t.artwork_url || t.user?.avatar_url || data.artwork_url || '';
+        if (rawArt) {
+          rawArt = rawArt.replace('-large.', '-t500x500.');
+        }
+        const artworkUrl = rawArt || playlistArt || undefined;
+
         return {
           id: String(t.id),
-          title: cleaned.title,
-          artist: cleaned.artist,
+          title,
+          artist,
           album: data.title || '',
           duration: scResolver.formatDuration(durSec),
           durationSec: durSec,
           source: 'SC',
-          artworkUrl: (t.artwork_url || t.user?.avatar_url || data.artwork_url || '').replace('-large.', '-t500x500.'),
+          sourceLabel: 'SoundCloud',
+          artworkUrl,
           sourceId: String(t.id),
         };
       });
+
       return {
         title: data.title || 'SoundCloud Playlist',
         author: data.user?.username || 'SoundCloud',
-        artworkUrl: (data.artwork_url || '').replace('-large.', '-t500x500.'),
+        artworkUrl: playlistArt,
         tracks,
       };
     } else {
