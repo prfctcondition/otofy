@@ -661,11 +661,40 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   resolveTrack: async (trackId, chosenAlternative) => {
     const updated = await repo.resolveTrack(trackId, chosenAlternative);
     if (updated) {
-      set((s) => ({
-        currentPlaylistTracks: s.currentPlaylistTracks.map((t) =>
+      set((s) => {
+        const nextCurrentTracks = s.currentPlaylistTracks.map((t) =>
           t.id === trackId ? updated : t
-        ),
-      }));
+        );
+        const nextViewingPlaylist = s.viewingPlaylist
+          ? { ...s.viewingPlaylist }
+          : null;
+        const nextHistory = s.history.map((entry) => ({
+          ...entry,
+          currentPlaylistTracks: entry.currentPlaylistTracks?.map((t) =>
+            t.id === trackId ? updated : t
+          ),
+          viewingPlaylist: entry.viewingPlaylist ? { ...entry.viewingPlaylist } : null,
+        }));
+        return {
+          currentPlaylistTracks: [...nextCurrentTracks],
+          viewingPlaylist: nextViewingPlaylist,
+          history: nextHistory,
+        };
+      });
+
+      // Synchronize playerStore if activeTrack or queue contains this track
+      const ps = usePlayerStore.getState();
+      if (ps.activeTrack?.id === trackId) {
+        usePlayerStore.setState({
+          activeTrack: updated,
+          queue: ps.queue.map((t) => (t.id === trackId ? updated : t)),
+        });
+      } else if (ps.queue.some((t) => t.id === trackId)) {
+        usePlayerStore.setState({
+          queue: ps.queue.map((t) => (t.id === trackId ? updated : t)),
+        });
+      }
+
       useToastStore.getState().success('Track Resolved', `Matched to "${updated.title}".`);
     }
   },

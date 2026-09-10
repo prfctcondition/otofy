@@ -166,10 +166,14 @@ export const repo = {
     await db.tracks.put(dt);
   },
 
-  async resolveTrack(trackId: string, chosenAlternative: import('../types').TrackAlternative): Promise<Track | null> {
-    const track = await db.tracks.get(trackId);
+  async resolveTrack(oldTrackId: string, chosenAlternative: import('../types').TrackAlternative): Promise<Track | null> {
+    const track = await db.tracks.get(oldTrackId);
     if (!track) return null;
-    const updates: Partial<DbTrack> = {
+
+    const newTrackId = `yt-${chosenAlternative.sourceId}`;
+    const resolvedDbTrack: DbTrack = {
+      ...track,
+      id: newTrackId,
       sourceId: chosenAlternative.sourceId,
       duration: chosenAlternative.duration,
       durationSec: chosenAlternative.durationSec,
@@ -178,9 +182,29 @@ export const repo = {
       sourceLabel: 'YouTube Music',
       unresolved: false,
     };
-    await db.tracks.update(trackId, updates);
-    const updated = await db.tracks.get(trackId);
-    return updated ? dbTrackToTrack(updated) : null;
+    delete (resolvedDbTrack as any).alternatives;
+
+    if (newTrackId !== oldTrackId) {
+      await db.tracks.delete(oldTrackId);
+      await db.tracks.put(resolvedDbTrack);
+      await db.playlistTracks.where('trackId').equals(oldTrackId).modify({ trackId: newTrackId });
+    } else {
+      await db.tracks.put(resolvedDbTrack);
+    }
+
+    try {
+      const mixes = await db.dailyMixes.toArray();
+      for (const mix of mixes) {
+        if (mix.trackIds && mix.trackIds.includes(oldTrackId)) {
+          const updatedIds = mix.trackIds.split(',').map((id) => (id === oldTrackId ? newTrackId : id)).join(',');
+          await db.dailyMixes.update(mix.id, { trackIds: updatedIds });
+        }
+      }
+    } catch {
+      // Non-critical
+    }
+
+    return dbTrackToTrack(resolvedDbTrack);
   },
 
   async addTrackToPlaylist(playlistId: string, trackId: string): Promise<void> {
