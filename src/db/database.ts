@@ -20,6 +20,9 @@ export interface DbTrack {
   sourceId?: string;
   playbackCount: number;
   lastPlayedAt?: number;
+  unresolved?: boolean;
+  alternatives?: any[];
+  originalSpotifyPreview?: string;
 }
 
 export interface DbPlaylist {

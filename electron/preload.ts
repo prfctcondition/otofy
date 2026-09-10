@@ -17,6 +17,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('music:get-related-tracks', { trackId, source, artist, title }),
   importRemotePlaylist: (source: string, url: string) =>
     ipcRenderer.invoke('music:import-remote-playlist', { source, url }),
+  inspectSpotifyPlaylist: (url: string) =>
+    ipcRenderer.invoke('spotify:inspect-playlist', { url }),
+  importAndMatchSpotify: (payload: { tracks: any[]; playlistTitle: string }) =>
+    ipcRenderer.invoke('spotify:import-and-match', payload),
+  onSpotifyImportProgress: (
+    callback: (data: {
+      current: number;
+      total: number;
+      matched: number;
+      unresolved: number;
+      currentTrackTitle: string;
+    }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('spotify:import-progress', handler);
+    return () => ipcRenderer.removeListener('spotify:import-progress', handler);
+  },
   loginAccount: (platform: 'youtube' | 'soundcloud') =>
     ipcRenderer.invoke('auth:login', { platform }),
   syncAccountLibrary: (platform: 'youtube' | 'soundcloud') =>

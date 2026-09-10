@@ -10,6 +10,7 @@ import downloadService, { DownloadFormat, TrackMetadata } from './services/downl
 import { DownloadQueueManager } from './services/downloadQueue.js';
 import localScanner from './services/localScanner.js';
 import { cleanArtistAndTitle } from './services/trackParser.js';
+import spotifyService from './services/spotifyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -485,77 +486,41 @@ ipcMain.handle('music:import-remote-playlist', async (_event, { source, url }: {
           sourceId: String(t.id),
         };
       });
-      return { title: data.title || 'SoundCloud Playlist', tracks };
+      return {
+        title: data.title || 'SoundCloud Playlist',
+        author: data.user?.username || 'SoundCloud',
+        artworkUrl: (data.artwork_url || '').replace('-large.', '-t500x500.'),
+        tracks,
+      };
     } else {
-      // YouTube Playlist
+      // YouTube Playlist with continuation pagination
       const listMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-      const playlistId = listMatch ? listMatch[1] : url;
-      const response = await fetch('https://music.youtube.com/youtubei/v1/browse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Referer: 'https://music.youtube.com/',
-        },
-        body: JSON.stringify({
-          context: {
-            client: {
-              clientName: 'WEB_REMIX',
-              clientVersion: '1.20240101.01.00',
-              hl: 'en',
-              gl: 'US',
-            },
-          },
-          browseId: playlistId.startsWith('VL') ? playlistId : `VL${playlistId}`,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`YouTube playlist browse failed: ${response.statusText}`);
-      const data: any = await response.json();
-      const title =
-        data?.header?.musicDetailHeaderRenderer?.title?.runs?.[0]?.text ||
-        data?.header?.musicResponsiveHeaderRenderer?.title?.runs?.[0]?.text ||
-        'YouTube Playlist';
-      const tracks: any[] = [];
-      const contents =
-        data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.musicPlaylistShelfRenderer?.contents ||
-        [];
-
-      for (const item of contents) {
-        const r = item.musicResponsiveListItemRenderer;
-        if (!r) continue;
-        const videoId =
-          r.playlistItemData?.videoId ||
-          r.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.navigationEndpoint?.watchEndpoint?.videoId;
-        if (!videoId) continue;
-        const rawTitle =
-          r.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || 'Untitled';
-        const col1Runs = r.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
-        const rawArtist = col1Runs[0]?.text || 'Unknown Artist';
-        const cleaned = cleanArtistAndTitle(rawTitle, rawArtist);
-        const album = col1Runs[2]?.text || title;
-        const durationStr = col1Runs[col1Runs.length - 1]?.text || '0:00';
-        const artworkUrl = r.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.slice(-1)[0]?.url;
-
-        tracks.push({
-          id: videoId,
-          title: cleaned.title,
-          artist: cleaned.artist,
-          album,
-          duration: durationStr,
-          durationSec: ytResolver.parseDurationToSec(durationStr),
-          source: 'YT',
-          artworkUrl,
-          sourceId: videoId,
-        });
-      }
-      return { title, tracks };
+      const playlistId = listMatch ? listMatch[1] : url.trim();
+      const cleanPlId = playlistId.replace(/^VL/, '');
+      const ytResult = await innertubeService.getPlaylistTracks(cleanPlId);
+      return {
+        title: ytResult.title || 'YouTube Music Playlist',
+        author: ytResult.author || 'YouTube Music',
+        artworkUrl: ytResult.artworkUrl,
+        tracks: ytResult.tracks,
+      };
     }
   } catch (err: any) {
-    console.error('Error importing playlist:', err);
-    return { title: 'Imported Playlist', tracks: [], error: err.message };
+    console.error('Error importing remote playlist:', err);
+    return { title: 'Imported Playlist', author: 'Unknown', tracks: [], error: err.message };
   }
+});
+
+ipcMain.handle('spotify:inspect-playlist', async (_event, { url }: { url: string }) => {
+  return await spotifyService.inspectSpotifyPlaylist(url);
+});
+
+ipcMain.handle('spotify:import-and-match', async (event, { tracks, playlistTitle }: { tracks: any[]; playlistTitle: string }) => {
+  return await spotifyService.matchSpotifyTracks(tracks, playlistTitle, (progress) => {
+    try {
+      event.sender.send('spotify:import-progress', progress);
+    } catch {}
+  });
 });
 
 ipcMain.handle('auth:login', async (_event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {

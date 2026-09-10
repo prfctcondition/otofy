@@ -5,6 +5,16 @@ export type IconType =
   | 'mic' | 'zap' | 'sparkles' | 'flame' | 'heart'
   | 'user' | 'sliders' | 'download';
 
+export interface TrackAlternative {
+  id: string;
+  title: string;
+  artist: string;
+  duration: string;
+  durationSec: number;
+  sourceId: string;
+  artworkUrl?: string;
+}
+
 export interface Track {
   id: string;
   number: number;
@@ -24,6 +34,9 @@ export interface Track {
   streamUrl?: string;
   artworkUrl?: string;
   sourceId?: string; // YouTube video ID or SoundCloud track ID
+  unresolved?: boolean;
+  alternatives?: TrackAlternative[];
+  originalSpotifyPreview?: string;
 }
 
 export interface Playlist {
@@ -217,7 +230,32 @@ declare global {
         artist?: string,
         title?: string
       ) => Promise<Track[]>;
-      importRemotePlaylist: (source: string, url: string) => Promise<{ title: string; tracks: Track[] }>;
+      importRemotePlaylist: (source: string, url: string) => Promise<{ title: string; author?: string; artworkUrl?: string; tracks: Track[]; error?: string }>;
+      inspectSpotifyPlaylist?: (url: string) => Promise<{
+        id: string;
+        title: string;
+        creator: string;
+        artworkUrl?: string;
+        trackCount: number;
+        tracks: Array<{
+          title: string;
+          artist: string;
+          durationMs: number;
+          durationSec: number;
+          previewUrl?: string;
+          uri?: string;
+        }>;
+      }>;
+      importAndMatchSpotify?: (payload: { tracks: any[]; playlistTitle: string }) => Promise<Track[]>;
+      onSpotifyImportProgress?: (
+        callback: (data: {
+          current: number;
+          total: number;
+          matched: number;
+          unresolved: number;
+          currentTrackTitle: string;
+        }) => void
+      ) => () => void;
       loginAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; username?: string; error?: string }>;
       windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
       expandWindowForLyrics?: (targetWidth?: number) => Promise<boolean>;

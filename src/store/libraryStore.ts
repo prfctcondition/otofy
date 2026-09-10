@@ -109,6 +109,7 @@ interface LibraryActions {
   deletePlaylist: (id: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+  resolveTrack: (trackId: string, alternative: import('../types').TrackAlternative) => Promise<void>;
   setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
   openCatalog: () => void;
   openSettings: () => void;
@@ -655,6 +656,18 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         p.id === playlistId ? { ...p, songCount: count } : p
       ),
     }));
+  },
+
+  resolveTrack: async (trackId, chosenAlternative) => {
+    const updated = await repo.resolveTrack(trackId, chosenAlternative);
+    if (updated) {
+      set((s) => ({
+        currentPlaylistTracks: s.currentPlaylistTracks.map((t) =>
+          t.id === trackId ? updated : t
+        ),
+      }));
+      useToastStore.getState().success('Track Resolved', `Matched to "${updated.title}".`);
+    }
   },
 
   setCurrentView: (view) => {

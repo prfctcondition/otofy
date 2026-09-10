@@ -24,6 +24,9 @@ function dbTrackToTrack(dt: DbTrack): Track {
     streamUrl: dt.streamUrl,
     artworkUrl: dt.artworkUrl,
     sourceId: dt.sourceId,
+    unresolved: dt.unresolved,
+    alternatives: dt.alternatives,
+    originalSpotifyPreview: dt.originalSpotifyPreview,
   };
 }
 
@@ -156,8 +159,28 @@ export const repo = {
       isLiked: track.isLiked ?? false,
       sourceId: track.sourceId,
       playbackCount: (track as any).playbackCount ?? 0,
+      unresolved: track.unresolved,
+      alternatives: track.alternatives,
+      originalSpotifyPreview: track.originalSpotifyPreview,
     };
     await db.tracks.put(dt);
+  },
+
+  async resolveTrack(trackId: string, chosenAlternative: import('../types').TrackAlternative): Promise<Track | null> {
+    const track = await db.tracks.get(trackId);
+    if (!track) return null;
+    const updates: Partial<DbTrack> = {
+      sourceId: chosenAlternative.sourceId,
+      duration: chosenAlternative.duration,
+      durationSec: chosenAlternative.durationSec,
+      artworkUrl: chosenAlternative.artworkUrl || track.artworkUrl,
+      source: 'YT',
+      sourceLabel: 'YouTube Music',
+      unresolved: false,
+    };
+    await db.tracks.update(trackId, updates);
+    const updated = await db.tracks.get(trackId);
+    return updated ? dbTrackToTrack(updated) : null;
   },
 
   async addTrackToPlaylist(playlistId: string, trackId: string): Promise<void> {

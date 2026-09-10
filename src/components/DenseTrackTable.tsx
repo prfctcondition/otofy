@@ -8,10 +8,12 @@ import {
   Loader2,
   Download,
   Check,
+  HelpCircle,
 } from 'lucide-react';
 import { Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { ArtistLinks } from './ArtistLinks';
+import { TrackConflictModal } from './TrackConflictModal';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
@@ -43,6 +45,7 @@ interface TrackRowProps {
   onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
+  onOpenConflictModal: (track: Track) => void;
 }
 
 const formatDisplayDate = (dateStr?: string): string => {
@@ -94,6 +97,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   onSelectArtist,
   onSelectAlbum,
   onOpenContextMenu,
+  onOpenConflictModal,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
@@ -236,8 +240,20 @@ const TrackRow = React.memo<TrackRowProps>(({
           />
         </button>
 
-        {/* Background download button */}
-        {dlStatus.status === 'downloading' ? (
+        {/* Unresolved match review button OR Background download button */}
+        {track.unresolved ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenConflictModal(track);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-400 transition-colors text-[11px] font-bold cursor-pointer shrink-0 shadow-xs"
+            title="Unresolved match: Click to review candidates"
+          >
+            <HelpCircle size={13} className="shrink-0 animate-pulse text-amber-500" />
+            <span>Match?</span>
+          </button>
+        ) : dlStatus.status === 'downloading' ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -340,6 +356,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const [conflictTrack, setConflictTrack] = useState<Track | null>(null);
 
   useEffect(() => {
     if (tracks && tracks.length > 0) {
@@ -521,10 +538,17 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               onSelectArtist={onSelectArtist}
               onSelectAlbum={onSelectAlbum}
               onOpenContextMenu={handleOpenContextMenu}
+              onOpenConflictModal={setConflictTrack}
             />
           ))
         )}
       </div>
+
+      <TrackConflictModal
+        isOpen={Boolean(conflictTrack)}
+        track={conflictTrack}
+        onClose={() => setConflictTrack(null)}
+      />
     </div>
   );
 };
