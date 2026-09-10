@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('music:get-lyrics', { videoId }),
   getGenreTracks: (query: string) =>
     ipcRenderer.invoke('music:get-genre-tracks', { query }),
+  getRelatedTracks: (trackId: string, source: 'YT' | 'SC', artist?: string, title?: string) =>
+    ipcRenderer.invoke('music:get-related-tracks', { trackId, source, artist, title }),
   importRemotePlaylist: (source: string, url: string) =>
     ipcRenderer.invoke('music:import-remote-playlist', { source, url }),
   loginAccount: (platform: 'youtube' | 'soundcloud') =>

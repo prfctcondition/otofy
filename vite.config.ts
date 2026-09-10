@@ -267,6 +267,37 @@ function musicApiPlugin(): Plugin {
           }
         }
 
+        if (req.url && req.url.startsWith('/api/music/related-tracks')) {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const trackId = urlObj.searchParams.get('id') || '';
+          const source = (urlObj.searchParams.get('source') as 'YT' | 'SC') || 'YT';
+          const artist = urlObj.searchParams.get('artist') || '';
+          const title = urlObj.searchParams.get('title') || '';
+          try {
+            let results: any[] = [];
+            if (source === 'SC') {
+              const scModule = await import('./dist-electron/services/scResolver.js');
+              results = await scModule.default.getRelatedTracks(trackId);
+              if (results.length === 0 && (artist || title)) {
+                results = await scModule.default.getGenreTracks(artist || title);
+              }
+            } else {
+              const itModule = await import('./dist-electron/services/innertubeService.js');
+              results = await itModule.default.getRelatedTracks(trackId);
+              if (results.length === 0 && (artist || title)) {
+                results = await itModule.default.getGenreTracks(`${artist || title} radio`);
+              }
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(results));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
         if (req.url && req.url.startsWith('/api/music/lyrics')) {
           const urlObj = new URL(req.url, 'http://localhost');
           const videoId = urlObj.searchParams.get('videoId') || '';

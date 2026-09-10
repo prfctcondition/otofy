@@ -19,6 +19,7 @@ interface PlayerState {
   playbackError: string | null;
   isCrossfading: boolean;
   isAutoplayLoading: boolean;
+  isLoadingAutoplay: boolean;
 }
 
 interface PlayerActions {
@@ -195,6 +196,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   playbackError: null,
   isCrossfading: false,
   isAutoplayLoading: false,
+  isLoadingAutoplay: false,
 
   clearPlaybackError: () => set({ playbackError: null }),
 
@@ -334,23 +336,94 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   appendAutoplayTracks: async () => {
     const { activeTrack, queue, isAutoplayLoading } = get();
     if (!activeTrack || isAutoplayLoading) return;
-    set({ isAutoplayLoading: true });
+    if (!useSettingsStore.getState().autoplay) return;
+
+    set({ isAutoplayLoading: true, isLoadingAutoplay: true, isBuffering: true });
     try {
-      if (window.electronAPI?.getGenreTracks) {
-        const query = activeTrack.artist || activeTrack.title;
-        const tracks = await window.electronAPI.getGenreTracks(`${query} radio`);
-        if (tracks && tracks.length > 0) {
-          const existingIds = new Set(queue.map((t) => t.id));
-          const newTracks = tracks.filter((t) => !existingIds.has(t.id));
-          if (newTracks.length > 0) {
-            set({ queue: [...queue, ...newTracks] });
+      const source = activeTrack.source === 'SC' ? 'SC' : 'YT';
+      const rawId = activeTrack.sourceId || activeTrack.id;
+      const cleanId = cleanTrackId(rawId);
+      let fetchedTracks: Track[] = [];
+
+      // 1. Electron IPC call for native related / radio tracks
+      if (window.electronAPI?.getRelatedTracks) {
+        try {
+          fetchedTracks = await window.electronAPI.getRelatedTracks(
+            cleanId,
+            source,
+            activeTrack.artist,
+            activeTrack.title
+          );
+        } catch (ipcErr) {
+          console.warn('[Player] IPC getRelatedTracks failed:', ipcErr);
+        }
+      }
+
+      // 2. Dev server fallback
+      if (fetchedTracks.length === 0) {
+        try {
+          const res = await fetch(
+            `/api/music/related-tracks?id=${encodeURIComponent(cleanId)}&source=${encodeURIComponent(source)}&artist=${encodeURIComponent(activeTrack.artist || '')}&title=${encodeURIComponent(activeTrack.title || '')}`
+          );
+          if (res.ok) {
+            fetchedTracks = await res.json();
           }
+        } catch (fetchErr) {
+          console.warn('[Player] Dev server related-tracks failed:', fetchErr);
+        }
+      }
+
+      // 3. Secondary fallback via genre tracks
+      if (fetchedTracks.length === 0 && window.electronAPI?.getGenreTracks) {
+        try {
+          const query = activeTrack.artist || activeTrack.title;
+          fetchedTracks = (await window.electronAPI.getGenreTracks(`${query} radio`)) as any;
+        } catch {}
+      }
+
+      if (fetchedTracks && fetchedTracks.length > 0) {
+        const currentQueue = get().queue;
+        const existingIds = new Set<string>();
+        const existingKeys = new Set<string>();
+
+        // Build set of existing IDs and title-artist keys
+        for (const t of currentQueue) {
+          existingIds.add(t.id);
+          if (t.sourceId) existingIds.add(t.sourceId);
+          existingIds.add(cleanTrackId(t.id));
+          existingKeys.add(`${t.title.toLowerCase().trim()} - ${t.artist.toLowerCase().trim()}`);
+        }
+        if (activeTrack) {
+          existingIds.add(activeTrack.id);
+          if (activeTrack.sourceId) existingIds.add(activeTrack.sourceId);
+          existingIds.add(cleanTrackId(activeTrack.id));
+          existingKeys.add(`${activeTrack.title.toLowerCase().trim()} - ${activeTrack.artist.toLowerCase().trim()}`);
+        }
+
+        const uniqueNewTracks: Track[] = [];
+        for (const t of fetchedTracks) {
+          const cid = cleanTrackId(t.id);
+          const key = `${t.title.toLowerCase().trim()} - ${t.artist.toLowerCase().trim()}`;
+          if (!existingIds.has(t.id) && !existingIds.has(cid) && !existingKeys.has(key)) {
+            existingIds.add(t.id);
+            existingIds.add(cid);
+            existingKeys.add(key);
+            uniqueNewTracks.push({
+              ...t,
+              id: t.source === 'SC' && !t.id.startsWith('sc-') ? `sc-${t.id}` : t.id,
+            });
+            if (uniqueNewTracks.length >= 20) break;
+          }
+        }
+
+        if (uniqueNewTracks.length > 0) {
+          set({ queue: [...currentQueue, ...uniqueNewTracks] });
         }
       }
     } catch (err) {
       console.warn('[Player] Autoplay fetch failed:', err);
     } finally {
-      set({ isAutoplayLoading: false });
+      set({ isAutoplayLoading: false, isLoadingAutoplay: false, isBuffering: false });
     }
   },
 
@@ -358,20 +431,44 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const { queue, queueIndex, isShuffle, repeatMode } = get();
     if (queue.length === 0) return;
 
-    if (queueIndex >= queue.length - 1 && useSettingsStore.getState().autoplay) {
-      await get().appendAutoplayTracks();
-      const updatedQueue = get().queue;
-      if (updatedQueue.length > queue.length) {
-        await get().jumpToQueueIndex(queueIndex + 1);
+    const isAtEnd = queueIndex >= queue.length - 1;
+    if (isAtEnd) {
+      if (repeatMode === 'one') {
+        audioEngine.seek(0);
+        await audioEngine.play();
         return;
       }
+
+      if (repeatMode === 'off' && useSettingsStore.getState().autoplay) {
+        await get().appendAutoplayTracks();
+        const updatedQueue = get().queue;
+        if (updatedQueue.length > queue.length) {
+          await get().jumpToQueueIndex(queueIndex + 1);
+          return;
+        }
+        // If autoplay could not load any tracks, stop cleanly at end of playlist
+        set({ isPlaying: false });
+        audioEngine.pause();
+        return;
+      }
+
+      if (repeatMode === 'all') {
+        const nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : 0;
+        await get().jumpToQueueIndex(nextIdx);
+        return;
+      }
+
+      // repeatMode === 'off' and autoplay disabled: stop playback cleanly at the end!
+      set({ isPlaying: false, currentTime: 0 });
+      audioEngine.pause();
+      return;
     }
 
     let nextIdx: number;
     if (isShuffle) {
       nextIdx = Math.floor(Math.random() * queue.length);
     } else {
-      nextIdx = (queueIndex + 1) % queue.length;
+      nextIdx = queueIndex + 1;
     }
     await get().jumpToQueueIndex(nextIdx);
   },
@@ -460,9 +557,22 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const settings = useSettingsStore.getState();
       const crossfadeEnabled = settings.crossfadeEnabled;
       const crossfadeDuration = settings.crossfadeDuration || 3;
-      const { isCrossfading, queue, queueIndex, isShuffle } = get();
-
       const timeRemaining = dur - current;
+      const { isCrossfading, queue, queueIndex, isShuffle, repeatMode, isAutoplayLoading } = get();
+
+      // Proactive Autoplay Prefetch: If playing the last track with autoplay ON and repeat OFF,
+      // begin loading recommendations ~15s before track ends so crossfade already has the track ready!
+      if (
+        settings.autoplay &&
+        repeatMode === 'off' &&
+        queueIndex >= queue.length - 1 &&
+        dur > 20 &&
+        timeRemaining <= crossfadeDuration + 12 &&
+        !isAutoplayLoading
+      ) {
+        get().appendAutoplayTracks();
+      }
+
       if (
         crossfadeEnabled &&
         dur > crossfadeDuration * 2 &&
@@ -471,39 +581,47 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         !isCrossfading &&
         queue.length > 0
       ) {
-        let nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : queueIndex + 1;
-        if (nextIdx >= queue.length) {
-          if (settings.autoplay) {
-            get().appendAutoplayTracks();
-          }
+        let nextIdx: number | null = null;
+        if (isShuffle) {
+          nextIdx = Math.floor(Math.random() * queue.length);
+        } else if (queueIndex < queue.length - 1) {
+          nextIdx = queueIndex + 1;
+        } else if (repeatMode === 'all') {
           nextIdx = 0;
+        } else if (repeatMode === 'off' && settings.autoplay) {
+          // If queue was extended by prefetch, transition into next track
+          if (queueIndex + 1 < queue.length) {
+            nextIdx = queueIndex + 1;
+          }
         }
 
-        const nextTrack = queue[nextIdx];
-        if (nextTrack && nextIdx !== queueIndex) {
-          set({ isCrossfading: true });
-          resolveStreamUrl(nextTrack)
-            .then(async ({ url }) => {
-              if (url) {
-                await audioEngine.crossfadeTo(url, crossfadeDuration);
-                set({
-                  activeTrack: nextTrack,
-                  queueIndex: nextIdx,
-                  currentTime: 0,
-                  duration: nextTrack.durationSec || 0,
-                  isPlaying: true,
-                  isBuffering: false,
-                });
-                setTimeout(() => {
+        if (nextIdx !== null && nextIdx !== queueIndex && nextIdx < queue.length) {
+          const nextTrack = queue[nextIdx];
+          if (nextTrack) {
+            set({ isCrossfading: true });
+            resolveStreamUrl(nextTrack)
+              .then(async ({ url }) => {
+                if (url) {
+                  await audioEngine.crossfadeTo(url, crossfadeDuration);
+                  set({
+                    activeTrack: nextTrack,
+                    queueIndex: nextIdx as number,
+                    currentTime: 0,
+                    duration: nextTrack.durationSec || 0,
+                    isPlaying: true,
+                    isBuffering: false,
+                  });
+                  setTimeout(() => {
+                    set({ isCrossfading: false });
+                  }, crossfadeDuration * 1000);
+                } else {
                   set({ isCrossfading: false });
-                }, crossfadeDuration * 1000);
-              } else {
+                }
+              })
+              .catch(() => {
                 set({ isCrossfading: false });
-              }
-            })
-            .catch(() => {
-              set({ isCrossfading: false });
-            });
+              });
+          }
         }
       }
     };

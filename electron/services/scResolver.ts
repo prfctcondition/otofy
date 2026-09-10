@@ -578,4 +578,55 @@ export async function getGenreTracks(genre: string): Promise<SCSearchResult[]> {
   });
 }
 
-export default { resolve, search, getArtistDetails, getAlbum, getGenreTracks, getClientId, formatDuration, fetchSC };
+export async function getRelatedTracks(trackId: string): Promise<SCSearchResult[]> {
+  const cleanId = trackId.replace(/^(?:sc-|dm-sc-)/, '');
+  try {
+    const response = await fetchSC(`https://api-v2.soundcloud.com/tracks/${encodeURIComponent(cleanId)}/related`, {
+      limit: 25,
+    });
+
+    if (!response.ok) {
+      console.warn(`[scResolver] SoundCloud related failed with status: ${response.status}`);
+      return [];
+    }
+
+    const data: any = await response.json();
+    const collection: any[] = data?.collection || [];
+
+    const validCollection = collection.filter((item: any) => {
+      if (item.policy === 'SNIP' || item.snipped === true) return false;
+      const durSec = Math.round((item.duration || 0) / 1000);
+      if (durSec <= 35 && (item.full_duration > 60000 || !item.full_duration)) return false;
+      return true;
+    });
+
+    return validCollection.map((item: any) => {
+      const durationSec = Math.round((item.duration || 0) / 1000);
+      const rawArtwork: string = item.artwork_url || item.user?.avatar_url || '';
+      const artworkUrl = rawArtwork ? rawArtwork.replace('-large.', '-t500x500.') : undefined;
+
+      const rawArtist =
+        item.publisher_metadata?.artist ||
+        item.publisher_metadata?.album_artist ||
+        item.user?.username;
+      const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+
+      return {
+        id: String(item.id),
+        title,
+        artist,
+        album: item.publisher_metadata?.album_title || '',
+        duration: formatDuration(durationSec),
+        durationSec,
+        source: 'SC' as const,
+        artworkUrl,
+        sourceId: String(item.id),
+      };
+    });
+  } catch (err) {
+    console.warn(`[scResolver] getRelatedTracks error for ${cleanId}:`, err);
+    return [];
+  }
+}
+
+export default { resolve, search, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };

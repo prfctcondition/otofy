@@ -323,6 +323,48 @@ ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: stri
   }
 });
 
+ipcMain.handle(
+  'music:get-related-tracks',
+  async (
+    _event,
+    {
+      trackId,
+      source,
+      artist,
+      title,
+    }: { trackId: string; source: 'YT' | 'SC'; artist?: string; title?: string }
+  ) => {
+    const cacheKey = `related:${source}:${trackId}`;
+    const cached = getIpcCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      let results: any[] = [];
+      if (source === 'SC') {
+        results = await scResolver.getRelatedTracks(trackId);
+        // Fallback if related returned empty
+        if (results.length === 0 && (artist || title)) {
+          results = await scResolver.getGenreTracks(artist || title || 'electronic');
+        }
+      } else {
+        results = await innertubeService.getRelatedTracks(trackId);
+        // Fallback if related returned empty
+        if (results.length === 0 && (artist || title)) {
+          results = await innertubeService.getGenreTracks(`${artist || title} radio`);
+        }
+      }
+
+      if (results && results.length > 0) {
+        setIpcCache(cacheKey, results);
+      }
+      return results;
+    } catch (err) {
+      console.warn('[main] getRelatedTracks error:', err);
+      return [];
+    }
+  }
+);
+
 ipcMain.handle('music:import-remote-playlist', async (_event, { source, url }: { source: string; url: string }) => {
   try {
     if (source === 'SC' || url.includes('soundcloud.com')) {

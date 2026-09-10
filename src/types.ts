@@ -169,6 +169,12 @@ declare global {
       getAlbum?: (browseId: string, source?: 'YT' | 'SC') => Promise<AlbumDetails>;
       getLyrics?: (videoId: string) => Promise<string | undefined>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
+      getRelatedTracks?: (
+        trackId: string,
+        source: 'YT' | 'SC',
+        artist?: string,
+        title?: string
+      ) => Promise<Track[]>;
       importRemotePlaylist: (source: string, url: string) => Promise<{ title: string; tracks: Track[] }>;
       loginAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; username?: string; error?: string }>;
       windowControl: (action: 'minimize' | 'maximize' | 'close') => void;

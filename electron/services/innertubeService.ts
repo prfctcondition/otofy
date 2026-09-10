@@ -1092,12 +1092,105 @@ export async function getLyrics(videoId: string): Promise<string | undefined> {
   }
 }
 
+export async function getRelatedTracks(videoId: string): Promise<InnertubeTrack[]> {
+  const yt = await getInnertube();
+  const tracks: InnertubeTrack[] = [];
+  const cleanId = videoId.replace(/^(?:yt-|dm-yt-)/, '');
+
+  try {
+    // Primary: YouTube Music native automix radio (50 tracks)
+    const upNext = await yt.music.getUpNext(cleanId, true);
+    const contents: any[] = (upNext.contents as any[]) || [];
+
+    for (const item of contents) {
+      const vId = item.video_id || item.id;
+      if (!vId || vId === cleanId) continue;
+
+      const rawTitle = typeof item.title === 'string' ? item.title : item.title?.text || item.title?.toString() || 'Untitled';
+      const rawArtist =
+        item.author?.name ||
+        (typeof item.author === 'string' ? item.author : item.author?.toString()) ||
+        (Array.isArray(item.artists) ? item.artists.map((a: any) => a.name).filter(Boolean).join(', ') : '') ||
+        extractInnertubeArtist(item) ||
+        'Unknown Artist';
+
+      const { title, artist } = cleanArtistAndTitle(rawTitle, rawArtist);
+      const album = item.album?.name || '';
+      const durStr =
+        item.duration?.text ||
+        (item.duration?.seconds
+          ? `${Math.floor(item.duration.seconds / 60)}:${String(item.duration.seconds % 60).padStart(2, '0')}`
+          : '0:00');
+      const durSec = item.duration?.seconds || parseDurationToSec(durStr);
+
+      const thumbs = item.thumbnails || item.thumbnail || [];
+      const artwork = extractThumbnailUrl(thumbs) || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
+
+      if (!tracks.some((t) => t.id === vId)) {
+        tracks.push({
+          id: vId,
+          title,
+          artist,
+          album,
+          duration: durStr,
+          durationSec: durSec,
+          source: 'YT',
+          sourceLabel: 'YouTube Music',
+          artworkUrl: artwork,
+          sourceId: vId,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`[InnertubeService] Failed to getUpNext radio for ${cleanId}:`, err);
+  }
+
+  // Fallback to getRelated if getUpNext returned empty
+  if (tracks.length === 0) {
+    try {
+      const rel = await yt.music.getRelated(cleanId);
+      const sections: any[] = (rel as any)?.sections || (rel as any)?.contents || [];
+      for (const sec of sections) {
+        const items = sec.contents || sec.items || [];
+        for (const item of items) {
+          const vId = item.id || item.video_id;
+          if (!vId || vId === cleanId) continue;
+          const rawTitle = item.title?.text || item.title?.toString() || 'Untitled';
+          const rawArtist = extractInnertubeArtist(item) || 'Unknown Artist';
+          const { title, artist } = cleanArtistAndTitle(rawTitle, rawArtist);
+          const durStr = item.duration?.text || '0:00';
+          const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail) || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
+          if (!tracks.some((t) => t.id === vId)) {
+            tracks.push({
+              id: vId,
+              title,
+              artist,
+              album: item.album?.name || '',
+              duration: durStr,
+              durationSec: parseDurationToSec(durStr),
+              source: 'YT',
+              sourceLabel: 'YouTube Music',
+              artworkUrl: artwork,
+              sourceId: vId,
+            });
+          }
+        }
+      }
+    } catch (relErr) {
+      console.warn(`[InnertubeService] Failed getRelated fallback for ${cleanId}:`, relErr);
+    }
+  }
+
+  return tracks;
+}
+
 export default {
   getInnertube,
   search,
   getArtist,
   getAlbum,
   getGenreTracks,
+  getRelatedTracks,
   getLyrics,
   parseDurationToSec,
 };
