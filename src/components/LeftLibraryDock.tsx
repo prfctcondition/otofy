@@ -7,7 +7,6 @@ import {
   ListFilter,
   Pin,
   Download,
-  Cloud,
   Trash2,
   Check,
   User,
@@ -253,18 +252,21 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
         const tB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
         return tB - tA;
       }
-      // 'recents' (lastOpenedAt descending, fallback to dateAdded)
-      const tA = a.lastOpenedAt
+      // 'recents' (strictly user-driven lastOpenedAt descending, fallback to deterministic title alphabetical)
+      const tA = typeof a.lastOpenedAt === 'number'
+        ? a.lastOpenedAt
+        : a.lastOpenedAt
         ? new Date(a.lastOpenedAt).getTime()
-        : a.dateAdded
-        ? new Date(a.dateAdded).getTime()
         : 0;
-      const tB = b.lastOpenedAt
+      const tB = typeof b.lastOpenedAt === 'number'
+        ? b.lastOpenedAt
+        : b.lastOpenedAt
         ? new Date(b.lastOpenedAt).getTime()
-        : b.dateAdded
-        ? new Date(b.dateAdded).getTime()
         : 0;
-      return tB - tA;
+      if (tA !== tB) {
+        return tB - tA;
+      }
+      return a.title.localeCompare(b.title);
     });
 
     return [...pinned, ...unpinned];
@@ -306,15 +308,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
 
           {!isCollapsed && (
             <div className="flex items-center gap-1 text-[#64748B] dark:text-white/80">
-              <button
-                id="account-sync-dock-btn"
-                onClick={() => useLibraryStore.getState().toggleSyncModal()}
-                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white transition-colors"
-                title="Account Sync (YouTube Music / SoundCloud)"
-                aria-label="Sync playlists"
-              >
-                <Cloud size={17} />
-              </button>
               <button
                 id="import-playlist-btn"
                 onClick={onImportCode}
@@ -572,15 +565,13 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   {!isCollapsed && (
                     <>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-sm font-semibold truncate ${
-                              isSelected ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
-                            }`}
-                          >
-                            {pl.title}
-                          </span>
-                        </div>
+                        <span
+                          className={`text-sm font-semibold truncate ${
+                            isSelected ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
+                          }`}
+                        >
+                          {pl.title}
+                        </span>
                         <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
                           {pl.isPinned && (
                             <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5">
@@ -626,6 +617,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`art-${art.id}`}
                   onClick={() => {
                     onSelectArtist?.(art.name, art.source);
+                    recordEntityOpened(art.name, 'artist').catch(() => {});
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed
@@ -690,6 +682,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`alb-${alb.id}`}
                   onClick={() => {
                     onSelectAlbum?.(alb.id, alb.title, alb.artist, alb.source);
+                    recordEntityOpened(alb.id, 'album').catch(() => {});
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed

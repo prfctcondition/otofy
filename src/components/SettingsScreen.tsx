@@ -14,10 +14,16 @@ import {
   Check,
   AlertTriangle,
   RotateCcw,
+  DownloadCloud,
+  ExternalLink,
+  CheckCircle2,
+  RefreshCw,
+  Cloud,
 } from 'lucide-react';
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
 import { useLibraryStore } from '../store/libraryStore';
 import useToastStore from '../store/toastStore';
+import type { UpdateCheckResult } from '../types';
 
 interface AudioDeviceOption {
   deviceId: string;
@@ -32,6 +38,11 @@ export const SettingsScreen: React.FC = () => {
   const [isClearingCache, setIsClearingCache] = useState<boolean>(false);
   const [audioDevices, setAudioDevices] = useState<AudioDeviceOption[]>([]);
   const [showRestartModal, setShowRestartModal] = useState<boolean>(false);
+
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
+  const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
 
   // Fetch cache size and audio output devices
   useEffect(() => {
@@ -109,6 +120,55 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      if (window.electronAPI?.checkForUpdates) {
+        const res = await window.electronAPI.checkForUpdates();
+        setUpdateInfo(res);
+        if (!res.hasUpdate) {
+          useToastStore.getState().success('Up to Date', `You are running the latest version of Otofy (${res.currentVersion}).`);
+        }
+      } else {
+        setUpdateInfo({
+          hasUpdate: false,
+          canAutoInstall: false,
+          currentVersion: '1.0.2 (Web)',
+          latestVersion: '1.0.2',
+          releaseNotes: 'Running in browser preview mode.',
+        });
+      }
+    } catch (err: any) {
+      useToastStore.getState().error('Update Check Failed', err?.message || 'Failed to query GitHub releases.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleDownloadAndInstallUpdate = async () => {
+    setIsDownloadingUpdate(true);
+    setUpdateProgress({ percent: 0, transferred: 0, total: 0 });
+    try {
+      if (window.electronAPI?.onUpdateDownloadProgress) {
+        window.electronAPI.onUpdateDownloadProgress((prog) => {
+          setUpdateProgress(prog);
+        });
+      }
+      if (window.electronAPI?.downloadAndInstallUpdate) {
+        const res = await window.electronAPI.downloadAndInstallUpdate();
+        if (!res.success) {
+          useToastStore.getState().error('Update Failed', res.error || 'Failed to download installer.');
+          setIsDownloadingUpdate(false);
+          setUpdateProgress(null);
+        }
+      }
+    } catch (err: any) {
+      useToastStore.getState().error('Update Error', err?.message || 'Error occurred during update download.');
+      setIsDownloadingUpdate(false);
+      setUpdateProgress(null);
+    }
+  };
+
   return (
     <div
       id="settings-screen"
@@ -133,6 +193,30 @@ export const SettingsScreen: React.FC = () => {
       </div>
 
       <div className="max-w-4xl space-y-8 pb-16">
+        {/* SECTION 0: Account & Cloud Sync */}
+        <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-4">
+            <Cloud size={18} className="text-[#0F172A] dark:text-white" />
+            <h2 className="text-base font-bold">Account & Cloud Sync</h2>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 py-3">
+            <div className="max-w-xl">
+              <span className="text-sm font-semibold block">Connected services & library synchronization</span>
+              <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                Connect your YouTube Music or SoundCloud accounts to seamlessly sync personal playlists, liked songs, and lift network rate limits.
+              </p>
+            </div>
+            <button
+              onClick={() => useLibraryStore.getState().toggleSyncModal()}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+            >
+              <Cloud size={14} />
+              <span>Manage Accounts</span>
+            </button>
+          </div>
+        </section>
+
         {/* SECTION 1: Autoplay */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
@@ -488,6 +572,112 @@ export const SettingsScreen: React.FC = () => {
                 }`}
               />
             </button>
+          </div>
+        </section>
+
+        {/* SECTION 7: App Updates */}
+        <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <DownloadCloud size={18} className="text-[#0F172A] dark:text-white" />
+              <h2 className="text-base font-bold">App Updates</h2>
+            </div>
+            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
+              v1.0.2
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 py-1">
+              <div className="max-w-xl">
+                <span className="text-sm font-semibold block">Check for updates</span>
+                <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                  Check GitHub releases for new features, audio improvements, and official installer upgrades.
+                </p>
+              </div>
+              <button
+                id="check-updates-btn"
+                onClick={handleCheckUpdate}
+                disabled={isCheckingUpdate || isDownloadingUpdate}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin' : ''} />
+                <span>{isCheckingUpdate ? 'Checking...' : 'Check now'}</span>
+              </button>
+            </div>
+
+            {/* Update available banner */}
+            {updateInfo && updateInfo.hasUpdate && (
+              <div className="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse" />
+                    <span className="text-xs font-bold text-sky-950 dark:text-sky-200">
+                      Update {updateInfo.latestVersion} available
+                    </span>
+                  </div>
+                  {updateInfo.fileSize && (
+                    <span className="text-[11px] font-mono text-sky-700 dark:text-sky-300">
+                      {(updateInfo.fileSize / (1024 * 1024)).toFixed(1)} MB
+                    </span>
+                  )}
+                </div>
+
+                {updateInfo.releaseNotes && (
+                  <div className="p-3 bg-white/70 dark:bg-black/40 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 max-h-32 overflow-y-auto whitespace-pre-wrap select-text border border-sky-100 dark:border-sky-900/40">
+                    {updateInfo.releaseNotes}
+                  </div>
+                )}
+
+                {isDownloadingUpdate && updateProgress && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-[11px] font-bold text-sky-900 dark:text-sky-200">
+                      <span>Downloading official installer...</span>
+                      <span>{updateProgress.percent}%</span>
+                    </div>
+                    <div className="w-full bg-sky-200 dark:bg-sky-900 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-sky-600 dark:bg-sky-400 h-full transition-all duration-200 rounded-full"
+                        style={{ width: `${Math.max(updateProgress.percent, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1">
+                  {updateInfo.canAutoInstall ? (
+                    <button
+                      onClick={handleDownloadAndInstallUpdate}
+                      disabled={isDownloadingUpdate}
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <DownloadCloud size={14} />
+                      <span>{isDownloadingUpdate ? 'Downloading installer...' : 'Install & Restart'}</span>
+                    </button>
+                  ) : null}
+
+                  {updateInfo.releaseUrl && (
+                    <a
+                      href={updateInfo.releaseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-2 bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-xl text-xs font-semibold transition-all border border-slate-200 dark:border-white/15 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>View on GitHub</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Up to date message */}
+            {updateInfo && !updateInfo.hasUpdate && !updateInfo.error && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300 text-xs font-medium animate-in fade-in">
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span>Otofy is up to date ({updateInfo.currentVersion}).</span>
+              </div>
+            )}
           </div>
         </section>
       </div>

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { Cloud, X, Youtube, Radio, CheckCircle2, AlertCircle, RefreshCw, LogOut, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Cloud, X, Youtube, Radio, CheckCircle2, AlertCircle, RefreshCw, LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import repo from '../db/repository';
-import type { Track } from '../types';
 
 interface AccountSyncModalProps {
   isOpen: boolean;
@@ -15,13 +14,47 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
   const [scConnected, setScConnected] = useState(false);
   const [scUser, setScUser] = useState<string | null>(null);
 
-  const [scInputUsername, setScInputUsername] = useState('');
   const [isAuthorizing, setIsAuthorizing] = useState<'yt' | 'sc' | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncPercent, setSyncPercent] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   const loadLibrary = useLibraryStore((state) => state.loadLibrary);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Load initial account connection status
+    if (window.electronAPI?.getAccountStatus) {
+      window.electronAPI.getAccountStatus().then((status) => {
+        if (status.youtube.connected) {
+          setYtConnected(true);
+          setYtUser(status.youtube.username || 'Google Account');
+        } else {
+          setYtConnected(false);
+          setYtUser(null);
+        }
+
+        if (status.soundcloud.connected) {
+          setScConnected(true);
+          setScUser(status.soundcloud.username || 'SoundCloud User');
+        } else {
+          setScConnected(false);
+          setScUser(null);
+        }
+      }).catch(() => {});
+    }
+
+    if (window.electronAPI?.onCloudSyncProgress) {
+      const cleanup = window.electronAPI.onCloudSyncProgress((progress) => {
+        const pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+        setSyncPercent(pct);
+        setStatusMessage(progress.message);
+      });
+      return cleanup;
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -36,15 +69,13 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
         if (res.success) {
           setYtConnected(true);
           setYtUser(res.username || 'Google Account');
-          setStatusMessage('YouTube Music authorized successfully!');
+          setStatusMessage('Google Account connected successfully! Rate limits lifted.');
           await handleSyncYT();
         } else {
           setErrorMessage(res.error || 'YouTube Music authorization canceled.');
         }
       } else {
-        // Browser fallback: open Google login in new window
         window.open('https://accounts.google.com/ServiceLogin?service=youtube', '_blank');
-        // Mark as authenticated for demo / browser session
         setYtConnected(true);
         setYtUser('Google User (Web Session)');
         setStatusMessage('Google authentication session active.');
@@ -59,32 +90,24 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
   const handleAuthorizeSC = async () => {
     setErrorMessage('');
     setStatusMessage('');
-
-    if (!scInputUsername.trim() && !window.electronAPI?.loginAccount) {
-      setErrorMessage('Please enter your SoundCloud profile username or artist URL.');
-      return;
-    }
-
     setIsAuthorizing('sc');
 
     try {
-      if (window.electronAPI?.loginAccount && !scInputUsername.trim()) {
+      if (window.electronAPI?.loginAccount) {
         const res = await window.electronAPI.loginAccount('soundcloud');
         if (res.success) {
           setScConnected(true);
-          setScUser(res.username || 'SoundCloud Account');
-          setStatusMessage('SoundCloud authorized successfully!');
+          setScUser(res.username || 'SoundCloud User');
+          setStatusMessage('SoundCloud connected successfully!');
           await handleSyncSC();
         } else {
           setErrorMessage(res.error || 'SoundCloud authorization canceled.');
         }
       } else {
-        // Connect by username / profile
-        const username = scInputUsername.trim().replace(/^https?:\/\/soundcloud\.com\//, '').split('/')[0];
+        window.open('https://soundcloud.com/signin', '_blank');
         setScConnected(true);
-        setScUser(username || 'SoundCloud User');
-        setStatusMessage(`Connected to SoundCloud profile: ${username}`);
-        await handleSyncSC(username);
+        setScUser('SoundCloud User (Web)');
+        setStatusMessage('SoundCloud session active.');
       }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to connect SoundCloud account.');
@@ -93,128 +116,122 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleSyncYT = async () => {
-    setIsSyncing(true);
-    setStatusMessage('Syncing YouTube Music library & playlists...');
+  const handleDisconnect = async (platform: 'youtube' | 'soundcloud') => {
+    setErrorMessage('');
+    setStatusMessage('');
     try {
-      // Create imported playlist container
-      const newPlaylist = await repo.createPlaylist({
-        id: `pl-yt-sync-${Date.now()}`,
-        title: 'YouTube Music Favorites',
-        creator: ytUser || 'YouTube Music',
-        iconName: 'music',
-        gradientFrom: '#DC2626',
-        gradientTo: '#991B1B',
-      });
-
-      // Fetch curated/synced real tracks
-      const sampleIds = ['8GW6sLrK40k', 'MV_3Dpw-BRY', 'w-sQRS-TF9k', 'ao4RCon2S44'];
-      for (let i = 0; i < sampleIds.length; i++) {
-        const trk: Track = {
-          id: `yt-sync-${sampleIds[i]}`,
-          number: i + 1,
-          title: i === 0 ? 'Resonance' : i === 1 ? 'Nightcall' : i === 2 ? 'Murder In My Mind' : 'Close Eyes',
-          artist: i === 0 ? 'HOME' : i === 1 ? 'Kavinsky' : i === 2 ? 'KORDHELL' : 'DVRST',
-          album: 'YouTube Music Library',
-          duration: '3:30',
-          durationSec: 210,
-          dateAdded: 'Synced',
-          source: 'YT',
-          sourceLabel: 'YouTube Music',
-          sourceId: sampleIds[i],
-          artworkUrl: `https://i.ytimg.com/vi/${sampleIds[i]}/hqdefault.jpg`,
-          iconName: 'music',
-          gradientFrom: '#DC2626',
-          gradientTo: '#7F1D1D',
-          isLiked: true,
-        };
-        await repo.putTrack(trk);
-        await repo.addTrackToPlaylist(newPlaylist.id, trk.id);
+      if (window.electronAPI?.logoutAccount) {
+        await window.electronAPI.logoutAccount(platform);
       }
-
-      await loadLibrary();
-      setStatusMessage('YouTube Music playlists synced successfully!');
-    } catch (err) {
-      console.warn('Sync YT error:', err);
-    } finally {
-      setIsSyncing(false);
+      if (platform === 'youtube') {
+        setYtConnected(false);
+        setYtUser(null);
+      } else {
+        setScConnected(false);
+        setScUser(null);
+      }
+      setStatusMessage(`Disconnected from ${platform === 'youtube' ? 'YouTube Music' : 'SoundCloud'}.`);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to disconnect account.');
     }
   };
 
-  const handleSyncSC = async (profileUser?: string) => {
+  const handleSyncYT = async () => {
     setIsSyncing(true);
-    setStatusMessage('Syncing SoundCloud playlists & likes...');
+    setErrorMessage('');
+    setStatusMessage('Syncing YouTube Music library & playlists...');
+    setSyncPercent(0);
+
     try {
-      const user = profileUser || scUser || 'User';
-      const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
-      const scRes = await fetch(
-        `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(user)}&client_id=${clientId}&limit=6`
-      );
-
-      if (scRes.ok) {
-        const scData = await scRes.json();
-        const items = scData.collection || [];
-
-        if (items.length > 0) {
-          const newPlaylist = await repo.createPlaylist({
-            id: `pl-sc-sync-${Date.now()}`,
-            title: `SoundCloud • ${user}`,
-            creator: user,
-            iconName: 'radio',
-            gradientFrom: '#EA580C',
-            gradientTo: '#C2410C',
-          });
-
-          for (let i = 0; i < items.length; i++) {
-            const t = items[i];
-            const durSec = Math.round((t.duration || 0) / 1000);
-            const mins = Math.floor(durSec / 60);
-            const secs = Math.floor(durSec % 60);
-            const trk: Track = {
-              id: `sc-sync-${t.id}`,
-              number: i + 1,
-              title: t.title || 'Untitled',
-              artist: t.user?.username || user,
-              album: 'SoundCloud Likes',
-              duration: `${mins}:${secs.toString().padStart(2, '0')}`,
-              durationSec: durSec,
-              dateAdded: 'Synced',
-              source: 'SC',
-              sourceLabel: 'SoundCloud',
-              sourceId: String(t.id),
-              artworkUrl: (t.artwork_url || t.user?.avatar_url || '').replace('-large.', '-t500x500.'),
-              iconName: 'radio',
-              gradientFrom: '#EA580C',
-              gradientTo: '#9A3412',
-              isLiked: false,
-            };
-            await repo.putTrack(trk);
-            await repo.addTrackToPlaylist(newPlaylist.id, trk.id);
+      if (window.electronAPI?.syncCloudLibrary) {
+        const res = await window.electronAPI.syncCloudLibrary('youtube');
+        if (res.success && res.playlists?.length > 0) {
+          for (const pl of res.playlists) {
+            if (pl.id === 'pl-yt-liked' || pl.id === 'pl-sc-likes') continue;
+            await repo.createPlaylist({
+              id: pl.id,
+              title: pl.title,
+              creator: pl.creator,
+              artworkUrl: pl.artworkUrl,
+              iconName: pl.iconName || 'music',
+              gradientFrom: pl.gradientFrom || '#DC2626',
+              gradientTo: pl.gradientTo || '#991B1B',
+              isSynced: true,
+              syncSource: 'youtube',
+            });
+            await repo.reconcilePlaylistTracks(pl.id, pl.tracks as any);
           }
-
           await loadLibrary();
-          setStatusMessage(`SoundCloud library synced (${items.length} tracks imported)!`);
+          setStatusMessage(`Synced ${res.playlists.length} playlists from YouTube Music!`);
+        } else if (res.error) {
+          setErrorMessage(res.error);
+        } else {
+          setStatusMessage('No playlists found to sync in this account.');
         }
       }
-    } catch (err) {
-      console.warn('Sync SC error:', err);
+    } catch (err: any) {
+      console.warn('Sync YT error:', err);
+      setErrorMessage(err?.message || 'Failed to sync YouTube library.');
     } finally {
       setIsSyncing(false);
+      setSyncPercent(null);
+    }
+  };
+
+  const handleSyncSC = async () => {
+    setIsSyncing(true);
+    setErrorMessage('');
+    setStatusMessage('Syncing SoundCloud playlists...');
+    setSyncPercent(0);
+
+    try {
+      if (window.electronAPI?.syncCloudLibrary) {
+        const res = await window.electronAPI.syncCloudLibrary('soundcloud');
+        if (res.success && res.playlists?.length > 0) {
+          for (const pl of res.playlists) {
+            if (pl.id === 'pl-yt-liked' || pl.id === 'pl-sc-likes') continue;
+            await repo.createPlaylist({
+              id: pl.id,
+              title: pl.title,
+              creator: pl.creator,
+              artworkUrl: pl.artworkUrl,
+              iconName: pl.iconName || 'radio',
+              gradientFrom: pl.gradientFrom || '#EA580C',
+              gradientTo: pl.gradientTo || '#C2410C',
+              isSynced: true,
+              syncSource: 'soundcloud',
+            });
+            await repo.reconcilePlaylistTracks(pl.id, pl.tracks as any);
+          }
+          await loadLibrary();
+          setStatusMessage(`Synced ${res.playlists.length} playlists from SoundCloud!`);
+        } else if (res.error) {
+          setErrorMessage(res.error);
+        } else {
+          setStatusMessage('No playlists found to sync in this account.');
+        }
+      }
+    } catch (err: any) {
+      console.warn('Sync SC error:', err);
+      setErrorMessage(err?.message || 'Failed to sync SoundCloud library.');
+    } finally {
+      setIsSyncing(false);
+      setSyncPercent(null);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-lg flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-lg flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-[#0F172A] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
               <Cloud size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Account Sync</h2>
-              <p className="text-xs text-[#64748B] dark:text-white/60">Authorize and synchronize your external streaming libraries</p>
+              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Account & Cloud Sync</h2>
+              <p className="text-xs text-[#64748B] dark:text-white/60">Connect accounts to bypass rate limits and sync your libraries</p>
             </div>
           </div>
           <button
@@ -225,26 +242,42 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
           </button>
         </div>
 
-        {/* Cloud Sync Status Card */}
+        {/* Info Card */}
         <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 mb-5 flex items-start gap-3.5 backdrop-blur-md">
-          <div className="p-2.5 rounded-xl bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0 mt-0.5">
-            <Cloud size={20} />
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
+            <ShieldCheck size={20} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">Cloud Sync — Coming Soon</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 rounded-full border border-sky-200 dark:border-sky-800/60">
-                In Development
+              <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">Account Free by Default</h4>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                Optional
               </span>
             </div>
             <p className="text-xs text-[#64748B] dark:text-white/60 leading-relaxed">
-              Cross-device playlist and library synchronization is currently in development.
+              Otofy works without an account. Connecting your Google or SoundCloud account provides exemption from YouTube bot challenges and enables 1-click library sync.
             </p>
           </div>
         </div>
 
+        {/* Sync Progress Bar */}
+        {isSyncing && syncPercent !== null && (
+          <div className="mb-4">
+            <div className="flex justify-between text-[11px] font-bold text-[#64748B] dark:text-white/70 mb-1.5">
+              <span>{statusMessage || 'Synchronizing...'}</span>
+              <span>{syncPercent}%</span>
+            </div>
+            <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-[#0F172A] dark:bg-white h-full transition-all duration-300 rounded-full"
+                style={{ width: `${Math.max(syncPercent, 5)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Status Banners */}
-        {statusMessage && (
+        {!isSyncing && statusMessage && (
           <div className="mb-4 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl text-xs font-medium">
             <CheckCircle2 size={16} className="shrink-0" />
             <span>{statusMessage}</span>
@@ -259,7 +292,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
         )}
 
         {/* Platform Cards */}
-        <div className="space-y-4 mb-6 opacity-50 pointer-events-none select-none filter grayscale-[20%]">
+        <div className="space-y-4 mb-6">
           {/* YouTube Music Card */}
           <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -270,7 +303,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                 <div>
                   <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">YouTube Music</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
-                    {ytConnected ? ytUser : 'Google account login required to sync playlists'}
+                    {ytConnected ? ytUser : 'Connect Google account to sync playlists and prevent bot challenge'}
                   </p>
                 </div>
               </div>
@@ -287,11 +320,11 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               {!ytConnected ? (
                 <button
                   onClick={handleAuthorizeYT}
-                  disabled={isAuthorizing === 'yt'}
-                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isAuthorizing === 'yt' || isSyncing}
+                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isAuthorizing === 'yt' ? (
-                    <span>Opening Google Auth...</span>
+                    <span>Signing in via Google...</span>
                   ) : (
                     <>
                       <span>Authorize with Google</span>
@@ -304,18 +337,16 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   <button
                     onClick={handleSyncYT}
                     disabled={isSyncing}
-                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
                     <span>Sync Playlists</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setYtConnected(false);
-                      setYtUser(null);
-                    }}
-                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-                    title="Disconnect"
+                    onClick={() => handleDisconnect('youtube')}
+                    disabled={isSyncing}
+                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                    title="Disconnect Account"
                   >
                     <LogOut size={16} />
                   </button>
@@ -334,7 +365,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                 <div>
                   <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">SoundCloud</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
-                    {scConnected ? scUser : 'Enter your SoundCloud profile or sign in'}
+                    {scConnected ? scUser : 'Sign in to sync your SoundCloud playlists and liked tracks'}
                   </p>
                 </div>
               </div>
@@ -347,27 +378,15 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               )}
             </div>
 
-            {!scConnected && (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={scInputUsername}
-                  onChange={(e) => setScInputUsername(e.target.value)}
-                  placeholder="SoundCloud profile or username"
-                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 rounded-xl text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-orange-500"
-                />
-              </div>
-            )}
-
             <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-white/10">
               {!scConnected ? (
                 <button
                   onClick={handleAuthorizeSC}
-                  disabled={isAuthorizing === 'sc'}
-                  className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isAuthorizing === 'sc' || isSyncing}
+                  className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isAuthorizing === 'sc' ? (
-                    <span>Connecting...</span>
+                    <span>Signing in to SoundCloud...</span>
                   ) : (
                     <>
                       <span>Connect SoundCloud Account</span>
@@ -378,20 +397,18 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               ) : (
                 <>
                   <button
-                    onClick={() => handleSyncSC()}
+                    onClick={handleSyncSC}
                     disabled={isSyncing}
-                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white/15 dark:hover:bg-white/25 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
-                    <span>Sync Playlists</span>
+                    <span>Sync Playlists & Likes</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setScConnected(false);
-                      setScUser(null);
-                    }}
-                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-                    title="Disconnect"
+                    onClick={() => handleDisconnect('soundcloud')}
+                    disabled={isSyncing}
+                    className="p-2 text-[#94A3B8] dark:text-white/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                    title="Disconnect Account"
                   >
                     <LogOut size={16} />
                   </button>
@@ -411,3 +428,5 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
     </div>
   );
 };
+
+export default AccountSyncModal;

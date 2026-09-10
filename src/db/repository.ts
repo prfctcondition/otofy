@@ -33,6 +33,7 @@ function dbTrackToTrack(dt: DbTrack): Track {
 }
 
 function dbPlaylistToPlaylist(dp: DbPlaylist): Playlist {
+  const isCloud = dp.id.startsWith('pl-yt-') || dp.id.startsWith('pl-sc-');
   return {
     id: dp.id,
     title: dp.title,
@@ -48,6 +49,12 @@ function dbPlaylistToPlaylist(dp: DbPlaylist): Playlist {
     shareCode: dp.shareCode,
     artworkUrl: dp.artworkUrl,
     description: dp.description,
+    createdAt: dp.createdAt,
+    lastOpenedAt: dp.lastOpenedAt,
+    lastPlayedAt: dp.lastPlayedAt,
+    isSynced: dp.isSynced ?? isCloud,
+    syncSource: dp.syncSource || (dp.id.startsWith('pl-yt-') ? 'youtube' : dp.id.startsWith('pl-sc-') ? 'soundcloud' : undefined),
+    removedTrackIds: dp.removedTrackIds || [],
   };
 }
 
@@ -64,22 +71,30 @@ export const repo = {
   },
 
   async createPlaylist(data: Partial<Playlist> & { id: string; title: string }): Promise<Playlist> {
+    const isCloud = data.id.startsWith('pl-yt-') || data.id.startsWith('pl-sc-');
+    const existing = await db.playlists.get(data.id);
     const dp: DbPlaylist = {
       id: data.id,
       title: data.title,
-      type: data.type || 'Playlist',
-      creator: data.creator || 'You',
-      songCount: data.songCount || 0,
-      duration: data.duration || '0m',
-      isPinned: data.isPinned ?? false,
-      iconName: data.iconName || 'music',
-      gradientFrom: data.gradientFrom || '#6366F1',
-      gradientTo: data.gradientTo || '#9333EA',
-      isDailyMix: data.isDailyMix ?? false,
-      shareCode: data.shareCode,
-      artworkUrl: data.artworkUrl,
-      description: data.description,
-      updatedAt: Date.now(),
+      type: data.type || existing?.type || 'Playlist',
+      creator: data.creator || existing?.creator || 'You',
+      songCount: data.songCount ?? existing?.songCount ?? 0,
+      duration: data.duration || existing?.duration || '0m',
+      isPinned: existing ? (existing.isPinned ?? false) : (data.isPinned ?? false),
+      iconName: data.iconName || existing?.iconName || 'music',
+      gradientFrom: data.gradientFrom || existing?.gradientFrom || '#6366F1',
+      gradientTo: data.gradientTo || existing?.gradientTo || '#9333EA',
+      isDailyMix: data.isDailyMix ?? existing?.isDailyMix ?? false,
+      shareCode: data.shareCode || existing?.shareCode,
+      artworkUrl: data.artworkUrl || existing?.artworkUrl,
+      description: data.description || existing?.description,
+      createdAt: existing?.createdAt ?? (typeof data.createdAt === 'number' ? data.createdAt : Date.now()),
+      lastOpenedAt: existing?.lastOpenedAt ?? (typeof data.lastOpenedAt === 'number' ? data.lastOpenedAt : undefined),
+      lastPlayedAt: existing?.lastPlayedAt ?? (typeof data.lastPlayedAt === 'number' ? data.lastPlayedAt : undefined),
+      updatedAt: existing?.updatedAt ?? Date.now(),
+      isSynced: data.isSynced ?? existing?.isSynced ?? isCloud,
+      syncSource: data.syncSource || existing?.syncSource || (data.id.startsWith('pl-yt-') ? 'youtube' : data.id.startsWith('pl-sc-') ? 'soundcloud' : undefined),
+      removedTrackIds: existing?.removedTrackIds || data.removedTrackIds || [],
     };
     await db.playlists.put(dp);
     return dbPlaylistToPlaylist(dp);
@@ -139,6 +154,11 @@ export const repo = {
     return rawList
       .filter((t): t is DbTrack => t !== undefined)
       .map(dbTrackToTrack);
+  },
+
+  async getTrack(id: string): Promise<Track | undefined> {
+    const dt = await db.tracks.get(id);
+    return dt ? dbTrackToTrack(dt) : undefined;
   },
 
   async putTrack(track: Track): Promise<void> {
@@ -241,10 +261,25 @@ export const repo = {
     if (playlistId === 'pl-liked') {
       await db.tracks.update(trackId, { isLiked: true });
     }
-    // Update song count
+
+    // If this track was previously tombstoned, untombstone it
+    const pl = await db.playlists.get(playlistId);
+    let removedTrackIds = pl?.removedTrackIds;
+    if (removedTrackIds && removedTrackIds.length > 0) {
+      const track = await db.tracks.get(trackId);
+      const set = new Set(removedTrackIds);
+      set.delete(trackId);
+      if (track?.sourceId) set.delete(track.sourceId);
+      const match = trackId.match(/([a-zA-Z0-9_-]{11})$/);
+      if (match) set.delete(match[1]);
+      removedTrackIds = Array.from(set);
+    }
+
+    // Update song count (and clear tombstone if needed)
     await db.playlists.update(playlistId, {
       songCount: count + 1,
       updatedAt: Date.now(),
+      ...(removedTrackIds !== undefined ? { removedTrackIds } : {}),
     });
   },
 
@@ -270,10 +305,68 @@ export const repo = {
     if (toAdd.length > 0) {
       await db.playlistTracks.bulkAdd(toAdd);
     }
+
+    // Untombstone any of these tracks
+    const pl = await db.playlists.get(playlistId);
+    let removedTrackIds = pl?.removedTrackIds;
+    if (removedTrackIds && removedTrackIds.length > 0) {
+      const set = new Set(removedTrackIds);
+      for (const trackId of trackIds) {
+        set.delete(trackId);
+        const match = trackId.match(/([a-zA-Z0-9_-]{11})$/);
+        if (match) set.delete(match[1]);
+      }
+      removedTrackIds = Array.from(set);
+    }
+
     await db.playlists.update(playlistId, {
       songCount: pos,
       updatedAt: Date.now(),
+      ...(removedTrackIds !== undefined ? { removedTrackIds } : {}),
     });
+  },
+
+  async reconcilePlaylistTracks(playlistId: string, tracks: Track[]): Promise<boolean> {
+    const pl = await db.playlists.get(playlistId);
+    const removedSet = new Set(pl?.removedTrackIds || []);
+    // Filter out tombstoned tracks so remote sync does not resurrect user deletions
+    const validTracks = removedSet.size === 0 ? tracks : tracks.filter((t) => {
+      if (removedSet.has(t.id)) return false;
+      if (t.sourceId && removedSet.has(t.sourceId)) return false;
+      const match = t.id.match(/([a-zA-Z0-9_-]{11})$/);
+      if (match && removedSet.has(match[1])) return false;
+      return true;
+    });
+
+    for (const track of validTracks) {
+      await this.putTrack(track);
+    }
+    const currentPts = await db.playlistTracks.where('playlistId').equals(playlistId).sortBy('position');
+    const currentIds = currentPts.map((p) => p.trackId);
+    const newIds = validTracks.map((t) => t.id);
+
+    const isSame =
+      currentIds.length === newIds.length &&
+      currentIds.every((id, idx) => id === newIds[idx]);
+
+    if (!isSame) {
+      await db.transaction('rw', db.playlistTracks, db.playlists, async () => {
+        await db.playlistTracks.where('playlistId').equals(playlistId).delete();
+        const records: DbPlaylistTrack[] = validTracks.map((t, idx) => ({
+          playlistId,
+          trackId: t.id,
+          position: idx,
+          addedAt: Date.now(),
+        }));
+        await db.playlistTracks.bulkAdd(records);
+        await db.playlists.where('id').equals(playlistId).modify((p) => {
+          p.songCount = validTracks.length;
+          p.updatedAt = Date.now();
+        });
+      });
+      return true;
+    }
+    return false;
   },
 
   async removeTrackFromPlaylist(playlistId: string, trackId: string): Promise<void> {
@@ -286,9 +379,22 @@ export const repo = {
       await db.tracks.update(trackId, { isLiked: false });
     }
     const count = await db.playlistTracks.where('playlistId').equals(playlistId).count();
+
+    // Tombstone this track in the playlist's removedTrackIds so background sync does not resurrect it
+    const pl = await db.playlists.get(playlistId);
+    let removedTrackIds = pl?.removedTrackIds || [];
+    const track = await db.tracks.get(trackId);
+    const set = new Set(removedTrackIds);
+    set.add(trackId);
+    if (track?.sourceId) set.add(track.sourceId);
+    const match = trackId.match(/([a-zA-Z0-9_-]{11})$/);
+    if (match) set.add(match[1]);
+    removedTrackIds = Array.from(set);
+
     await db.playlists.update(playlistId, {
       songCount: count,
       updatedAt: Date.now(),
+      removedTrackIds,
     });
   },
 

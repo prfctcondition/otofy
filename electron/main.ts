@@ -11,6 +11,9 @@ import { DownloadQueueManager } from './services/downloadQueue.js';
 import localScanner from './services/localScanner.js';
 import { cleanArtistAndTitle } from './services/trackParser.js';
 import spotifyService from './services/spotifyService.js';
+import authService from './services/authService.js';
+import cloudSyncService from './services/cloudSyncService.js';
+import updateService from './services/updateService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -245,31 +248,14 @@ ipcMain.handle(
   'music:resolve-stream',
   async (
     _event,
-    { trackId, source, title, artist, excludeIds }: { trackId: string; source: string; title?: string; artist?: string; excludeIds?: string[] }
+    { trackId, source, title, artist, excludeIds, durationSec }: { trackId: string; source: string; title?: string; artist?: string; excludeIds?: string[]; durationSec?: number }
   ) => {
     const normalizedSource = source?.toUpperCase();
     if (normalizedSource === 'YT' || source?.toLowerCase() === 'youtube') {
-      try {
-        return await ytResolver.resolve(trackId, title, artist, undefined, excludeIds);
-      } catch (ytErr: any) {
-        console.warn('[Main] YouTube resolve failed, attempting cross-source SoundCloud fallback:', ytErr?.message || ytErr);
-        if (title) {
-          const scRes = await scResolver.resolveBySearch(title, artist);
-          if (scRes) return scRes;
-        }
-        throw ytErr;
-      }
+      return await ytResolver.resolve(trackId, title, artist, undefined, excludeIds, durationSec);
     }
     if (normalizedSource === 'SC' || source?.toLowerCase() === 'soundcloud') {
-      try {
-        return await scResolver.resolve(trackId);
-      } catch (scErr: any) {
-        console.warn('[Main] SoundCloud resolve failed, attempting cross-source YouTube fallback:', scErr?.message || scErr);
-        if (title) {
-          return await ytResolver.resolve('', title, artist, undefined, excludeIds);
-        }
-        throw scErr;
-      }
+      return await scResolver.resolve(trackId);
     }
     throw new Error(`Unsupported music source: ${source}`);
   }
@@ -478,6 +464,9 @@ ipcMain.handle('music:import-remote-playlist', async (_event, { source, url }: {
         try {
           const resolvedTrackMap = new Map<string, any>();
           for (let i = 0; i < stubIds.length; i += 50) {
+            if (i > 0) {
+              await new Promise((res) => setTimeout(res, 150));
+            }
             const chunk = stubIds.slice(i, i + 50);
             const tracksRes = await fetch(
               `https://api-v2.soundcloud.com/tracks?ids=${chunk.join('%2C')}&client_id=${clientId}`
@@ -578,20 +567,24 @@ ipcMain.handle('spotify:import-and-match', async (event, { tracks, playlistTitle
 ipcMain.handle('auth:login', async (_event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {
   return new Promise((resolve) => {
     const authWin = new BrowserWindow({
-      width: 580,
+      width: 560,
       height: 720,
-      parent: mainWindow || undefined,
-      modal: true,
-      title: platform === 'youtube' ? 'Authorize YouTube Music (Google)' : 'Authorize SoundCloud',
+      title: platform === 'youtube' ? 'Sign in with Google' : 'Sign in to SoundCloud',
+      autoHideMenuBar: true,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
       },
     });
 
+    // Set clean standard Chrome User-Agent matching current Chromium engine to prevent bot flags
+    const rawUA = session.defaultSession.getUserAgent();
+    const cleanUA = rawUA.replace(/Electron\/\S+\s?/, '').replace(/Otofy\/\S+\s?/, '');
+    authWin.webContents.setUserAgent(cleanUA);
+
     const targetUrl =
       platform === 'youtube'
-        ? 'https://accounts.google.com/ServiceLogin?service=youtube'
+        ? 'https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=https%3A%2F%2Fmusic.youtube.com%2F'
         : 'https://soundcloud.com/signin';
 
     authWin.loadURL(targetUrl);
@@ -611,28 +604,86 @@ ipcMain.handle('auth:login', async (_event, { platform }: { platform: 'youtube' 
             (c) => c.name === 'SAPISID' || c.name === 'SID' || c.name === 'LOGIN_INFO'
           );
           const currentUrl = authWin.webContents.getURL();
-          if (
-            hasYtCookie &&
-            (currentUrl.includes('myaccount.google.com') ||
-              currentUrl.includes('youtube.com') ||
-              currentUrl.includes('music.youtube.com'))
-          ) {
+
+          // If Google redirects to account management after login, forward directly to YouTube Music
+          if (currentUrl.includes('myaccount.google.com')) {
+            authWin.loadURL('https://music.youtube.com/');
+            return;
+          }
+
+          const isAtMusic =
+            currentUrl.includes('music.youtube.com') &&
+            !currentUrl.includes('ServiceLogin') &&
+            !currentUrl.includes('accounts.google.com');
+
+          const isAtYoutube =
+            currentUrl.includes('youtube.com') &&
+            !currentUrl.includes('accounts.youtube.com/accounts/SetSID') &&
+            !currentUrl.includes('ServiceLogin') &&
+            !currentUrl.includes('accounts.google.com');
+
+          if (hasYtCookie && (isAtMusic || isAtYoutube)) {
             loggedIn = true;
             clearInterval(checkInterval);
+
+            // Deduplicate cookies prioritizing youtube.com domain values
+            const cookieMap = new Map<string, string>();
+            for (const c of cookies) {
+              if (c.domain?.includes('google.com') && !c.domain?.includes('youtube.com')) {
+                cookieMap.set(c.name, c.value);
+              }
+            }
+            for (const c of cookies) {
+              if (c.domain?.includes('youtube.com')) {
+                cookieMap.set(c.name, c.value);
+              }
+            }
+
+            const ytCookies = Array.from(cookieMap.entries())
+              .map(([name, value]) => `${name}=${value}`)
+              .join('; ');
+
+            authService.setYoutubeAuth(ytCookies, 'Google Account');
+            ytResolver.resetClients();
+            innertubeService.resetInnertubeInstance();
+            mainWindow?.webContents.send('auth:session-updated', { platform: 'youtube', connected: true });
+
             authWin.close();
             resolve({ success: true, username: 'Google Account' });
           }
         } else {
-          const hasScCookie = cookies.some((c) => c.name === 'oauth_token');
+          const oauthCookie = cookies.find((c) => c.name === 'oauth_token');
           const currentUrl = authWin.webContents.getURL();
           if (
-            hasScCookie ||
+            oauthCookie ||
             (currentUrl.includes('soundcloud.com/') && !currentUrl.includes('/signin'))
           ) {
             loggedIn = true;
             clearInterval(checkInterval);
+
+            const scCookies = cookies
+              .filter((c) => c.domain?.includes('soundcloud.com'))
+              .map((c) => `${c.name}=${c.value}`)
+              .join('; ');
+
+            let username = 'SoundCloud User';
+            if (oauthCookie?.value) {
+              try {
+                const uRes = await fetch('https://api-v2.soundcloud.com/me?client_id=y7xP5e50k2cT7Uo3n30zG6jPffV4d00B', {
+                  headers: { Authorization: `OAuth ${oauthCookie.value}` },
+                });
+                if (uRes.ok) {
+                  const uData = await uRes.json();
+                  if (uData.username) username = uData.username;
+                }
+              } catch {}
+            }
+
+            authService.setSoundcloudAuth(scCookies, oauthCookie?.value, username);
+            mainWindow?.webContents.send('auth:session-updated', { platform: 'soundcloud', connected: true });
+
             authWin.close();
-            resolve({ success: true, username: 'SoundCloud User' });
+            resolve({ success: true, username });
           }
         }
       } catch (err) {
@@ -649,8 +700,74 @@ ipcMain.handle('auth:login', async (_event, { platform }: { platform: 'youtube' 
   });
 });
 
-ipcMain.handle('auth:sync-library', async (_event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {
-  return { playlists: [] };
+ipcMain.handle('auth:logout', async (_event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {
+  authService.clearAuth(platform);
+  if (platform === 'youtube') {
+    ytResolver.resetClients();
+    innertubeService.resetInnertubeInstance();
+  }
+  mainWindow?.webContents.send('auth:session-updated', { platform, connected: false });
+  return { success: true };
+});
+
+ipcMain.handle('auth:get-status', async () => {
+  return authService.getAccountStatus();
+});
+
+ipcMain.handle('auth:sync-library', async (event, { platform }: { platform: 'youtube' | 'soundcloud' }) => {
+  return await cloudSyncService.sync(platform, event.sender);
+});
+
+ipcMain.handle(
+  'cloud:add-track-to-playlist',
+  async (
+    _event,
+    {
+      platform,
+      playlistId,
+      track,
+    }: {
+      platform: 'youtube' | 'soundcloud';
+      playlistId: string;
+      track: { id: string; sourceId?: string; title?: string; artist?: string; source?: string };
+    }
+  ) => {
+    return await cloudSyncService.addTrackToCloudPlaylist(platform, playlistId, track);
+  }
+);
+
+ipcMain.handle(
+  'cloud:remove-track-from-playlist',
+  async (
+    _event,
+    {
+      platform,
+      playlistId,
+      trackId,
+      sourceId,
+    }: {
+      platform: 'youtube' | 'soundcloud';
+      playlistId: string;
+      trackId: string;
+      sourceId?: string;
+    }
+  ) => {
+    return await cloudSyncService.removeTrackFromCloudPlaylist(platform, playlistId, trackId, sourceId);
+  }
+);
+
+// GitHub Release Updater IPC Channels
+ipcMain.handle('updater:check-for-updates', async () => {
+  return await updateService.checkForUpdates();
+});
+
+ipcMain.handle('updater:download-and-install', async (event) => {
+  return await updateService.downloadAndInstall(event.sender);
+});
+
+ipcMain.handle('updater:cancel-download', () => {
+  updateService.cancelDownload();
+  return { success: true };
 });
 
 ipcMain.handle('window:is-maximized', () => {
@@ -969,7 +1086,7 @@ ipcMain.handle('app:get-user-profile', async () => {
 });
 
 app.whenReady().then(() => {
-  // Normalize request headers for audio CDNs (strip file:// origin, attach standard desktop browser headers)
+  // Normalize request headers strictly for audio CDNs (strip file:// origin, attach standard desktop browser headers)
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const requestHeaders = { ...details.requestHeaders };
     if (details.url.includes('googlevideo.com')) {
@@ -977,25 +1094,43 @@ app.whenReady().then(() => {
       requestHeaders['Referer'] = 'https://www.youtube.com/';
       requestHeaders['User-Agent'] =
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
-    } else if (details.url.includes('sndcdn.com') || details.url.includes('soundcloud.com')) {
+      callback({ requestHeaders });
+    } else if (
+      details.url.includes('sndcdn.com') ||
+      details.url.includes('cf-hls-media.sndcdn.com') ||
+      (details.resourceType === 'media' && details.url.includes('soundcloud.com'))
+    ) {
       requestHeaders['Referer'] = 'https://soundcloud.com/';
       requestHeaders['Origin'] = 'https://soundcloud.com';
       requestHeaders['User-Agent'] =
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+      callback({ requestHeaders });
+    } else {
+      callback({ requestHeaders });
     }
-    callback({ requestHeaders });
   });
 
-  // Enable CORS bypass for Web Audio API audio streaming from CDNs
+  // Enable CORS bypass for Web Audio API audio streaming strictly from CDNs
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Access-Control-Allow-Origin': ['*'],
-        'Access-Control-Allow-Headers': ['*'],
-        'Access-Control-Allow-Methods': ['GET, POST, OPTIONS'],
-      },
-    });
+    const isAudioCdn =
+      details.url.includes('googlevideo.com') ||
+      details.url.includes('sndcdn.com') ||
+      details.url.includes('cf-hls-media.sndcdn.com') ||
+      (details.resourceType === 'media' && details.url.includes('soundcloud.com'));
+
+    if (isAudioCdn) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Access-Control-Allow-Origin': ['*'],
+          'Access-Control-Allow-Headers': ['*'],
+          'Access-Control-Allow-Methods': ['GET, POST, OPTIONS'],
+          'Access-Control-Expose-Headers': ['Content-Range, Content-Length, Accept-Ranges'],
+        },
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
   });
 
   // Handle local file streaming for downloaded audio via atom:// protocol with Range support

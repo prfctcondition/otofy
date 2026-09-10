@@ -300,9 +300,9 @@ export async function matchSpotifyTracks(
       }
     }
 
-    // Gentle rate limit pause between batches to protect against 429
+    // Gentle rate limit pause between batches to protect against YouTube WAF / bot challenges
     if (i + CONCURRENCY < tracks.length) {
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      await new Promise((resolve) => setTimeout(resolve, 220));
     }
   }
 

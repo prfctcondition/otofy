@@ -125,7 +125,7 @@ interface LibraryActions {
   toggleLike: (trackId: string, trackData?: Track) => Promise<void>;
   createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string; artworkUrl?: string }) => Promise<Playlist>;
   deletePlaylist: (id: string) => Promise<void>;
-  addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
+  addTrackToPlaylist: (playlistId: string, track: Track) => Promise<boolean>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   resolveTrack: (trackId: string, alternative: import('../types').TrackAlternative) => Promise<void>;
   keepCurrentTrackMatch: (trackId: string) => Promise<void>;
@@ -181,6 +181,7 @@ interface LibraryActions {
   togglePinPlaylist: (id: string) => Promise<void>;
   reorderPlaylists: (sourceId: string, targetId: string) => Promise<void>;
   clearAndRefreshAllCollections: () => Promise<void>;
+  syncCloudLibrary: (options?: { silent?: boolean }) => Promise<void>;
 
   // Modal toggles
   toggleEqModal: () => void;
@@ -289,6 +290,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
             });
           }
           await repo.deletePlaylist(pl.id);
+        } else if (pl.id === 'pl-yt-liked' || pl.id === 'pl-sc-likes') {
+          migratedAny = true;
+          await repo.deletePlaylist(pl.id);
         } else {
           cleanPlaylists.push(pl);
         }
@@ -375,6 +379,17 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
 
       set({ playlists, followedArtists, savedAlbums: healedAlbums, isDbReady: true });
       await get().refreshPlaylistTracks();
+
+      // Seamless background sync on startup if accounts are connected
+      if (window.electronAPI?.getAccountStatus) {
+        window.electronAPI.getAccountStatus().then((status) => {
+          if (status?.youtube?.connected || status?.soundcloud?.connected) {
+            setTimeout(() => {
+              get().syncCloudLibrary({ silent: true });
+            }, 1200);
+          }
+        }).catch(() => {});
+      }
     } catch (err) {
       console.warn('[Library] Failed to load from DB:', err);
       set({ playlists: DEFAULT_INITIAL_PLAYLISTS, followedArtists: [], savedAlbums: [], currentPlaylistTracks: [], isDbReady: true });
@@ -434,6 +449,10 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       currentArtistDetails: null,
       ...historyUpdate,
     });
+
+    if (id !== 'pl-downloads' && id !== 'pl-cached') {
+      get().recordEntityOpened(id, 'playlist').catch(() => {});
+    }
   },
 
   setCustomPlaylistView: (title: string, tracks: Track[], options?: Partial<Playlist>) => {
@@ -891,6 +910,52 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   addTrackToPlaylist: async (playlistId, track) => {
+    const targetPlaylist = get().playlists.find((p) => p.id === playlistId);
+    const isYtCloud = playlistId.startsWith('pl-yt-') || targetPlaylist?.syncSource === 'youtube';
+    const isScCloud = playlistId.startsWith('pl-sc-') || targetPlaylist?.syncSource === 'soundcloud';
+
+    // 1. Cross-platform guard for Synced YouTube playlists
+    if (isYtCloud && playlistId !== 'pl-liked') {
+      if (track.source !== 'YT') {
+        const platformLabel = track.source === 'SC' ? 'SoundCloud' : 'Local Files';
+        useToastStore.getState().addToast({
+          type: 'warning',
+          title: 'Cross-Platform Restriction',
+          message: `"${track.title}" is from ${platformLabel}. Synced YouTube playlists can only contain YouTube tracks. Search on YouTube to add this track directly.`,
+          duration: 7000,
+          action: {
+            label: 'Search on YouTube',
+            onClick: () => {
+              get().setGlobalSearch(`${track.title} ${track.artist}`.trim());
+              get().setCurrentView('search');
+            },
+          },
+        });
+        return false;
+      }
+    }
+
+    // 2. Cross-platform guard for Synced SoundCloud playlists
+    if (isScCloud && playlistId !== 'pl-liked') {
+      if (track.source !== 'SC') {
+        const platformLabel = track.source === 'YT' ? 'YouTube Music' : 'Local Files';
+        useToastStore.getState().addToast({
+          type: 'warning',
+          title: 'Cross-Platform Restriction',
+          message: `"${track.title}" is from ${platformLabel}. Synced SoundCloud playlists can only contain SoundCloud tracks. Search on SoundCloud to add this track directly.`,
+          duration: 7000,
+          action: {
+            label: 'Search on SoundCloud',
+            onClick: () => {
+              get().setGlobalSearch(`${track.title} ${track.artist}`.trim());
+              get().setCurrentView('search');
+            },
+          },
+        });
+        return false;
+      }
+    }
+
     const dateAdded = track.dateAdded && !isNaN(Date.parse(track.dateAdded)) ? track.dateAdded : new Date().toISOString();
     const trackWithDate = { ...track, dateAdded };
 
@@ -907,7 +972,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       );
       if (exists) {
         // Track is already in Liked Songs -> no-op to prevent duplicate
-        return;
+        return false;
       }
 
       await repo.putTrack({ ...trackWithDate, isLiked: true });
@@ -937,7 +1002,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
           p.id === 'pl-liked' ? { ...p, songCount: count } : p
         ),
       }));
-      return;
+      return true;
     }
 
     // Normal playlist add
@@ -948,12 +1013,42 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
     set((s) => ({
       playlists: s.playlists.map((p) =>
-        p.id === playlistId ? { ...p, songCount: p.songCount + 1 } : p
+        p.id === playlistId
+          ? {
+              ...p,
+              songCount: p.songCount + 1,
+              removedTrackIds: (p.removedTrackIds || []).filter((id) => id !== track.id && id !== track.sourceId),
+            }
+          : p
       ),
     }));
+
+    // Background two-way synchronization to cloud platform
+    if (isYtCloud && playlistId !== 'pl-yt-liked' && window.electronAPI?.cloudAddTrackToPlaylist) {
+      window.electronAPI.cloudAddTrackToPlaylist({
+        platform: 'youtube',
+        playlistId,
+        track,
+      }).catch((e) => console.warn('[Library] Failed to add track to remote YouTube playlist:', e));
+    } else if (isScCloud && playlistId !== 'pl-sc-likes' && window.electronAPI?.cloudAddTrackToPlaylist) {
+      window.electronAPI.cloudAddTrackToPlaylist({
+        platform: 'soundcloud',
+        playlistId,
+        track,
+      }).catch((e) => console.warn('[Library] Failed to add track to remote SoundCloud playlist:', e));
+    }
+    return true;
   },
 
   removeTrackFromPlaylist: async (playlistId, trackId) => {
+    const targetPlaylist = get().playlists.find((p) => p.id === playlistId);
+    const isYtCloud = playlistId.startsWith('pl-yt-') || targetPlaylist?.syncSource === 'youtube';
+    const isScCloud = playlistId.startsWith('pl-sc-') || targetPlaylist?.syncSource === 'soundcloud';
+
+    // Retrieve track first to get sourceId for reliable cloud removal
+    const targetTrack = get().currentPlaylistTracks.find((t) => t.id === trackId) || (await repo.getTrack(trackId));
+    const sourceId = targetTrack?.sourceId;
+
     await repo.removeTrackFromPlaylist(playlistId, trackId);
     if (playlistId === 'pl-liked') {
       // Sync Liked Songs removal
@@ -973,11 +1068,37 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       }
     }
     const count = await repo.getPlaylistTracks(playlistId).then((ts) => ts.length);
+    const tombstoneIds = [trackId];
+    if (sourceId) tombstoneIds.push(sourceId);
+
     set((s) => ({
       playlists: s.playlists.map((p) =>
-        p.id === playlistId ? { ...p, songCount: count } : p
+        p.id === playlistId
+          ? {
+              ...p,
+              songCount: count,
+              removedTrackIds: Array.from(new Set([...(p.removedTrackIds || []), ...tombstoneIds])),
+            }
+          : p
       ),
     }));
+
+    // Background two-way removal from cloud platform
+    if (isYtCloud && playlistId !== 'pl-yt-liked' && window.electronAPI?.cloudRemoveTrackFromPlaylist) {
+      window.electronAPI.cloudRemoveTrackFromPlaylist({
+        platform: 'youtube',
+        playlistId,
+        trackId,
+        sourceId,
+      }).catch((e) => console.warn('[Library] Failed to remove track from remote YouTube playlist:', e));
+    } else if (isScCloud && playlistId !== 'pl-sc-likes' && window.electronAPI?.cloudRemoveTrackFromPlaylist) {
+      window.electronAPI.cloudRemoveTrackFromPlaylist({
+        platform: 'soundcloud',
+        playlistId,
+        trackId,
+        sourceId,
+      }).catch((e) => console.warn('[Library] Failed to remove track from remote SoundCloud playlist:', e));
+    }
   },
 
   resolveTrack: async (trackId, chosenAlternative) => {
@@ -1174,6 +1295,72 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   toggleFullscreenLyrics: () => set((s) => ({ isFullscreenLyrics: !s.isFullscreenLyrics })),
   setFullscreenLyrics: (val: boolean) => set({ isFullscreenLyrics: val }),
 
+  syncCloudLibrary: async (options?: { silent?: boolean }) => {
+    if (!window.electronAPI?.getAccountStatus || !window.electronAPI?.syncCloudLibrary) {
+      return;
+    }
+
+    try {
+      const status = await window.electronAPI.getAccountStatus();
+      const platforms: Array<'youtube' | 'soundcloud'> = [];
+      if (status?.youtube?.connected) platforms.push('youtube');
+      if (status?.soundcloud?.connected) platforms.push('soundcloud');
+
+      if (platforms.length === 0) return;
+
+      let anyUpdated = false;
+
+      for (const platform of platforms) {
+        try {
+          const res = await window.electronAPI.syncCloudLibrary(platform);
+          if (res.success && res.playlists && res.playlists.length > 0) {
+            for (const pl of res.playlists) {
+              if (pl.id === 'pl-yt-liked' || pl.id === 'pl-sc-likes') continue;
+
+              await repo.createPlaylist({
+                id: pl.id,
+                title: pl.title,
+                creator: pl.creator,
+                artworkUrl: pl.artworkUrl,
+                iconName: pl.iconName || (platform === 'youtube' ? 'music' : 'radio'),
+                gradientFrom: pl.gradientFrom || (platform === 'youtube' ? '#DC2626' : '#EA580C'),
+                gradientTo: pl.gradientTo || (platform === 'youtube' ? '#991B1B' : '#C2410C'),
+                isSynced: true,
+                syncSource: platform,
+              });
+
+              const changed = await repo.reconcilePlaylistTracks(pl.id, pl.tracks);
+              if (changed) anyUpdated = true;
+            }
+          }
+        } catch (pErr) {
+          console.warn(`[Library] Silent sync error (${platform}):`, pErr);
+        }
+      }
+
+      const refreshedPlaylists = await repo.getPlaylists();
+      set({ playlists: refreshedPlaylists });
+
+      const currentSelectedId = get().selectedPlaylistId;
+      if (currentSelectedId) {
+        const activeTracks = await repo.getPlaylistTracks(currentSelectedId);
+        const activePl = refreshedPlaylists.find((p) => p.id === currentSelectedId) || get().viewingPlaylist;
+        if (activePl) {
+          set({
+            viewingPlaylist: { ...activePl, songCount: activeTracks.length },
+            currentPlaylistTracks: activeTracks,
+          });
+        }
+      }
+
+      if (!options?.silent && anyUpdated) {
+        useToastStore.getState().success('Library Synced', 'Your cloud playlists have been updated.');
+      }
+    } catch (err) {
+      console.warn('[Library] syncCloudLibrary error:', err);
+    }
+  },
+
   clearAndRefreshAllCollections: async () => {
     try {
       await repo.clearAllPlaylistCache();
@@ -1190,3 +1377,23 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
   },
 }));
+
+let lastSyncTimestamp = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', () => {
+    const now = Date.now();
+    if (now - lastSyncTimestamp > 45000) {
+      lastSyncTimestamp = now;
+      useLibraryStore.getState().syncCloudLibrary({ silent: true });
+    }
+  });
+
+  setInterval(() => {
+    const now = Date.now();
+    if (now - lastSyncTimestamp > 180000) {
+      lastSyncTimestamp = now;
+      useLibraryStore.getState().syncCloudLibrary({ silent: true });
+    }
+  }, 180000);
+}
+

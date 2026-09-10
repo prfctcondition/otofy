@@ -313,10 +313,23 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
           <div className="flex-1 min-w-0">
             {/* Category / Type Badge */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-[11px] font-black uppercase tracking-wider text-[#0F172A] dark:text-white bg-white/70 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-white/95 dark:border-white/15 shadow-[inset_0_1px_1px_#FFFFFF,0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none">
                 {playlist.type || 'Playlist'}
               </span>
+              {(playlist.isSynced || playlist.id.startsWith('pl-yt-') || playlist.id.startsWith('pl-sc-')) && (
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                  title={playlist.syncSource === 'youtube' ? 'Synced with YouTube Music' : playlist.syncSource === 'soundcloud' ? 'Synced with SoundCloud' : 'Synced Playlist'}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                  {playlist.syncSource === 'youtube'
+                    ? 'Synced • YouTube Music'
+                    : playlist.syncSource === 'soundcloud'
+                    ? 'Synced • SoundCloud'
+                    : 'Synced'}
+                </span>
+              )}
               <span className="text-[#94A3B8] dark:text-white/40">·</span>
               <span className="text-xs text-[#64748B] dark:text-white/80 font-medium flex items-center gap-1">
                 <Sparkles size={12} className="text-[#0F172A] dark:text-white" />

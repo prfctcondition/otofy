@@ -67,28 +67,35 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 * **Smart Matching Engine**: Employs fuzzy string matching, multi-artist parsing (`feat.`, `ft.`, `&`, `,`), and duration verification to find the exact studio version of every track.
 * **Interactive Conflict Resolver**: If a track has multiple versions or rare remixes, an interactive candidate modal lets you audition, replace, or skip tracks with one click.
 
-### 🌐 4. Boundless Dual-Engine Catalog
+### ☁️ 4. Bidirectional Cloud Playlist Synchronization
+* **YouTube Music & SoundCloud Integration**: Connect your accounts in seconds to synchronize and manage your custom cloud playlists.
+* **Seamless Two-Way Sync**: Add or delete tracks inside Otofy, and changes are instantly updated on YouTube Music and SoundCloud in real time.
+* **Tombstone Protection Engine**: Advanced tombstoning ensures that deleted songs are never accidentally resurrected by background polling cycles.
+* **Cross-Platform Protection**: Guardrails against mixing incompatible cloud tracks with instant one-click search redirection to locate tracks natively.
+
+### 🌐 5. Boundless Dual-Engine Catalog & Proprietary Streaming Protocol
 * **YouTube Music Engine**: Stream official studio albums, singles, remastered classics, and live sessions.
 * **SoundCloud Engine**: Tap into millions of underground remixes, DJ sets, lo-fi beats, bootlegs, and indie tracks.
+* **Proprietary Streaming Bypass Protocol**: Powered by a custom, private bypass protocol designed for seamless, resilient stream resolution, anti-bot resilience, and uninterrupted audio playback without rate-limits or IP restrictions.
 * **Unified Discovery**: Seamlessly search both platforms simultaneously or filter results with instant `[ YT ]` and `[ SC ]` toggles.
 
-### 🎛️ 5. Studio-Grade 10-Band Graphic Equalizer
+### 🎛️ 6. Studio-Grade 10-Band Graphic Equalizer
 * **10-Band Precision Filter Bank**: While mainstream desktop clients like Spotify restrict audio tuning to only 6 fixed sliders, Otofy provides a hardware-accelerated 10-band equalizer (32Hz to 16kHz) powered by Web Audio API biquad filters.
 * **One-Click Presets**: Switch instantly between *Bass Boost*, *Vocal Clarity*, *Electronic*, *Rock*, *Acoustic*, and *Flat*.
 * **Real-Time Soundstage**: Fine-tune your frequency curve from -12dB to +12dB with centered precision sliders and zero playback latency.
 
-### ⚡ 6. Dual-Deck Audio Engine & Infinite Autoplay
+### ⚡ 7. Dual-Deck Audio Engine & Infinite Autoplay
 * **Seamless Crossfading (0–12s)**: Powered by an A/B dual-deck audio pipeline, smoothly blending tracks together like a live radio DJ.
 * **Infinite Radio Mode**: When your queue ends, Otofy automatically analyzes the acoustic profile of your last track and generates an endless queue of matching songs.
 
-### 🎤 7. Interactive Synchronized Lyrics (Karaoke & Cinema View)
+### 🎤 8. Interactive Synchronized Lyrics (Karaoke & Cinema View)
 * **Universal Click-to-Seek Karaoke**: Click on any lyric line or phrase to instantly jump to that exact millisecond in the song. On mainstream services like Spotify, clicking lyrics to navigate playback is rare and restricted only to select songs where publishers manually configured timings; in Otofy, lyrics feature universal sub-second synchronized timestamps.
 * **Ambient Cinema Fullscreen**: Immersive visualizer with dynamic lighting that extracts dominant color gradients from current album artwork.
 
-### 📁 8. Power Library & Local Audio Discovery
+### 📁 9. Power Library & Local Audio Discovery
 * **Local Audio Scanner**: Point Otofy to any folder on your computer. It scans and indexes `.mp3`, `.flac`, `.opus`, and `.m4a` files with full metadata extraction.
+* **Deterministic Recents & Library Sorting**: Recents sorting tracks strictly user-initiated interactions with deterministic ordering, eliminating random reordering during background sync.
 * **Multi-Select Workflow**: Select multiple tracks at once (`Ctrl/Cmd + Click`, `Shift + Click`) to bulk-add to playlists, queue next, or download in batch.
-* **Intelligent Library Sorting**: Sort by Title (A–Z / Z–A), Artist, Date Added, and Duration with instant responsiveness.
 * **Offline Album Snapshots**: Saved albums are securely snapshotted in local storage so you never lose your music or hit broken streaming tokens.
 
 ---
@@ -159,10 +166,12 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 ## 🗺️ Roadmap & What's Next
 
 - [x] **Universal Playlist Importer**: Spotify, YouTube Music, SoundCloud, and JSON codes with conflict resolution.
+- [x] **Two-Way Cloud Playlist Sync**: Real-time bidirectional synchronization with YouTube Music & SoundCloud accounts.
+- [x] **Proprietary Streaming Bypass Protocol**: Private resilient streaming pipeline with anti-bot protection and zero interruptions.
 - [x] **Batch Playlist Downloader**: Concurrent FFmpeg engine with ID3 & 500x500 artwork embedding.
 - [x] **Link-Free Playlist Sharing**: Export and import playlists via portable Otofy JSON share codes without web links or external hosting.
 - [x] **10-Band Graphic Equalizer**: Web Audio hardware filter bank with audio presets (up from standard 6-band limitations).
-- [x] **Multi-Select & Advanced Sorting**: Bulk library operations and tracklist organization.
+- [x] **Multi-Select & Advanced Sorting**: Bulk library operations, deterministic recents, and tracklist organization.
 - [x] **Local Files Discovery**: Scan and play local `.mp3`, `.flac`, `.opus`, `.m4a`.
 - [ ] **Discord Rich Presence**: Broadcast currently playing track, artist, album art, and progress to Discord.
 - [ ] **Native Global Media Keys & Windows SMTC**: Enhanced hardware keyboard controls when minimized to tray.

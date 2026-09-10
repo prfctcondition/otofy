@@ -192,28 +192,28 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="theme-toggle-btn"
           onClick={toggleTheme}
-          className="relative flex items-center justify-between w-14 h-7 p-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 transition-all duration-200 cursor-pointer select-none"
+          className="relative inline-flex items-center justify-center gap-1 w-14 h-7 p-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 transition-all duration-200 cursor-pointer select-none"
           title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
           aria-label="Toggle Theme"
         >
           {/* Sliding indicator */}
           <div
-            className={`absolute top-0.5 bottom-0.5 w-6 h-6 rounded-full bg-white dark:bg-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition-transform duration-200 ease-out pointer-events-none ${
+            className={`absolute left-0.5 top-0.5 w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition-transform duration-200 ease-out pointer-events-none transform ${
               theme === 'dark' ? 'translate-x-7' : 'translate-x-0'
             }`}
           />
-          <div className="relative z-10 w-6 h-6 flex items-center justify-center">
+          <div className="relative z-10 w-6 h-6 inline-flex items-center justify-center p-0 m-0">
             <Sun
-              size={13}
-              className={`transition-colors duration-200 ${
+              size={14}
+              className={`transition-colors duration-200 shrink-0 ${
                 theme === 'light' ? 'text-amber-500' : 'text-zinc-400 dark:text-white/40'
               }`}
             />
           </div>
-          <div className="relative z-10 w-6 h-6 flex items-center justify-center">
+          <div className="relative z-10 w-6 h-6 inline-flex items-center justify-center p-0 m-0">
             <Moon
-              size={13}
-              className={`transition-colors duration-200 ${
+              size={14}
+              className={`transition-colors duration-200 shrink-0 ${
                 theme === 'dark' ? 'text-black' : 'text-zinc-400'
               }`}
             />

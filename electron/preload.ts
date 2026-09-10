@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[]) =>
-    ipcRenderer.invoke('music:resolve-stream', { trackId, source, title, artist, excludeIds }),
+  resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[], durationSec?: number) =>
+    ipcRenderer.invoke('music:resolve-stream', { trackId, source, title, artist, excludeIds, durationSec }),
   searchMusic: (query: string, source?: 'YT' | 'SC' | 'ALL') =>
     ipcRenderer.invoke('music:search', { query, source }),
   getArtistDetails: (artistName: string, source?: 'YT' | 'SC') =>
@@ -36,8 +36,61 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   loginAccount: (platform: 'youtube' | 'soundcloud') =>
     ipcRenderer.invoke('auth:login', { platform }),
+  logoutAccount: (platform: 'youtube' | 'soundcloud') =>
+    ipcRenderer.invoke('auth:logout', { platform }),
+  getAccountStatus: () =>
+    ipcRenderer.invoke('auth:get-status'),
   syncAccountLibrary: (platform: 'youtube' | 'soundcloud') =>
     ipcRenderer.invoke('auth:sync-library', { platform }),
+  syncCloudLibrary: (platform: 'youtube' | 'soundcloud') =>
+    ipcRenderer.invoke('auth:sync-library', { platform }),
+  cloudAddTrackToPlaylist: (payload: {
+    platform: 'youtube' | 'soundcloud';
+    playlistId: string;
+    track: { id: string; sourceId?: string; title?: string; artist?: string; source?: string };
+  }) => ipcRenderer.invoke('cloud:add-track-to-playlist', payload),
+  cloudRemoveTrackFromPlaylist: (payload: {
+    platform: 'youtube' | 'soundcloud';
+    playlistId: string;
+    trackId: string;
+    sourceId?: string;
+  }) => ipcRenderer.invoke('cloud:remove-track-from-playlist', payload),
+  onCloudSyncProgress: (
+    callback: (data: {
+      platform: 'youtube' | 'soundcloud';
+      current: number;
+      total: number;
+      message: string;
+    }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('account:sync-progress', handler);
+    return () => ipcRenderer.removeListener('account:sync-progress', handler);
+  },
+  onAuthSessionUpdated: (
+    callback: (data: { platform: 'youtube' | 'soundcloud'; connected: boolean }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('auth:session-updated', handler);
+    return () => ipcRenderer.removeListener('auth:session-updated', handler);
+  },
+  checkForUpdates: () =>
+    ipcRenderer.invoke('updater:check-for-updates'),
+  downloadAndInstallUpdate: () =>
+    ipcRenderer.invoke('updater:download-and-install'),
+  cancelUpdateDownload: () =>
+    ipcRenderer.invoke('updater:cancel-download'),
+  onUpdateDownloadProgress: (
+    callback: (data: {
+      percent: number;
+      transferred: number;
+      total: number;
+    }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('updater:download-progress', handler);
+    return () => ipcRenderer.removeListener('updater:download-progress', handler);
+  },
   windowControl: (action: 'minimize' | 'maximize' | 'close') =>
     ipcRenderer.invoke('window:control', action),
   expandWindowForLyrics: (targetWidth?: number) =>

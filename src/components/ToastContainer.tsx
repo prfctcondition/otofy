@@ -67,6 +67,19 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
             {toast.message}
           </p>
         )}
+        {toast.action && (
+          <div className="mt-2.5">
+            <button
+              onClick={() => {
+                toast.action?.onClick();
+                onDismiss();
+              }}
+              className="px-3 py-1 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+            >
+              {toast.action.label}
+            </button>
+          </div>
+        )}
       </div>
       <button
         onClick={onDismiss}

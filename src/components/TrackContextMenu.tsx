@@ -31,7 +31,7 @@ interface TrackContextMenuProps {
   currentPlaylistId?: string;
   onClose: () => void;
   onPlay: (track: Track) => void;
-  onAddToPlaylist: (playlistId: string, track: Track) => void;
+  onAddToPlaylist: (playlistId: string, track: Track) => Promise<boolean> | Promise<void> | boolean | void;
   onRemoveFromPlaylist?: (playlistId: string, trackId: string) => void;
   onCreatePlaylistWithTrack: (track: Track) => void;
   onToggleLike: (trackId: string, track?: Track) => void;
@@ -231,15 +231,23 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           .getState()
           .info('Removed from playlist', `Removed ${activeTracks.length} tracks from "${plTitle}".`);
       } else {
-        activeTracks.forEach((t) => onAddToPlaylist(playlistId, t));
-        setContainingPlaylistIds((prev) => {
-          const next = new Set(prev);
-          next.add(playlistId);
-          return next;
-        });
-        useToastStore
-          .getState()
-          .success('Added to playlist', `Added ${activeTracks.length} tracks to "${plTitle}".`);
+        (async () => {
+          let anyAdded = false;
+          for (const t of activeTracks) {
+            const res = await onAddToPlaylist(playlistId, t);
+            if (res !== false) anyAdded = true;
+          }
+          if (anyAdded) {
+            setContainingPlaylistIds((prev) => {
+              const next = new Set(prev);
+              next.add(playlistId);
+              return next;
+            });
+            useToastStore
+              .getState()
+              .success('Added to playlist', `Added tracks to "${plTitle}".`);
+          }
+        })();
       }
     } else {
       if (isPresent) {
@@ -259,17 +267,26 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       } else {
         if (playlistId === 'pl-liked') {
           onToggleLike(track.id, track);
+          setContainingPlaylistIds((prev) => {
+            const next = new Set(prev);
+            next.add(playlistId);
+            return next;
+          });
         } else {
-          onAddToPlaylist(playlistId, track);
+          (async () => {
+            const res = await onAddToPlaylist(playlistId, track);
+            if (res !== false) {
+              setContainingPlaylistIds((prev) => {
+                const next = new Set(prev);
+                next.add(playlistId);
+                return next;
+              });
+              useToastStore
+                .getState()
+                .success('Added to playlist', `Added "${track.title}" to "${plTitle}".`);
+            }
+          })();
         }
-        setContainingPlaylistIds((prev) => {
-          const next = new Set(prev);
-          next.add(playlistId);
-          return next;
-        });
-        useToastStore
-          .getState()
-          .success('Added to playlist', `Added "${track.title}" to "${plTitle}".`);
       }
     }
   };

@@ -44,6 +44,12 @@ export interface DbPlaylist {
   artworkUrl?: string;
   description?: string;
   updatedAt: number;
+  createdAt?: number;
+  lastOpenedAt?: number;
+  lastPlayedAt?: number;
+  isSynced?: boolean;
+  syncSource?: 'youtube' | 'soundcloud';
+  removedTrackIds?: string[];
 }
 
 export interface DbPlaylistTrack {

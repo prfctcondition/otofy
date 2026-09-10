@@ -63,6 +63,10 @@ export interface Playlist {
   playlistId?: string;
   createdAt?: number;
   lastOpenedAt?: number;
+  lastPlayedAt?: number;
+  isSynced?: boolean;
+  syncSource?: 'youtube' | 'soundcloud';
+  removedTrackIds?: string[];
 }
 
 export interface FollowedArtist {
@@ -238,11 +242,42 @@ export interface BatchDownloadState {
   isPaused: boolean;
 }
 
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  canAutoInstall: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseUrl?: string;
+  downloadUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  releaseNotes?: string;
+  error?: string;
+}
+
+export interface UpdateDownloadProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+}
+
+export interface CloudSyncProgress {
+  platform: 'youtube' | 'soundcloud';
+  current: number;
+  total: number;
+  message: string;
+}
+
+export interface AccountStatus {
+  youtube: { connected: boolean; username?: string };
+  soundcloud: { connected: boolean; username?: string };
+}
+
 // Electron API bridge type
 declare global {
   interface Window {
     electronAPI?: {
-      resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[]) => Promise<StreamInfo>;
+      resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[], durationSec?: number) => Promise<StreamInfo>;
       searchMusic: (query: string, source?: SearchSourceFilter) => Promise<UnifiedSearchResponse | SearchResult[]>;
       searchPlaylists?: (query: string, source?: SearchSourceFilter) => Promise<SearchPlaylistResult[]>;
       getPlaylistTracks?: (payload: { id: string; source: 'YT' | 'SC' }) => Promise<{
@@ -289,6 +324,27 @@ declare global {
         }) => void
       ) => () => void;
       loginAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; username?: string; error?: string }>;
+      logoutAccount?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean }>;
+      getAccountStatus?: () => Promise<AccountStatus>;
+      syncAccountLibrary?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; playlists: any[]; error?: string }>;
+      syncCloudLibrary?: (platform: 'youtube' | 'soundcloud') => Promise<{ success: boolean; playlists: any[]; error?: string }>;
+      cloudAddTrackToPlaylist?: (payload: {
+        platform: 'youtube' | 'soundcloud';
+        playlistId: string;
+        track: { id: string; sourceId?: string; title?: string; artist?: string; source?: string };
+      }) => Promise<{ success: boolean; error?: string }>;
+      cloudRemoveTrackFromPlaylist?: (payload: {
+        platform: 'youtube' | 'soundcloud';
+        playlistId: string;
+        trackId: string;
+        sourceId?: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+      onCloudSyncProgress?: (callback: (data: CloudSyncProgress) => void) => () => void;
+      onAuthSessionUpdated?: (callback: (data: { platform: 'youtube' | 'soundcloud'; connected: boolean }) => void) => () => void;
+      checkForUpdates?: () => Promise<UpdateCheckResult>;
+      downloadAndInstallUpdate?: () => Promise<{ success: boolean; error?: string }>;
+      cancelUpdateDownload?: () => Promise<{ success: boolean }>;
+      onUpdateDownloadProgress?: (callback: (data: UpdateDownloadProgress) => void) => () => void;
       windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
       expandWindowForLyrics?: (targetWidth?: number) => Promise<boolean>;
       isMaximized?: () => Promise<boolean>;

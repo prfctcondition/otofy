@@ -1,5 +1,6 @@
-import { Innertube, UniversalCache } from 'youtubei.js';
+import { Innertube } from 'youtubei.js';
 import { cleanArtistAndTitle } from './trackParser.js';
+import authService from './authService.js';
 
 function extractInnertubeArtist(item: any): string {
   if (Array.isArray(item.artists) && item.artists.length > 0) {
@@ -116,14 +117,20 @@ export function parseDurationToSec(durationStr: string): number {
   return 0;
 }
 
+export function resetInnertubeInstance(): void {
+  innertubeInstance = null;
+  initPromise = null;
+}
+
 export async function getInnertube(): Promise<Innertube> {
   if (innertubeInstance) return innertubeInstance;
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
     try {
+      const cookie = authService.getYoutubeCookie();
       const yt = await Innertube.create({
-        cache: new UniversalCache(false),
+        ...(cookie ? { cookie } : {}),
       });
       innertubeInstance = yt;
       return yt;
@@ -814,6 +821,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
         let plPages = 0;
         while (plPage && (plPage as any).has_continuation && plPages < 20) {
           try {
+            await new Promise((res) => setTimeout(res, 200));
             plPage = await (plPage as any).getContinuation();
             if (plPage?.items && Array.isArray(plPage.items)) {
               plItems.push(...plPage.items);
@@ -938,6 +946,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
         let plPages = 0;
         while (plPage && (plPage as any).has_continuation && plPages < 20) {
           try {
+            await new Promise((res) => setTimeout(res, 200));
             plPage = await (plPage as any).getContinuation();
             if (plPage?.items && Array.isArray(plPage.items)) {
               plItems.push(...plPage.items);
@@ -1401,6 +1410,7 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
   let plPages = 0;
   while (plPage && (plPage as any).has_continuation && plPages < 20) {
     try {
+      await new Promise((res) => setTimeout(res, 200));
       plPage = await (plPage as any).getContinuation();
       if (plPage?.items && Array.isArray(plPage.items)) {
         plItems.push(...plPage.items);
@@ -1460,6 +1470,7 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
 
 export default {
   getInnertube,
+  resetInnertubeInstance,
   search,
   searchPlaylists,
   getPlaylistTracks,

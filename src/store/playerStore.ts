@@ -6,6 +6,7 @@ import useToastStore from './toastStore';
 import { useSettingsStore } from './settingsStore';
 import { useDownloadStore } from './downloadStore';
 import { useNetworkStore } from './networkStore';
+import { useLibraryStore } from './libraryStore';
 
 interface PlayerState {
   activeTrack: Track | null;
@@ -60,6 +61,9 @@ export const cleanTrackId = (id: string): string => {
     const scMatch = id.match(/(\d+)$/);
     if (scMatch) return scMatch[1];
   }
+  const ytMatch = id.match(/([a-zA-Z0-9_-]{11})$/);
+  if (ytMatch) return ytMatch[1];
+
   return id
     .replace(/^dm-(?:yt-|sc-)?\d+-\d+-/, '')
     .replace(/^dm-(?:yt-|sc-)?\d+-/, '')
@@ -99,6 +103,44 @@ export const toPlayableStreamUrl = (url: string): string => {
   return url;
 };
 
+let consecutiveErrorsCount = 0;
+
+const notifyBotChallengeOrRepeatedErrors = async () => {
+  let isGoogleConnected = false;
+  if (window.electronAPI?.getAccountStatus) {
+    try {
+      const status = await window.electronAPI.getAccountStatus();
+      isGoogleConnected = Boolean(status?.youtube?.connected);
+    } catch {}
+  }
+
+  if (isGoogleConnected) {
+    useToastStore.getState().addToast({
+      type: 'warning',
+      title: 'Audio Stream Throttled',
+      message: 'YouTube restricted the current audio stream. Automatically searching for an official alternative...',
+      duration: 5000,
+    });
+    return;
+  }
+
+  useToastStore.getState().addToast({
+    type: 'warning',
+    title: 'Playback Difficulties Detected',
+    message:
+      'YouTube may have temporarily rate-limited requests from your IP. You can wait a moment or connect your Google account in Settings to lift network limits.',
+    duration: 12000,
+    action: {
+      label: 'Connect Account',
+      onClick: () => {
+        if (!useLibraryStore.getState().isSyncModalOpen) {
+          useLibraryStore.getState().toggleSyncModal();
+        }
+      },
+    },
+  });
+};
+
 const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promise<{ url: string; error?: string }> => {
   // 0. Check if track is downloaded locally on disk
   if (!excludeIds.length) {
@@ -126,8 +168,18 @@ const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promis
     return { url: '', error: 'You are offline. Only downloaded or cached tracks are available.' };
   }
 
-  // If track already has a direct stream URL and no exclusions requested, use it
-  if (track.streamUrl && !excludeIds.length) return { url: toPlayableStreamUrl(track.streamUrl) };
+  // If track already has a direct stream URL and no exclusions requested, check expiration
+  if (track.streamUrl && !excludeIds.length) {
+    if (track.streamUrl.includes('googlevideo.com')) {
+      const match = track.streamUrl.match(/[?&]expire=(\d+)/);
+      if (match && Date.now() < parseInt(match[1], 10) * 1000 - 120000) {
+        return { url: toPlayableStreamUrl(track.streamUrl) };
+      }
+      delete track.streamUrl;
+    } else if (track.streamUrl.startsWith('atom:') || track.streamUrl.startsWith('blob:')) {
+      return { url: track.streamUrl };
+    }
+  }
 
   const rawId = track.sourceId || track.id;
   const targetId = cleanTrackId(rawId);
@@ -141,7 +193,8 @@ const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promis
         track.source,
         track.title,
         track.artist,
-        excludeIds
+        excludeIds,
+        track.durationSec
       );
       if (info && info.url) return { url: toPlayableStreamUrl(info.url) };
     } catch (err: any) {
@@ -150,80 +203,49 @@ const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promis
     }
   }
 
-  // 2. Try Vite dev server music resolver
-  try {
-    const res = await fetch(
-      `/api/music/resolve?id=${encodeURIComponent(targetId)}&source=${encodeURIComponent(track.source)}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}`
-    );
-    if (res.ok) {
-      const info = await res.json();
-      if (info && info.url) return { url: toPlayableStreamUrl(info.url) };
-    } else {
-      const errData = await res.json().catch(() => null);
-      if (errData?.error) lastError = errData.error;
+  // 2. Try Vite dev server music resolver (only in standalone browser dev mode)
+  if (!window.electronAPI) {
+    try {
+      const res = await fetch(
+        `/api/music/resolve?id=${encodeURIComponent(targetId)}&source=${encodeURIComponent(track.source)}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}`
+      );
+      if (res.ok) {
+        const info = await res.json();
+        if (info && info.url) return { url: toPlayableStreamUrl(info.url) };
+      } else {
+        const errData = await res.json().catch(() => null);
+        if (errData?.error) lastError = errData.error;
+      }
+    } catch (err: any) {
+      lastError = err?.message || '';
     }
-  } catch (err: any) {
-    lastError = err?.message || '';
   }
 
-  // 3. Client-side fallback to SoundCloud public API v2
-  try {
-    const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
-    let scId = targetId;
+  // 3. For SoundCloud tracks only, direct client-side fallback (no cross-source fallback for YouTube)
+  if (track.source === 'SC') {
+    try {
+      const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
+      const scId = targetId;
 
-    // If it is a YouTube track, search SoundCloud for the song title
-    if (track.source === 'YT') {
-      const query = `${track.title} ${track.artist}`.trim();
-      const scSearchRes = await fetch(
-        `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=3`
-      );
-      if (scSearchRes.ok) {
-        const scSearchData = await scSearchRes.json();
-        if (scSearchData.collection && scSearchData.collection.length > 0) {
-          scId = String(scSearchData.collection[0].id);
-        }
-      }
-    }
-
-    if (scId) {
-      const trackRes = await fetch(`https://api-v2.soundcloud.com/tracks/${scId}?client_id=${clientId}`);
-      if (trackRes.ok) {
-        const trackData = await trackRes.json();
-        const trans = trackData?.media?.transcodings?.find((t: any) => t.format?.protocol === 'progressive') ||
-                      trackData?.media?.transcodings?.[0];
-        if (trans && trans.url) {
-          const streamRes = await fetch(`${trans.url}?client_id=${clientId}`);
-          if (streamRes.ok) {
-            const streamData = await streamRes.json();
-            if (streamData?.url) return { url: toPlayableStreamUrl(streamData.url) };
+      if (scId) {
+        const trackRes = await fetch(`https://api-v2.soundcloud.com/tracks/${scId}?client_id=${clientId}`);
+        if (trackRes.ok) {
+          const trackData = await trackRes.json();
+          const trans = trackData?.media?.transcodings?.find((t: any) => t.format?.protocol === 'progressive') ||
+                        trackData?.media?.transcodings?.[0];
+          if (trans && trans.url) {
+            const streamRes = await fetch(`${trans.url}?client_id=${clientId}`);
+            if (streamRes.ok) {
+              const streamData = await streamRes.json();
+              if (streamData?.url) return { url: toPlayableStreamUrl(streamData.url) };
+            }
           }
         }
       }
+    } catch (e: any) {
+      console.warn('[Player] Direct SoundCloud stream resolve failed:', e);
+      if (!lastError) lastError = e?.message || '';
     }
-
-    // Secondary fallback search by title & artist on SoundCloud
-    const query = `${track.title} ${track.artist}`.trim();
-    const scFallback = await fetch(
-      `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=3`
-    );
-    if (scFallback.ok) {
-      const data = await scFallback.json();
-      if (data.collection && data.collection.length > 0) {
-        const best = data.collection[0];
-        const trans = best?.media?.transcodings?.find((t: any) => t.format?.protocol === 'progressive') ||
-                      best?.media?.transcodings?.[0];
-        if (trans && trans.url) {
-          const streamRes = await fetch(`${trans.url}?client_id=${clientId}`);
-          if (streamRes.ok) {
-            const streamData = await streamRes.json();
-            if (streamData?.url) return { url: toPlayableStreamUrl(streamData.url) };
-          }
-        }
-      }
-    }
-  } catch (e: any) {
-    console.warn('[Player] Direct stream resolve failed:', e);
-    if (!lastError) lastError = e?.message || '';
   }
 
   return { url: '', error: lastError };
@@ -237,17 +259,11 @@ const attemptStreamFallback = async (
   get: any
 ): Promise<boolean> => {
   if (isRecoveringStream) return false;
-  if ((failedTrack as any)._fallbackTried) return false;
-  (failedTrack as any)._fallbackTried = true;
   isRecoveringStream = true;
+  delete failedTrack.streamUrl;
 
   console.warn(`[Player] Primary stream failed for "${failedTrack.title}". Attempting automatic alternative fallback...`);
   set({ isBuffering: true, playbackError: null });
-
-  useToastStore.getState().info(
-    'Switching Stream',
-    `Primary stream unavailable in your region. Finding alternative source for "${failedTrack.title}"...`
-  );
 
   try {
     const rawId = failedTrack.sourceId || failedTrack.id;
@@ -257,6 +273,8 @@ const attemptStreamFallback = async (
     if (altUrl) {
       await audioEngine.loadTrack(altUrl);
       await audioEngine.play();
+      consecutiveErrorsCount = 0;
+      failedTrack.streamUrl = altUrl;
       set((s: any) => ({
         isPlaying: true,
         isBuffering: false,
@@ -266,7 +284,7 @@ const attemptStreamFallback = async (
       }));
       useToastStore.getState().success(
         'Stream Restored',
-        `Connected to alternative source for "${failedTrack.title}".`
+        `Connected to alternative official source for "${failedTrack.title}".`
       );
       isRecoveringStream = false;
       return true;
@@ -337,6 +355,17 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (idx >= 0) set({ queueIndex: idx });
     }
 
+    // Always clear stale or expired remote URLs and reset fallback flags on explicit user track click
+    delete (track as any)._fallbackTried;
+    if (track.source !== 'LOCAL' && track.streamUrl) {
+      if (track.streamUrl.includes('googlevideo.com')) {
+        const match = track.streamUrl.match(/[?&]expire=(\d+)/);
+        if (!match || Date.now() > parseInt(match[1], 10) * 1000 - 120000) {
+          delete track.streamUrl;
+        }
+      }
+    }
+
     const initialDur = track.durationSec || parseDurationToSeconds(track.duration) || 0;
     set({
       activeTrack: track,
@@ -351,6 +380,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (url) {
         await audioEngine.loadTrack(url);
         await audioEngine.play();
+        consecutiveErrorsCount = 0;
         set((s) => {
           const exists = s.cachedTracks.some((t) => t.id === track.id);
           const audioDur = Number.isFinite(audioEngine.duration) && audioEngine.duration > 0 ? audioEngine.duration : 0;
@@ -392,24 +422,56 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       } else {
         const recovered = await attemptStreamFallback(track, set, get);
         if (!recovered) {
-          const errMsg = error || 'Audio stream not found. The track may be restricted in your region.';
-          set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
-          useToastStore.getState().error(
-            `Failed to play "${track.title}"`,
-            errMsg
+          consecutiveErrorsCount++;
+          const isBot = Boolean(
+            error?.includes('YOUTUBE_BOT_CHALLENGE') ||
+            error?.includes('Sign in to confirm') ||
+            (error && /bot/i.test(error))
           );
+
+          if (isBot || consecutiveErrorsCount >= 2) {
+            notifyBotChallengeOrRepeatedErrors();
+            set({
+              isPlaying: false,
+              isBuffering: false,
+              playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+            });
+          } else {
+            const errMsg = error || 'Audio stream not found. The track may be restricted in your region.';
+            set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+            useToastStore.getState().error(
+              `Failed to play "${track.title}"`,
+              errMsg
+            );
+          }
         }
       }
     } catch (err: any) {
       console.error('[Player] Playback failed:', err);
       const recovered = await attemptStreamFallback(track, set, get);
       if (!recovered) {
-        const errMsg = 'Audio stream unavailable in your region due to copyright restrictions.';
-        set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
-        useToastStore.getState().error(
-          `Playback error: "${track.title}"`,
-          errMsg
+        consecutiveErrorsCount++;
+        const isBot = Boolean(
+          err?.message?.includes('YOUTUBE_BOT_CHALLENGE') ||
+          err?.message?.includes('Sign in to confirm') ||
+          (err?.message && /bot/i.test(err.message))
         );
+
+        if (isBot || consecutiveErrorsCount >= 2) {
+          notifyBotChallengeOrRepeatedErrors();
+          set({
+            isPlaying: false,
+            isBuffering: false,
+            playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+          });
+        } else {
+          const errMsg = err?.message || 'Audio stream unavailable in your region.';
+          set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+          useToastStore.getState().error(
+            `Playback error: "${track.title}"`,
+            errMsg
+          );
+        }
       }
     }
 
@@ -905,6 +967,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const onPlay = (e: Event) => {
       const target = e.target as HTMLAudioElement;
       if (target === audioEngine.activeAudioElement) {
+        consecutiveErrorsCount = 0;
         set({ isPlaying: true, isBuffering: false });
       }
     };
@@ -936,8 +999,24 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
       const currentTrack = get().activeTrack;
       if (currentTrack) {
+        delete currentTrack.streamUrl;
+        delete (currentTrack as any)._fallbackTried;
+        set((s) => ({
+          cachedTracks: s.cachedTracks.map((t) => (t.id === currentTrack.id ? { ...t, streamUrl: undefined } : t)),
+        }));
         const recovered = await attemptStreamFallback(currentTrack, set, get);
         if (recovered) return;
+      }
+
+      consecutiveErrorsCount++;
+      if (consecutiveErrorsCount >= 2) {
+        notifyBotChallengeOrRepeatedErrors();
+        set({
+          isPlaying: false,
+          isBuffering: false,
+          playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+        });
+        return;
       }
 
       const errorCode = target.error?.code;
@@ -966,6 +1045,32 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     audioEngine.addEventListener('waiting', onWaiting);
     audioEngine.addEventListener('canplay', onCanPlay);
     audioEngine.addEventListener('error', onError);
+
+    // Register Electron auth session update listener
+    let removeAuthSessionListener: (() => void) | undefined;
+    if (window.electronAPI?.onAuthSessionUpdated) {
+      removeAuthSessionListener = window.electronAPI.onAuthSessionUpdated((data) => {
+        consecutiveErrorsCount = 0;
+        set((s) => ({
+          cachedTracks: s.cachedTracks.map((t) => {
+            const copy = { ...t };
+            delete copy.streamUrl;
+            return copy;
+          }),
+          queue: s.queue.map((t) => {
+            const copy = { ...t };
+            delete copy.streamUrl;
+            return copy;
+          }),
+        }));
+        if (data.connected && data.platform === 'youtube') {
+          useToastStore.getState().success(
+            'Google Session Connected',
+            'YouTube session is active. Rate limits lifted!'
+          );
+        }
+      });
+    }
 
     // Register Electron media key listener
     let removeMediaKeyListener: (() => void) | undefined;
@@ -999,6 +1104,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       audioEngine.removeEventListener('canplay', onCanPlay);
       audioEngine.removeEventListener('error', onError);
       removeMediaKeyListener?.();
+      removeAuthSessionListener?.();
     };
   },
 }));
