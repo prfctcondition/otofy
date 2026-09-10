@@ -109,7 +109,13 @@ export const repo = {
     return trackIds
       .map(id => trackMap.get(id))
       .filter((t): t is DbTrack => t !== undefined)
-      .map(dbTrackToTrack);
+      .map((t) => {
+        const track = dbTrackToTrack(t);
+        if (playlistId === 'pl-liked') {
+          track.isLiked = true;
+        }
+        return track;
+      });
   },
 
   async getAllTracks(): Promise<Track[]> {
@@ -140,11 +146,11 @@ export const repo = {
       iconName: track.iconName,
       gradientFrom: track.gradientFrom,
       gradientTo: track.gradientTo,
-      isLiked: track.isLiked ?? false,
-      streamUrl: track.streamUrl,
       artworkUrl: track.artworkUrl,
+      streamUrl: track.streamUrl,
+      isLiked: track.isLiked ?? false,
       sourceId: track.sourceId,
-      playbackCount: 0,
+      playbackCount: (track as any).playbackCount ?? 0,
     };
     await db.tracks.put(dt);
   },
@@ -155,7 +161,12 @@ export const repo = {
       .equals(playlistId)
       .and(pt => pt.trackId === trackId)
       .first();
-    if (existing) return;
+    if (existing) {
+      if (playlistId === 'pl-liked') {
+        await db.tracks.update(trackId, { isLiked: true });
+      }
+      return;
+    }
     const count = await db.playlistTracks.where('playlistId').equals(playlistId).count();
     await db.playlistTracks.add({
       playlistId,
@@ -163,6 +174,9 @@ export const repo = {
       position: count,
       addedAt: Date.now(),
     });
+    if (playlistId === 'pl-liked') {
+      await db.tracks.update(trackId, { isLiked: true });
+    }
     // Update song count
     await db.playlists.update(playlistId, {
       songCount: count + 1,
@@ -184,6 +198,9 @@ export const repo = {
           position: pos++,
           addedAt: Date.now(),
         });
+        if (playlistId === 'pl-liked') {
+          await db.tracks.update(trackId, { isLiked: true });
+        }
       }
     }
     if (toAdd.length > 0) {
@@ -201,6 +218,9 @@ export const repo = {
       .equals(playlistId)
       .and(pt => pt.trackId === trackId)
       .delete();
+    if (playlistId === 'pl-liked') {
+      await db.tracks.update(trackId, { isLiked: false });
+    }
     const count = await db.playlistTracks.where('playlistId').equals(playlistId).count();
     await db.playlists.update(playlistId, {
       songCount: count,

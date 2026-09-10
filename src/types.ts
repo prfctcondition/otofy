@@ -193,6 +193,23 @@ declare global {
       getDownloadsPath?: () => Promise<string>;
       selectDownloadsFolder?: () => Promise<string | null>;
       openFolder?: (folderPath?: string) => Promise<boolean>;
+      downloadTrack?: (
+        track: Track,
+        format?: 'mp3' | 'flac'
+      ) => Promise<{ started: boolean }>;
+      checkDownloadStatus?: (
+        tracks: Track[]
+      ) => Promise<Record<string, { downloaded: boolean; format?: 'mp3' | 'flac'; filePath?: string }>>;
+      showDownloadedFile?: (filePath: string) => Promise<boolean>;
+      onDownloadProgress?: (
+        callback: (data: {
+          trackId: string;
+          progress: number;
+          status: 'downloading' | 'completed' | 'error';
+          error?: string;
+          filePath?: string;
+        }) => void
+      ) => () => void;
     };
   }
 }

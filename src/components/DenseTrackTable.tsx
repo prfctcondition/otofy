@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Play,
@@ -7,12 +7,15 @@ import {
   Heart,
   MoreHorizontal,
   Loader2,
+  Download,
+  Check,
 } from 'lucide-react';
 import { Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { TrackContextMenu } from './TrackContextMenu';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
+import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 
 interface DenseTrackTableProps {
   tracks: Track[];
@@ -62,6 +65,9 @@ const TrackRow = React.memo<TrackRowProps>(({
   onOpenContextMenu,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
+  const startDownload = useDownloadStore((s) => s.startDownload);
+  const openDownloadedFile = useDownloadStore((s) => s.openDownloadedFile);
 
   return (
     <div
@@ -196,6 +202,45 @@ const TrackRow = React.memo<TrackRowProps>(({
           />
         </button>
 
+        {/* Background download button */}
+        {dlStatus.status === 'downloading' ? (
+          <div
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-[10px] font-semibold text-violet-600 dark:text-violet-400"
+            title={`Downloading... ${Math.round(dlStatus.progress)}%`}
+          >
+            <Loader2 size={12} className="animate-spin shrink-0" />
+            <span className="tabular-nums">{Math.round(dlStatus.progress)}%</span>
+          </div>
+        ) : dlStatus.status === 'completed' ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDownloadedFile(track.id);
+            }}
+            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors"
+            title="Downloaded (Click to show in folder)"
+          >
+            <Check size={15} strokeWidth={2.5} />
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              startDownload(track);
+            }}
+            className={`p-1 rounded-full transition-colors ${
+              dlStatus.status === 'error'
+                ? 'text-rose-500 hover:text-rose-400 opacity-100'
+                : isHovered
+                ? 'text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white opacity-100'
+                : 'opacity-0'
+            }`}
+            title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
+          >
+            <Download size={15} />
+          </button>
+        )}
+
         <span className="text-xs text-[#64748B] dark:text-white/80 w-9 text-right tabular-nums">
           {track.duration}
         </span>
@@ -235,10 +280,19 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   } | null>(null);
 
   const playlists = useLibraryStore((s) => s.playlists);
+  const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
   const addTrackToPlaylist = useLibraryStore((s) => s.addTrackToPlaylist);
+  const removeTrackFromPlaylist = useLibraryStore((s) => s.removeTrackFromPlaylist);
   const createPlaylist = useLibraryStore((s) => s.createPlaylist);
   const selectPlaylist = useLibraryStore((s) => s.selectPlaylist);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
+  const checkStatus = useDownloadStore((s) => s.checkStatus);
+
+  useEffect(() => {
+    if (tracks && tracks.length > 0) {
+      checkStatus(tracks);
+    }
+  }, [tracks, checkStatus]);
 
   const handleCreatePlaylistWithTrack = async (trk: Track) => {
     const newPl = await createPlaylist({
@@ -323,9 +377,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
             x={contextMenu.x}
             y={contextMenu.y}
             playlists={playlists}
+            currentPlaylistId={selectedPlaylistId}
             onClose={() => setContextMenu(null)}
             onPlay={(t) => onTrackSelect(t, tracks)}
             onAddToPlaylist={(plId, t) => addTrackToPlaylist(plId, t)}
+            onRemoveFromPlaylist={(plId, trkId) => removeTrackFromPlaylist(plId, trkId)}
             onCreatePlaylistWithTrack={handleCreatePlaylistWithTrack}
             onToggleLike={onToggleLike}
             onSelectArtist={onSelectArtist}

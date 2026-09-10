@@ -21,6 +21,7 @@ class AudioEngine {
 
   private currentVolume = 1.0;
   private isMuted = false;
+  private currentDeviceId = 'default';
 
   constructor() {
     this.deckA = {
@@ -43,6 +44,9 @@ class AudioEngine {
   private configureAudioElement(el: HTMLAudioElement): void {
     el.crossOrigin = 'anonymous';
     el.preload = 'auto';
+    if (this.currentDeviceId && this.currentDeviceId !== 'default' && 'setSinkId' in el) {
+      (el as any).setSinkId(this.currentDeviceId).catch(() => {});
+    }
   }
 
   private ensureContext(): AudioContext {
@@ -292,14 +296,47 @@ class AudioEngine {
 
   async setOutputDevice(deviceId: string): Promise<void> {
     const id = deviceId || 'default';
-    const tasks = [];
-    if ('setSinkId' in this.deckA.audio) {
-      tasks.push((this.deckA.audio as any).setSinkId(id).catch(() => {}));
+    this.currentDeviceId = id;
+    const tasks: Promise<any>[] = [];
+
+    // 1. AudioContext destination setSinkId (Web Audio API graph)
+    if (this.ctx && 'setSinkId' in this.ctx && typeof (this.ctx as any).setSinkId === 'function') {
+      tasks.push(
+        (this.ctx as any).setSinkId(id).catch((err: any) => {
+          console.warn('[AudioEngine] AudioContext setSinkId failed:', err);
+        })
+      );
     }
-    if ('setSinkId' in this.deckB.audio) {
-      tasks.push((this.deckB.audio as any).setSinkId(id).catch(() => {}));
+
+    // 2. Both Deck elements setSinkId
+    if (
+      this.deckA?.audio &&
+      'setSinkId' in this.deckA.audio &&
+      typeof (this.deckA.audio as any).setSinkId === 'function'
+    ) {
+      tasks.push(
+        (this.deckA.audio as any).setSinkId(id).catch((err: any) => {
+          console.warn('[AudioEngine] DeckA setSinkId failed:', err);
+        })
+      );
     }
-    await Promise.all(tasks);
+    if (
+      this.deckB?.audio &&
+      'setSinkId' in this.deckB.audio &&
+      typeof (this.deckB.audio as any).setSinkId === 'function'
+    ) {
+      tasks.push(
+        (this.deckB.audio as any).setSinkId(id).catch((err: any) => {
+          console.warn('[AudioEngine] DeckB setSinkId failed:', err);
+        })
+      );
+    }
+
+    try {
+      await Promise.all(tasks);
+    } catch (err) {
+      console.warn('[AudioEngine] setOutputDevice error:', err);
+    }
   }
 
   // Event listener delegation across both decks

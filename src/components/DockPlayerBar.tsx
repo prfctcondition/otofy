@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -19,11 +19,14 @@ import {
   PanelRight,
   Loader2,
   AlertCircle,
+  Download,
+  Check,
 } from 'lucide-react';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useEqStore } from '../store/eqStore';
+import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 
 interface DockPlayerBarProps {
   onSelectArtist?: (artist: string) => void;
@@ -67,6 +70,19 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState<number | null>(null);
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
+
+  const dlStatus = useDownloadStore((s) =>
+    activeTrack ? s.downloads[activeTrack.id] || IDLE_DOWNLOAD : IDLE_DOWNLOAD
+  );
+  const startDownload = useDownloadStore((s) => s.startDownload);
+  const openDownloadedFile = useDownloadStore((s) => s.openDownloadedFile);
+  const checkStatus = useDownloadStore((s) => s.checkStatus);
+
+  useEffect(() => {
+    if (activeTrack) {
+      checkStatus([activeTrack]);
+    }
+  }, [activeTrack?.id, checkStatus]);
 
   if (!activeTrack) {
     return (
@@ -190,6 +206,39 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         >
           <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
         </button>
+
+        {/* Background download button */}
+        {dlStatus.status === 'downloading' ? (
+          <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-[11px] font-semibold text-violet-600 dark:text-violet-400 shrink-0"
+            title={`Downloading... ${Math.round(dlStatus.progress)}%`}
+          >
+            <Loader2 size={13} className="animate-spin shrink-0" />
+            <span className="tabular-nums">{Math.round(dlStatus.progress)}%</span>
+          </div>
+        ) : dlStatus.status === 'completed' ? (
+          <button
+            id="player-download-btn"
+            onClick={() => openDownloadedFile(activeTrack.id)}
+            className="p-1.5 rounded-full text-emerald-500 hover:text-emerald-400 transition-all active:scale-125 shrink-0"
+            title="Downloaded (Click to show in folder)"
+          >
+            <Check size={18} strokeWidth={2.5} />
+          </button>
+        ) : (
+          <button
+            id="player-download-btn"
+            onClick={() => startDownload(activeTrack)}
+            className={`p-1.5 rounded-full transition-all active:scale-125 shrink-0 ${
+              dlStatus.status === 'error'
+                ? 'text-rose-500 hover:text-rose-400'
+                : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
+            }`}
+            title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
+          >
+            <Download size={18} />
+          </button>
+        )}
       </div>
 
       {/* Center playback controls - strictly centered */}

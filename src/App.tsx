@@ -16,6 +16,7 @@ import { usePlayerStore } from './store/playerStore';
 import { useLibraryStore } from './store/libraryStore';
 import { useSearchStore } from './store/searchStore';
 import { useSettingsStore } from './store/settingsStore';
+import { useDownloadStore } from './store/downloadStore';
 
 import { EqualizerModal } from './components/EqualizerModal';
 import { QueueModal } from './components/QueueModal';
@@ -108,8 +109,12 @@ export default function App() {
     };
 
     initApp();
-    const cleanup = playerStore.initAudioListeners();
-    return cleanup;
+    const cleanupAudio = playerStore.initAudioListeners();
+    const cleanupDl = useDownloadStore.getState().initListeners();
+    return () => {
+      cleanupAudio?.();
+      cleanupDl?.();
+    };
   }, []);
 
   const currentPlaylist = useMemo(() => {

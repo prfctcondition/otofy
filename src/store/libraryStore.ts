@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Track, Playlist, ArtistDetails } from '../types';
 import repo from '../db/repository';
-import { usePlayerStore } from './playerStore';
+import { usePlayerStore, cleanTrackId } from './playerStore';
 import { useToastStore } from './toastStore';
 
 export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
@@ -94,6 +94,7 @@ interface LibraryActions {
   createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string }) => Promise<Playlist>;
   deletePlaylist: (id: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
+  removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
   openCatalog: () => void;
   openSettings: () => void;
@@ -369,6 +370,13 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         playerStore.toggleActiveTrackLike(newLiked);
       }
 
+      const likedTracks = await repo.getPlaylistTracks('pl-liked');
+      set((s) => ({
+        playlists: s.playlists.map((p) =>
+          p.id === 'pl-liked' ? { ...p, songCount: likedTracks.length } : p
+        ),
+      }));
+
       if (get().selectedPlaylistId === 'pl-liked') {
         await get().refreshPlaylistTracks();
       }
@@ -406,6 +414,53 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   addTrackToPlaylist: async (playlistId, track) => {
+    // If adding to Liked Songs
+    if (playlistId === 'pl-liked') {
+      const currentLiked = await repo.getPlaylistTracks('pl-liked');
+      const targetId = track.id;
+      const targetClean = cleanTrackId(track.sourceId || track.id);
+      const exists = currentLiked.some(
+        (t) =>
+          t.id === targetId ||
+          (t.sourceId && (t.sourceId === track.sourceId || t.sourceId === targetId)) ||
+          cleanTrackId(t.sourceId || t.id) === targetClean
+      );
+      if (exists) {
+        // Track is already in Liked Songs -> no-op to prevent duplicate
+        return;
+      }
+
+      await repo.putTrack({ ...track, isLiked: true });
+      await repo.addTrackToPlaylist('pl-liked', track.id);
+
+      set((s) => ({
+        currentPlaylistTracks: s.currentPlaylistTracks.map((t) =>
+          t.id === track.id ? { ...t, isLiked: true } : t
+        ),
+      }));
+
+      const playerStore = usePlayerStore.getState();
+      if (
+        playerStore.activeTrack &&
+        (playerStore.activeTrack.id === track.id || playerStore.activeTrack.sourceId === track.id)
+      ) {
+        playerStore.toggleActiveTrackLike(true);
+      }
+
+      if (get().selectedPlaylistId === 'pl-liked') {
+        await get().refreshPlaylistTracks();
+      }
+
+      const count = await repo.getPlaylistTracks('pl-liked').then((ts) => ts.length);
+      set((s) => ({
+        playlists: s.playlists.map((p) =>
+          p.id === 'pl-liked' ? { ...p, songCount: count } : p
+        ),
+      }));
+      return;
+    }
+
+    // Normal playlist add
     await repo.putTrack(track);
     await repo.addTrackToPlaylist(playlistId, track.id);
     if (get().selectedPlaylistId === playlistId) {
@@ -414,6 +469,33 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     set((s) => ({
       playlists: s.playlists.map((p) =>
         p.id === playlistId ? { ...p, songCount: p.songCount + 1 } : p
+      ),
+    }));
+  },
+
+  removeTrackFromPlaylist: async (playlistId, trackId) => {
+    await repo.removeTrackFromPlaylist(playlistId, trackId);
+    if (playlistId === 'pl-liked') {
+      // Sync Liked Songs removal
+      set((s) => ({
+        currentPlaylistTracks: s.currentPlaylistTracks.filter((t) => t.id !== trackId),
+      }));
+      const playerStore = usePlayerStore.getState();
+      if (
+        playerStore.activeTrack &&
+        (playerStore.activeTrack.id === trackId || playerStore.activeTrack.sourceId === trackId)
+      ) {
+        playerStore.toggleActiveTrackLike(false);
+      }
+    } else {
+      if (get().selectedPlaylistId === playlistId) {
+        await get().refreshPlaylistTracks();
+      }
+    }
+    const count = await repo.getPlaylistTracks(playlistId).then((ts) => ts.length);
+    set((s) => ({
+      playlists: s.playlists.map((p) =>
+        p.id === playlistId ? { ...p, songCount: count } : p
       ),
     }));
   },

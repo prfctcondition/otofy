@@ -46,4 +46,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDownloadsPath: () => ipcRenderer.invoke('storage:get-downloads-path'),
   selectDownloadsFolder: () => ipcRenderer.invoke('storage:select-downloads-folder'),
   openFolder: (folderPath?: string) => ipcRenderer.invoke('storage:open-folder', folderPath),
+  downloadTrack: (track: any, format?: 'mp3' | 'flac') =>
+    ipcRenderer.invoke('download:track', { track, format }),
+  checkDownloadStatus: (tracks: any[]) =>
+    ipcRenderer.invoke('download:check-status', { tracks }),
+  showDownloadedFile: (filePath: string) =>
+    ipcRenderer.invoke('download:show-in-folder', { filePath }),
+  onDownloadProgress: (
+    callback: (data: {
+      trackId: string;
+      progress: number;
+      status: 'downloading' | 'completed' | 'error';
+      error?: string;
+      filePath?: string;
+    }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('download:progress', handler);
+    return () => ipcRenderer.removeListener('download:progress', handler);
+  },
 });

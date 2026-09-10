@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import ytResolver from './services/ytResolver.js';
 import scResolver from './services/scResolver.js';
 import searchService from './services/searchService.js';
+import downloadService, { DownloadFormat, TrackMetadata } from './services/downloadService.js';
 import { cleanArtistAndTitle } from './services/trackParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,21 @@ let closeToTray = initialConfig.closeToTray ?? false;
 if (initialConfig.hardwareAcceleration === false) {
   app.disableHardwareAcceleration();
 }
+
+// Single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
 
 function createTray() {
   if (tray) return;
@@ -149,9 +165,17 @@ function createWindow() {
     }
   });
 
-  const isStartedMinimized = process.argv.includes('--minimized') || initialConfig.autoLaunch === 'minimized';
-  if (isStartedMinimized) {
+  const isAutoStart =
+    process.argv.includes('--autostart') ||
+    process.argv.includes('--hidden') ||
+    Boolean(app.getLoginItemSettings?.().wasOpenedAsHidden);
+
+  const shouldStartMinimized = initialConfig.autoLaunch === 'minimized' && isAutoStart;
+  if (shouldStartMinimized) {
     mainWindow.hide();
+  } else {
+    mainWindow.show();
+    mainWindow.focus();
   }
 
   mainWindow.on('closed', () => {
@@ -592,7 +616,7 @@ ipcMain.handle('app:set-autolaunch', (_event, mode: 'no' | 'yes' | 'minimized') 
       openAtLogin,
       openAsHidden,
       path: process.execPath,
-      args: openAsHidden ? ['--minimized'] : [],
+      args: openAsHidden ? ['--autostart', '--hidden', '--minimized'] : openAtLogin ? ['--autostart'] : [],
     });
   } catch (err) {
     console.warn('Failed to set login item settings:', err);
@@ -704,6 +728,54 @@ ipcMain.handle('storage:open-folder', async (_event, folderPath?: string) => {
     console.warn('Failed to open folder:', target, err);
     return false;
   }
+});
+
+// Download IPC Handlers
+ipcMain.handle(
+  'download:track',
+  async (event, { track, format }: { track: TrackMetadata; format?: DownloadFormat }) => {
+    const downloadsPath = getDefaultDownloadsPath();
+    const fmt = format || 'mp3';
+
+    // Start background download without blocking IPC invocation
+    downloadService
+      .downloadTrack(track, fmt, downloadsPath, (progress, status, error, filePath) => {
+        if (event.sender && !event.sender.isDestroyed()) {
+          event.sender.send('download:progress', {
+            trackId: track.id,
+            progress,
+            status,
+            error,
+            filePath,
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('[Main] downloadTrack error:', err);
+      });
+
+    return { started: true };
+  }
+);
+
+ipcMain.handle('download:check-status', async (_event, { tracks }: { tracks: TrackMetadata[] }) => {
+  const downloadsPath = getDefaultDownloadsPath();
+  const results: Record<string, { downloaded: boolean; format?: DownloadFormat; filePath?: string }> = {};
+
+  if (!tracks || !Array.isArray(tracks)) return results;
+
+  for (const track of tracks) {
+    results[track.id] = downloadService.checkTrackDownloaded(track, downloadsPath);
+  }
+  return results;
+});
+
+ipcMain.handle('download:show-in-folder', async (_event, { filePath }: { filePath: string }) => {
+  if (filePath && fs.existsSync(filePath)) {
+    shell.showItemInFolder(filePath);
+    return true;
+  }
+  return false;
 });
 
 let cachedUserProfile: { username: string; avatarUrl: string | null } | null = null;

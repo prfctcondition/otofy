@@ -8,17 +8,23 @@ import {
   Share2,
   Check,
   ChevronRight,
+  Download,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
 import { Track, Playlist } from '../types';
+import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 
 interface TrackContextMenuProps {
   track: Track;
   x: number;
   y: number;
   playlists: Playlist[];
+  currentPlaylistId?: string;
   onClose: () => void;
   onPlay: (track: Track) => void;
   onAddToPlaylist: (playlistId: string, track: Track) => void;
+  onRemoveFromPlaylist?: (playlistId: string, trackId: string) => void;
   onCreatePlaylistWithTrack: (track: Track) => void;
   onToggleLike: (trackId: string, track?: Track) => void;
   onSelectArtist?: (artist: string) => void;
@@ -29,9 +35,11 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   x,
   y,
   playlists,
+  currentPlaylistId,
   onClose,
   onPlay,
   onAddToPlaylist,
+  onRemoveFromPlaylist,
   onCreatePlaylistWithTrack,
   onToggleLike,
   onSelectArtist,
@@ -99,7 +107,21 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
     };
   }, [onClose]);
 
+  const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
+  const startDownload = useDownloadStore((s) => s.startDownload);
+  const openDownloadedFile = useDownloadStore((s) => s.openDownloadedFile);
+
+  const likedPlaylist = playlists.find((p) => p.id === 'pl-liked');
   const userPlaylists = playlists.filter((p) => p.id !== 'pl-liked');
+
+  const isCurrentLikedSongs = currentPlaylistId === 'pl-liked';
+  const canRemoveFromCurrent =
+    currentPlaylistId &&
+    currentPlaylistId !== 'pl-liked' &&
+    currentPlaylistId !== 'home' &&
+    !currentPlaylistId.startsWith('artist-') &&
+    !currentPlaylistId.startsWith('album-') &&
+    !currentPlaylistId.startsWith('mix-');
 
   const handlePlaylistSelect = (playlistId: string) => {
     onAddToPlaylist(playlistId, track);
@@ -123,7 +145,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-60 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none animate-in fade-in zoom-in-95 duration-100"
     >
       {/* Track Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
@@ -155,8 +177,22 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           size={15}
           className={track.isLiked ? 'text-rose-500 fill-rose-500' : 'text-[#64748B] dark:text-white/70'}
         />
-        <span>{track.isLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}</span>
+        <span>{track.isLiked || isCurrentLikedSongs ? 'Remove from Liked Songs' : 'Save to Liked Songs'}</span>
       </button>
+
+      {/* Remove from custom playlist if inside one */}
+      {canRemoveFromCurrent && onRemoveFromPlaylist && (
+        <button
+          onClick={() => {
+            onRemoveFromPlaylist(currentPlaylistId!, track.id);
+            onClose();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
+        >
+          <Trash2 size={15} />
+          <span>Remove from this playlist</span>
+        </button>
+      )}
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
@@ -177,19 +213,33 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           <ChevronRight size={14} className="text-[#94A3B8] dark:text-white/40" />
         </button>
 
-        {/* Submenu of user playlists */}
+        {/* Submenu of playlists */}
         {showPlaylistsSubmenu && (
           <div
             className={`absolute top-0 ${
-              coords.left + 240 + 215 > window.innerWidth - 10 ? 'right-full -mr-1' : 'left-full -ml-1'
+              coords.left + 256 + 220 > window.innerWidth - 10 ? 'right-full -mr-1' : 'left-full -ml-1'
             } w-52 py-1.5 rounded-2xl bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] max-h-56 overflow-y-auto z-50`}
           >
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-white/50">
-              Your Playlists
+              Playlists
             </div>
-            {userPlaylists.length === 0 ? (
+            {likedPlaylist && (
+              <button
+                onClick={() => handlePlaylistSelect('pl-liked')}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-rose-500 font-medium"
+              >
+                <div className="flex items-center gap-2 truncate pr-2">
+                  <Heart size={13} fill="currentColor" />
+                  <span className="truncate">Liked Songs</span>
+                </div>
+                {(track.isLiked || addedPlaylistId === 'pl-liked') && (
+                  <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                )}
+              </button>
+            )}
+            {userPlaylists.length === 0 && !likedPlaylist ? (
               <div className="px-3 py-2 text-[11px] text-[#94A3B8] dark:text-white/50 italic">
-                No custom playlists yet
+                No playlists yet
               </div>
             ) : (
               userPlaylists.map((pl) => (
@@ -220,6 +270,54 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         <FolderPlus size={15} className="text-violet-600 dark:text-violet-400" />
         <span>Create playlist with this track</span>
       </button>
+
+      <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
+
+      {/* Download Options */}
+      {dlStatus.status === 'completed' ? (
+        <button
+          onClick={() => {
+            openDownloadedFile(track.id);
+            onClose();
+          }}
+          className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-emerald-600 dark:text-emerald-400 cursor-pointer"
+        >
+          <div className="flex items-center gap-2.5">
+            <Check size={15} />
+            <span>Show downloaded file</span>
+          </div>
+        </button>
+      ) : dlStatus.status === 'downloading' ? (
+        <div className="w-full flex items-center justify-between px-3 py-2 text-violet-600 dark:text-violet-400">
+          <div className="flex items-center gap-2.5">
+            <Loader2 size={15} className="animate-spin shrink-0" />
+            <span>Downloading ({Math.round(dlStatus.progress)}%)</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={() => {
+              startDownload(track, 'mp3');
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+          >
+            <Download size={15} className="text-[#64748B] dark:text-white/70" />
+            <span>Download MP3 (320 kbps)</span>
+          </button>
+          <button
+            onClick={() => {
+              startDownload(track, 'flac');
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+          >
+            <Download size={15} className="text-[#64748B] dark:text-white/70" />
+            <span>Download FLAC</span>
+          </button>
+        </>
+      )}
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
 
