@@ -162,7 +162,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   isImportModalOpen: false,
   isCreatePlaylistModalOpen: false,
   isSyncModalOpen: false,
-  isLyricsModalOpen: false,
+  isLyricsModalOpen: true,
   isQueueOpen: false,
   isFullscreenLyrics: false,
 

@@ -154,17 +154,9 @@ export default function App() {
         if (!matchPlaylist) return false;
       }
 
-      // Optional genre quick-filter if user picked one
-      if (selectedFilter && selectedFilter !== 'All') {
-        const titleLower = track.title.toLowerCase();
-        const artistLower = track.artist.toLowerCase();
-        const filterLower = selectedFilter.toLowerCase();
-        return titleLower.includes(filterLower) || artistLower.includes(filterLower);
-      }
-
       return true;
     });
-  }, [currentPlaylistTracks, playlistSearch, isPlaylistSearchVisible, selectedFilter]);
+  }, [currentPlaylistTracks, playlistSearch, isPlaylistSearchVisible]);
 
   const isCurrentPlaylistActive = useMemo(() => {
     if (!activeTrack || filteredTracks.length === 0) return false;

@@ -7,7 +7,6 @@ import {
   MoreHorizontal,
   Search,
   ListFilter,
-  ChevronRight,
   Sparkles,
   Share2,
   Plus,
@@ -21,7 +20,6 @@ import {
 } from 'lucide-react';
 import { Playlist, Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
-import { FILTER_PILLS } from '../data/musicData';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 
@@ -33,8 +31,8 @@ interface LiquidHeroHeaderProps {
   onPlayToggle: () => void;
   isShuffle: boolean;
   onShuffleToggle: () => void;
-  selectedFilter: string;
-  onSelectFilter: (filter: string) => void;
+  selectedFilter?: string;
+  onSelectFilter?: (filter: string) => void;
   isSearchVisible: boolean;
   onToggleSearch: () => void;
   playlistSearchQuery: string;
@@ -60,7 +58,6 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   isSavedInLibrary = false,
   onToggleSaveToLibrary,
 }) => {
-  const pillsContainerRef = useRef<HTMLDivElement>(null);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const isLikedSongs =
     playlist.id === 'pl-liked' ||
@@ -132,12 +129,6 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
       await useLibraryStore.getState().selectPlaylist('pl-liked');
       setIsOptionsMenuOpen(false);
       useToastStore.getState().info('Playlist Deleted', `"${playlist.title}" has been deleted.`);
-    }
-  };
-
-  const handleScrollRight = () => {
-    if (pillsContainerRef.current) {
-      pillsContainerRef.current.scrollBy({ left: 160, behavior: 'smooth' });
     }
   };
 
@@ -559,43 +550,6 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Filter Pills (All, Phonk, Synthwave, etc.) */}
-        {!isLikedSongs && playlist.type !== 'Artist' && (
-          <div className="relative flex items-center pt-1">
-            <div
-              ref={pillsContainerRef}
-              className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth pr-10"
-            >
-              {FILTER_PILLS.map((pill) => {
-                const isSelected = selectedFilter === pill;
-                return (
-                  <button
-                    key={pill}
-                    onClick={() => onSelectFilter(pill)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${
-                      isSelected
-                        ? 'liquid-glass-pill-active font-semibold'
-                        : 'liquid-glass-pill text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/15'
-                    }`}
-                  >
-                    {pill}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={handleScrollRight}
-              className="absolute right-0 top-1 bottom-0 px-2 bg-gradient-to-l from-white/80 dark:from-black/90 via-white/50 dark:via-black/50 to-transparent flex items-center justify-center text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
-              title="Scroll filters"
-            >
-              <div className="w-6 h-6 rounded-full bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 border border-white/90 dark:border-white/15 flex items-center justify-center shadow-sm">
-                <ChevronRight size={14} />
-              </div>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Rename Dialog Modal */}
