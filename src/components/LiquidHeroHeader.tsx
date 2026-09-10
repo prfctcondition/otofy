@@ -88,7 +88,8 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const tracklistSortOrder = useLibraryStore((s) => s.tracklistSortOrder);
   const setTracklistSort = useLibraryStore((s) => s.setTracklistSort);
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed(playlist.title || ''));
-  const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved(playlist.id, playlist.title));
+  const albumArtist = playlist.creator?.split('•')[0]?.trim() || playlist.creator;
+  const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved(playlist.id, playlist.title, albumArtist));
 
   const allDownloaded = useMemo(() => {
     return tracks.length > 0 && tracks.every((t) => downloads[t.id]?.status === 'completed');

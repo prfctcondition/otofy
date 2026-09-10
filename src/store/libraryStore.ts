@@ -150,8 +150,18 @@ interface LibraryActions {
   saveViewingPlaylistToLibrary: () => Promise<void>;
   toggleFollowArtist: (artist: { name: string; avatarUrl?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
   isArtistFollowed: (name: string) => boolean;
-  toggleSaveAlbum: (album: { id: string; title: string; artist: string; artworkUrl?: string; year?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
-  isAlbumSaved: (id: string, title?: string) => boolean;
+  toggleSaveAlbum: (album: {
+    id: string;
+    title: string;
+    artist: string;
+    artworkUrl?: string;
+    year?: string;
+    source?: 'YT' | 'SC';
+    playlistId?: string;
+    totalTracks?: number;
+    tracks?: Track[];
+  }) => Promise<boolean>;
+  isAlbumSaved: (id: string, title?: string, artist?: string) => boolean;
   recordEntityPlayed: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration', order?: 'asc' | 'desc') => void;
@@ -272,7 +282,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
               id: pl.id,
               title: pl.title,
               artist: pl.creator || 'Unknown Artist',
-              artworkUrl: pl.artworkUrl,
+              artworkUrl: pl.artworkUrl || '',
+              source: 'YT',
               savedAt: typeof pl.createdAt === 'number' ? pl.createdAt : Date.now(),
               lastOpenedAt: typeof pl.lastOpenedAt === 'number' ? pl.lastOpenedAt : undefined,
             });
@@ -319,7 +330,50 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         return 0;
       });
 
-      set({ playlists, followedArtists, savedAlbums, isDbReady: true });
+      // Heal any legacy corruptions in savedAlbums
+      let albumsChanged = false;
+      const healedAlbums: SavedAlbum[] = savedAlbums.map((alb) => {
+        let id = alb.id;
+        let title = alb.title;
+        let changed = false;
+
+        if (id.startsWith('album-')) {
+          const stripped = id.replace(/^album[-_]/i, '');
+          if (stripped.toLowerCase().startsWith('mpreb_') || stripped.startsWith('OLAK') || stripped.startsWith('FEmusic_')) {
+            id = stripped;
+            changed = true;
+          }
+        }
+        if (id.toLowerCase().startsWith('mpreb_') && !id.startsWith('MPREb_')) {
+          id = 'MPREb_' + id.slice(6);
+          changed = true;
+        }
+
+        if (
+          title.toLowerCase().startsWith('album-mpreb_') ||
+          title.toLowerCase().startsWith('mpreb_') ||
+          title.toLowerCase().startsWith('album-olak') ||
+          title.toLowerCase().startsWith('olak')
+        ) {
+          title = 'Album';
+          changed = true;
+        }
+
+        if (changed) albumsChanged = true;
+        return {
+          ...alb,
+          id,
+          title,
+          artworkUrl: alb.artworkUrl || '',
+          source: alb.source || 'YT',
+        };
+      });
+
+      if (albumsChanged) {
+        await repo.setSavedAlbums(healedAlbums);
+      }
+
+      set({ playlists, followedArtists, savedAlbums: healedAlbums, isDbReady: true });
       await get().refreshPlaylistTracks();
     } catch (err) {
       console.warn('[Library] Failed to load from DB:', err);
@@ -436,11 +490,21 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
 
     if (viewingPlaylist.type === 'Album') {
+      const cleanId = viewingPlaylist.id.replace(/^album[-_]/i, '').trim();
+      const cleanTitle = viewingPlaylist.title.trim();
+      const artist = viewingPlaylist.creator?.split('•')[0]?.trim() || viewingPlaylist.creator || 'Artist';
+      const yearMatch = viewingPlaylist.creator?.match(/•\s*(\d{4})/);
+      const year = yearMatch ? yearMatch[1] : undefined;
+
       await get().toggleSaveAlbum({
-        id: viewingPlaylist.id,
-        title: viewingPlaylist.title,
-        artist: viewingPlaylist.creator?.split('•')[0]?.trim() || viewingPlaylist.creator || 'Artist',
-        artworkUrl: viewingPlaylist.artworkUrl,
+        id: cleanId,
+        playlistId: (viewingPlaylist as any).playlistId,
+        title: cleanTitle,
+        artist,
+        artworkUrl: viewingPlaylist.artworkUrl || currentPlaylistTracks[0]?.artworkUrl || '',
+        year,
+        totalTracks: currentPlaylistTracks.length,
+        tracks: currentPlaylistTracks,
       });
       return;
     }
@@ -521,23 +585,49 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   toggleSaveAlbum: async (album) => {
+    const cleanId = album.id.replace(/^album[-_]/i, '').trim();
     const cleanTitle = album.title.trim();
+    const cleanArtist = album.artist.trim();
     const existing = get().savedAlbums;
-    const isSaved = existing.some((a) => a.id === album.id || (a.title.toLowerCase() === cleanTitle.toLowerCase() && a.artist.toLowerCase() === album.artist.toLowerCase()));
+    const isSaved = existing.some((a) => {
+      const savedCleanId = a.id.replace(/^album[-_]/i, '').trim();
+      if (cleanId && (savedCleanId === cleanId || a.id === album.id || (album.playlistId && a.playlistId === album.playlistId))) {
+        return true;
+      }
+      if (cleanTitle && a.title.toLowerCase().trim() === cleanTitle.toLowerCase()) {
+        if (!cleanArtist || !a.artist) return true;
+        return a.artist.toLowerCase().trim() === cleanArtist.toLowerCase();
+      }
+      return false;
+    });
+
     let nextAlbums: SavedAlbum[];
     if (isSaved) {
-      nextAlbums = existing.filter((a) => a.id !== album.id && !(a.title.toLowerCase() === cleanTitle.toLowerCase() && a.artist.toLowerCase() === album.artist.toLowerCase()));
+      nextAlbums = existing.filter((a) => {
+        const savedCleanId = a.id.replace(/^album[-_]/i, '').trim();
+        if (cleanId && (savedCleanId === cleanId || a.id === album.id || (album.playlistId && a.playlistId === album.playlistId))) {
+          return false;
+        }
+        if (cleanTitle && a.title.toLowerCase().trim() === cleanTitle.toLowerCase()) {
+          if (!cleanArtist || !a.artist) return false;
+          if (a.artist.toLowerCase().trim() === cleanArtist.toLowerCase()) return false;
+        }
+        return true;
+      });
       useToastStore.getState().info('Album Removed', `"${cleanTitle}" was removed from your albums.`);
     } else {
       const newAlbum: SavedAlbum = {
-        id: album.id,
+        id: cleanId,
+        playlistId: album.playlistId,
         title: cleanTitle,
-        artist: album.artist.trim(),
-        artworkUrl: album.artworkUrl,
+        artist: cleanArtist,
+        artworkUrl: album.artworkUrl || '',
         year: album.year,
+        totalTracks: album.totalTracks || album.tracks?.length,
         source: album.source || 'YT',
         savedAt: Date.now(),
         lastOpenedAt: Date.now(),
+        tracks: album.tracks,
       };
       nextAlbums = [newAlbum, ...existing];
       useToastStore.getState().success('Album Saved', `"${cleanTitle}" was saved to your albums.`);
@@ -547,14 +637,23 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     return !isSaved;
   },
 
-  isAlbumSaved: (id, title) => {
+  isAlbumSaved: (id, title, artist) => {
     const albums = get().savedAlbums;
-    if (albums.some((a) => a.id === id)) return true;
-    if (title) {
-      const cleanTitle = title.trim().toLowerCase();
-      return albums.some((a) => a.title.toLowerCase() === cleanTitle);
-    }
-    return false;
+    const cleanId = (id || '').replace(/^album[-_]/i, '').trim();
+    const cleanTitle = (title || '').trim().toLowerCase();
+    const cleanArtist = (artist || '').trim().toLowerCase();
+
+    return albums.some((a) => {
+      const savedCleanId = a.id.replace(/^album[-_]/i, '').trim();
+      if (cleanId && (savedCleanId === cleanId || a.id === id || (a.playlistId && a.playlistId === cleanId))) {
+        return true;
+      }
+      if (cleanTitle && a.title.toLowerCase().trim() === cleanTitle) {
+        if (!cleanArtist || !a.artist) return true;
+        return a.artist.toLowerCase().trim() === cleanArtist;
+      }
+      return false;
+    });
   },
 
   recordEntityPlayed: async (id, type) => {

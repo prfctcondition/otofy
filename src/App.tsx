@@ -250,8 +250,13 @@ export default function App() {
         libraryStore.recordEntityPlayed(art.id, 'artist');
       }
     } else if (currentPlaylist.type === 'Album') {
+      const cleanPlId = currentPlaylist.id.replace(/^album[-_]/i, '').trim();
       const alb = libraryStore.savedAlbums.find(
-        (a) => a.id === currentPlaylist.id || a.title.toLowerCase() === currentPlaylist.title.toLowerCase()
+        (a) =>
+          a.id === currentPlaylist.id ||
+          a.id === cleanPlId ||
+          (a.playlistId && a.playlistId === cleanPlId) ||
+          a.title.toLowerCase() === currentPlaylist.title.toLowerCase()
       );
       if (alb) {
         libraryStore.recordEntityPlayed(alb.id, 'album');
@@ -679,102 +684,156 @@ export default function App() {
     artistName?: string,
     source?: 'YT' | 'SC'
   ) => {
-    const targetId = browseId || (albumTitle && artistName ? `${artistName} ${albumTitle}` : albumTitle);
-    if (!targetId) return;
-    const albumViewId = `album-${targetId.toLowerCase().replace(/\s+/g, '-')}`;
+    const cleanBrowseId = browseId ? browseId.replace(/^album[-_]/i, '').trim() : undefined;
+    const cleanTitle = albumTitle?.trim().toLowerCase();
+    const cleanArtist = artistName?.trim().toLowerCase();
 
-    // Instant optimistic navigation
-    libraryStore.setCustomPlaylistView(albumTitle || 'Album', [], {
-      id: albumViewId,
-      type: 'Album',
-      creator: artistName || 'Artist',
-      iconName: 'disc',
-      description: 'Loading album tracks...',
+    // Check if album is already saved in library
+    const savedAlbum = libraryStore.savedAlbums.find((a) => {
+      const savedCleanId = a.id.replace(/^album[-_]/i, '').trim();
+      if (cleanBrowseId && (savedCleanId === cleanBrowseId || a.id === browseId || (a.playlistId && a.playlistId === cleanBrowseId))) {
+        return true;
+      }
+      if (cleanTitle && a.title.toLowerCase().trim() === cleanTitle) {
+        if (!cleanArtist || !a.artist) return true;
+        return a.artist.toLowerCase().trim() === cleanArtist;
+      }
+      return false;
     });
-    libraryStore.setIsLoadingTracks(true);
+
+    // Prefer browseId / playlistId, or search query. DO NOT lowercase Base64 IDs!
+    const effectiveBrowseId = cleanBrowseId || (savedAlbum?.id && !savedAlbum.id.toLowerCase().startsWith('album-') ? savedAlbum.id : savedAlbum?.playlistId);
+    const targetId = effectiveBrowseId || (albumTitle && artistName ? `${artistName} ${albumTitle}` : albumTitle);
+    if (!targetId) return;
+
+    // NEVER lowercase YouTube browse tokens (MPREb_ / OLAK)
+    const albumViewId = effectiveBrowseId ? `album-${effectiveBrowseId}` : `album-${targetId.replace(/\s+/g, '-')}`;
+
+    // Instant optimistic navigation: If we have savedAlbum with cached tracks snapshot, render IMMEDIATELY!
+    const hasCachedTracks = Boolean(savedAlbum?.tracks && savedAlbum.tracks.length > 0);
+    const initialTitle = (savedAlbum?.title && !savedAlbum.title.toLowerCase().startsWith('mpreb_') && !savedAlbum.title.toLowerCase().startsWith('album-'))
+      ? savedAlbum.title
+      : (albumTitle || 'Album');
+    const initialArtist = savedAlbum?.artist || artistName || 'Artist';
+    const initialCover = savedAlbum?.artworkUrl || (hasCachedTracks ? savedAlbum!.tracks![0]?.artworkUrl : undefined);
+
+    if (hasCachedTracks && savedAlbum?.tracks) {
+      libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
+        id: albumViewId,
+        type: 'Album',
+        creator: `${initialArtist}${savedAlbum.year ? ` • ${savedAlbum.year}` : ''}`,
+        iconName: 'disc',
+        artworkUrl: initialCover,
+        playlistId: savedAlbum.playlistId,
+      });
+      libraryStore.setIsLoadingTracks(false);
+    } else {
+      libraryStore.setCustomPlaylistView(initialTitle, [], {
+        id: albumViewId,
+        type: 'Album',
+        creator: initialArtist,
+        iconName: 'disc',
+        artworkUrl: initialCover,
+        description: 'Loading album tracks...',
+        playlistId: savedAlbum?.playlistId,
+      });
+      libraryStore.setIsLoadingTracks(true);
+    }
 
     try {
+      let albumData: any = null;
       if (window.electronAPI?.getAlbum) {
-        const albumData = await window.electronAPI.getAlbum(targetId, source);
-        if (albumData && albumData.tracks && albumData.tracks.length > 0) {
-          const title = albumData.title || albumTitle || 'Album';
-          const artist = albumData.artist || artistName || 'Unknown Artist';
-          const albumArt = albumData.artworkUrl || albumData.tracks[0]?.artworkUrl;
-          const albumTracks: Track[] = albumData.tracks.map((r, idx) => ({
-            id: `album-${(r.source || source || 'YT').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
-            number: idx + 1,
-            title: r.title,
-            artist: r.artist || artist,
-            album: title,
-            duration: r.duration,
-            durationSec: r.durationSec,
-            dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
-            source: (r.source || source || 'YT') as SourceType,
-            sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
-            sourceId: r.sourceId,
-            artworkUrl: r.artworkUrl || albumArt,
-            iconName: 'disc',
-            gradientFrom: '#3B82F6',
-            gradientTo: '#1E1B4B',
-            isLiked: false,
-          }));
-
-          for (const t of albumTracks) {
-            await repo.putTrack(t);
-          }
-
-          libraryStore.setCustomPlaylistView(title, albumTracks, {
-            id: albumViewId,
-            type: 'Album',
-            creator: `${artist}${albumData.year ? ` • ${albumData.year}` : ''}`,
-            iconName: 'disc',
-            artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
-          });
-        }
+        albumData = await window.electronAPI.getAlbum(targetId, source);
       } else {
         // Web API fallback for development outside Electron
         try {
           const res = await fetch(`/api/music/album?browseId=${encodeURIComponent(targetId)}&source=${source || 'YT'}`);
           if (res.ok) {
-            const albumData = await res.json();
-            if (albumData && albumData.tracks && albumData.tracks.length > 0) {
-              const title = albumData.title || albumTitle || 'Album';
-              const artist = albumData.artist || artistName || 'Unknown Artist';
-              const albumArt = albumData.artworkUrl || albumData.tracks[0]?.artworkUrl;
-              const albumTracks: Track[] = albumData.tracks.map((r: any, idx: number) => ({
-                id: `album-${(r.source || source || 'YT').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
-                number: idx + 1,
-                title: r.title,
-                artist: r.artist || artist,
-                album: title,
-                duration: r.duration,
-                durationSec: r.durationSec,
-                dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
-                source: (r.source || source || 'YT') as SourceType,
-                sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
-                sourceId: r.sourceId,
-                artworkUrl: r.artworkUrl || albumArt,
-                iconName: 'disc',
-                gradientFrom: '#3B82F6',
-                gradientTo: '#1E1B4B',
-                isLiked: false,
-              }));
-
-              for (const t of albumTracks) {
-                await repo.putTrack(t);
-              }
-
-              libraryStore.setCustomPlaylistView(title, albumTracks, {
-                id: albumViewId,
-                type: 'Album',
-                creator: `${artist}${albumData.year ? ` • ${albumData.year}` : ''}`,
-                iconName: 'disc',
-                artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
-              });
-            }
+            albumData = await res.json();
           }
         } catch (webErr) {
           console.warn('[App] Web API getAlbum error:', webErr);
+        }
+      }
+
+      if (albumData && albumData.tracks && albumData.tracks.length > 0) {
+        // Sanitize title: NEVER allow raw ID or invalid token to replace album title
+        let resolvedTitle = albumData.title?.trim();
+        if (
+          !resolvedTitle ||
+          resolvedTitle.toLowerCase() === targetId.toLowerCase() ||
+          resolvedTitle.toLowerCase().startsWith('mpreb_') ||
+          resolvedTitle.toLowerCase().startsWith('album-') ||
+          resolvedTitle.toLowerCase().startsWith('olak')
+        ) {
+          resolvedTitle = initialTitle !== 'Album' ? initialTitle : (albumTitle || 'Album');
+        }
+
+        const resolvedArtist = albumData.artist || initialArtist;
+        const albumArt = albumData.artworkUrl || albumData.tracks[0]?.artworkUrl || initialCover;
+        const albumTracks: Track[] = albumData.tracks.map((r: any, idx: number) => ({
+          id: `album-${(r.source || source || 'YT').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
+          number: idx + 1,
+          title: r.title,
+          artist: r.artist || resolvedArtist,
+          album: resolvedTitle,
+          duration: r.duration,
+          durationSec: r.durationSec,
+          dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
+          source: (r.source || source || 'YT') as SourceType,
+          sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
+          sourceId: r.sourceId,
+          artworkUrl: r.artworkUrl || albumArt,
+          iconName: 'disc',
+          gradientFrom: '#3B82F6',
+          gradientTo: '#1E1B4B',
+          isLiked: false,
+        }));
+
+        for (const t of albumTracks) {
+          await repo.putTrack(t);
+        }
+
+        libraryStore.setCustomPlaylistView(resolvedTitle, albumTracks, {
+          id: albumViewId,
+          type: 'Album',
+          creator: `${resolvedArtist}${albumData.year ? ` • ${albumData.year}` : ''}`,
+          iconName: 'disc',
+          artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
+          playlistId: albumData.playlistId || savedAlbum?.playlistId,
+        });
+
+        // If album was already saved or is in savedAlbums, update its cached snapshot!
+        const existingSaved = libraryStore.savedAlbums.find((a) => {
+          const savedCleanId = a.id.replace(/^album[-_]/i, '').trim();
+          if (cleanBrowseId && (savedCleanId === cleanBrowseId || a.id === browseId || (a.playlistId && a.playlistId === cleanBrowseId))) {
+            return true;
+          }
+          if (resolvedTitle && a.title.toLowerCase().trim() === resolvedTitle.toLowerCase().trim()) {
+            return true;
+          }
+          return false;
+        });
+
+        if (existingSaved) {
+          const updatedAlbums = libraryStore.savedAlbums.map((a) => {
+            if (a.id === existingSaved.id) {
+              return {
+                ...a,
+                id: effectiveBrowseId || a.id,
+                playlistId: albumData.playlistId || a.playlistId,
+                title: resolvedTitle,
+                artist: resolvedArtist,
+                artworkUrl: albumArt || a.artworkUrl || '',
+                year: albumData.year || a.year,
+                totalTracks: albumTracks.length,
+                tracks: albumTracks,
+              };
+            }
+            return a;
+          });
+          await repo.setSavedAlbums(updatedAlbums);
+          useLibraryStore.setState({ savedAlbums: updatedAlbums });
         }
       }
     } catch (err) {

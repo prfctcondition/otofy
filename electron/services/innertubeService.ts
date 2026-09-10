@@ -99,6 +99,7 @@ export interface InnertubeAlbumDetails {
   year?: string;
   artworkUrl?: string;
   browseId: string;
+  playlistId?: string;
   tracks: InnertubeTrack[];
 }
 
@@ -777,40 +778,158 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
 
 export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails> {
   const yt = await getInnertube();
-  let albumBrowseId = browseId.trim();
+  let cleanId = browseId.trim().replace(/^album[-_]/i, '');
 
-  // If not a standard album browse ID, search for the album first
-  if (!albumBrowseId.startsWith('MPREb_') && !albumBrowseId.startsWith('FEmusic_')) {
+  if (cleanId.startsWith('VLOLAK')) {
+    cleanId = cleanId.replace(/^VL/, '');
+  }
+
+  // Restore MPREb_ casing if it was lowercased by legacy code
+  if (cleanId.toLowerCase().startsWith('mpreb_')) {
+    cleanId = 'MPREb_' + cleanId.slice(6);
+  }
+
+  let albumData: any = null;
+  let playlistId: string | undefined = undefined;
+
+  // Handle OLAK playlists directly
+  if (cleanId.startsWith('OLAK')) {
+    playlistId = cleanId;
     try {
-      const aSearch = await yt.music.search(albumBrowseId, { type: 'album' });
+      const pl = await yt.music.getPlaylist(cleanId);
+      const firstItemAlbumId = (pl.items?.[0] as any)?.album?.id;
+      if (firstItemAlbumId && typeof firstItemAlbumId === 'string' && firstItemAlbumId.startsWith('MPREb_')) {
+        try {
+          albumData = await yt.music.getAlbum(firstItemAlbumId);
+          cleanId = firstItemAlbumId;
+        } catch (albumErr) {
+          console.warn('[InnertubeService] getAlbum from OLAK item failed:', albumErr);
+        }
+      }
+
+      if (!albumData && pl.items && pl.items.length > 0) {
+        // Build response directly from playlist items
+        const plItems: any[] = [...((pl.items as any[]) || [])];
+        let plPage = pl;
+        let plPages = 0;
+        while (plPage && (plPage as any).has_continuation && plPages < 20) {
+          try {
+            plPage = await (plPage as any).getContinuation();
+            if (plPage?.items && Array.isArray(plPage.items)) {
+              plItems.push(...plPage.items);
+            } else if (plPage?.contents && Array.isArray(plPage.contents)) {
+              plItems.push(...plPage.contents);
+            }
+          } catch {
+            break;
+          }
+          plPages++;
+        }
+
+        const rawTitle =
+          (pl.header as any)?.title?.text ||
+          (typeof (pl.header as any)?.title === 'string' ? (pl.header as any).title : '') ||
+          (pl.items?.[0] as any)?.album?.name ||
+          '';
+        const plTitle = rawTitle && !rawTitle.toLowerCase().startsWith('olak') ? rawTitle : 'Album';
+        const plArtist =
+          (pl.header as any)?.author?.name ||
+          (pl.header as any)?.author?.text ||
+          (pl.items?.[0] as any)?.artists?.[0]?.name ||
+          (pl.items?.[0] as any)?.author?.name ||
+          'Various Artists';
+        const plThumb = extractThumbnailUrl((pl.header as any)?.thumbnails || (pl.header as any)?.thumbnail);
+        const plTracks: InnertubeTrack[] = [];
+
+        for (const item of plItems) {
+          const vId = item.id;
+          if (!vId) continue;
+          const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(
+            typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled',
+            extractInnertubeArtist(item) || plArtist
+          );
+          const durStr = item.duration?.text || '0:00';
+          plTracks.push({
+            id: vId,
+            title: tTitle,
+            artist: tArtist,
+            album: plTitle,
+            duration: durStr,
+            durationSec: parseDurationToSec(durStr),
+            source: 'YT',
+            sourceLabel: 'YouTube Music',
+            artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail) || plThumb,
+            sourceId: vId,
+          });
+        }
+
+        return {
+          title: plTitle,
+          artist: plArtist,
+          year: (pl.header as any)?.year?.text || (pl.header as any)?.subtitle?.text,
+          artworkUrl: plThumb || plTracks[0]?.artworkUrl,
+          browseId: cleanId,
+          playlistId: cleanId,
+          tracks: plTracks,
+        };
+      }
+    } catch (plErr) {
+      console.warn('[InnertubeService] Direct yt.music.getPlaylist failed for:', cleanId, plErr);
+    }
+  }
+
+  // If standard album browse ID, try direct getAlbum
+  if (!albumData && (cleanId.startsWith('MPREb_') || cleanId.startsWith('FEmusic_'))) {
+    try {
+      albumData = await yt.music.getAlbum(cleanId);
+    } catch (err) {
+      console.warn('[InnertubeService] Direct yt.music.getAlbum failed for:', cleanId, err);
+    }
+  }
+
+  // If direct getAlbum failed or input was a search query, search for album first
+  if (!albumData) {
+    try {
+      const aSearch = await yt.music.search(cleanId, { type: 'album' });
       const aShelf = aSearch.contents?.[0];
       const aItems: any[] = aShelf && 'contents' in aShelf ? (aShelf.contents as any[]) : [];
       if (aItems.length > 0 && aItems[0].id) {
-        albumBrowseId = aItems[0].id;
+        const foundId = aItems[0].id;
+        try {
+          albumData = await yt.music.getAlbum(foundId);
+          cleanId = foundId;
+        } catch (err) {
+          console.warn('[InnertubeService] getAlbum from searched album failed:', foundId, err);
+        }
       }
     } catch (err) {
       console.warn('[InnertubeService] Album search fallback error:', err);
     }
   }
 
-  let albumData: any = null;
-  try {
-    albumData = await yt.music.getAlbum(albumBrowseId);
-  } catch (err) {
-    console.warn('[InnertubeService] Direct yt.music.getAlbum failed for:', albumBrowseId, err);
-  }
-
-  // Fallback: Playlist search or song search if direct album browse failed
+  // Fallback: Playlist search
   if (!albumData) {
     try {
-      const plSearch = await yt.music.search(albumBrowseId, { type: 'playlist' });
+      const plSearch = await yt.music.search(cleanId, { type: 'playlist' });
       const pShelf = plSearch.contents?.[0];
       const pItems: any[] = pShelf && 'contents' in pShelf ? (pShelf.contents as any[]) : [];
       if (pItems.length > 0 && pItems[0].id) {
         const cleanPlId = pItems[0].id.replace(/^VL/, '');
         const pl = await yt.music.getPlaylist(cleanPlId);
-        const plTitle = (pl.header as any)?.title?.text || albumBrowseId;
-        const plArtist = (pl.header as any)?.author?.name || 'Various Artists';
+        const rawTitle =
+          (pl.header as any)?.title?.text ||
+          (typeof (pl.header as any)?.title === 'string' ? (pl.header as any).title : '') ||
+          '';
+        let plTitle = rawTitle;
+        if (
+          !plTitle ||
+          plTitle.toLowerCase().startsWith('olak') ||
+          plTitle.toLowerCase().startsWith('mpreb_') ||
+          plTitle.toLowerCase().startsWith('album-')
+        ) {
+          plTitle = cleanId.startsWith('MPREb_') || cleanId.startsWith('OLAK') || cleanId.startsWith('album-') ? 'Album' : cleanId;
+        }
+        const plArtist = (pl.header as any)?.author?.name || (pl.header as any)?.author?.text || 'Various Artists';
         const plThumb = extractThumbnailUrl((pl.header as any)?.thumbnails || (pl.header as any)?.thumbnail);
         const plTracks: InnertubeTrack[] = [];
         const plItems: any[] = [...((pl.items as any[]) || [])];
@@ -856,55 +975,72 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
           title: plTitle,
           artist: plArtist,
           artworkUrl: plThumb || plTracks[0]?.artworkUrl,
-          browseId: albumBrowseId,
+          browseId: cleanId,
+          playlistId: cleanPlId,
           tracks: plTracks,
         };
       }
     } catch {}
 
-    try {
-      const sSearch = await yt.music.search(albumBrowseId, { type: 'song' });
-      const sShelf = sSearch.contents?.[0];
-      const sItems: any[] = sShelf && 'contents' in sShelf ? (sShelf.contents as any[]) : [];
-      if (sItems.length > 0) {
-        const sTracks: InnertubeTrack[] = [];
-        for (const item of sItems.slice(0, 25)) {
-          const vId = item.id;
-          if (!vId) continue;
-          const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(
-            typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled',
-            extractInnertubeArtist(item) || 'Artist'
-          );
-          const durStr = item.duration?.text || '0:00';
-          sTracks.push({
-            id: vId,
-            title: tTitle,
-            artist: tArtist,
-            album: albumBrowseId,
-            duration: durStr,
-            durationSec: parseDurationToSec(durStr),
-            source: 'YT',
-            sourceLabel: 'YouTube Music',
-            artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail),
-            sourceId: vId,
-          });
+    // Song search fallback (only if cleanId is not a raw token)
+    if (!cleanId.startsWith('MPREb_') && !cleanId.startsWith('OLAK') && !cleanId.startsWith('album-')) {
+      try {
+        const sSearch = await yt.music.search(cleanId, { type: 'song' });
+        const sShelf = sSearch.contents?.[0];
+        const sItems: any[] = sShelf && 'contents' in sShelf ? (sShelf.contents as any[]) : [];
+        if (sItems.length > 0) {
+          const sTracks: InnertubeTrack[] = [];
+          for (const item of sItems.slice(0, 25)) {
+            const vId = item.id;
+            if (!vId) continue;
+            const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(
+              typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled',
+              extractInnertubeArtist(item) || 'Artist'
+            );
+            const durStr = item.duration?.text || '0:00';
+            sTracks.push({
+              id: vId,
+              title: tTitle,
+              artist: tArtist,
+              album: cleanId,
+              duration: durStr,
+              durationSec: parseDurationToSec(durStr),
+              source: 'YT',
+              sourceLabel: 'YouTube Music',
+              artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail),
+              sourceId: vId,
+            });
+          }
+          return {
+            title: cleanId,
+            artist: sTracks[0]?.artist || 'Artist',
+            artworkUrl: sTracks[0]?.artworkUrl,
+            browseId: cleanId,
+            tracks: sTracks,
+          };
         }
-        return {
-          title: albumBrowseId,
-          artist: sTracks[0]?.artist || 'Artist',
-          artworkUrl: sTracks[0]?.artworkUrl,
-          browseId: albumBrowseId,
-          tracks: sTracks,
-        };
-      }
-    } catch {}
+      } catch {}
+    }
 
-    throw new Error(`Album could not be loaded: ${albumBrowseId}`);
+    throw new Error(`Album could not be loaded: ${cleanId}`);
   }
 
-  const title =
+  // Process successful albumData
+  let title =
     albumData.header?.title?.text ||
-    (typeof albumData.header?.title === 'string' ? albumData.header?.title : 'Album');
+    (typeof albumData.header?.title === 'string' ? albumData.header?.title : '') ||
+    albumData.title ||
+    '';
+  if (
+    !title ||
+    title.toLowerCase() === cleanId.toLowerCase() ||
+    title.toLowerCase().startsWith('mpreb_') ||
+    title.toLowerCase().startsWith('album-') ||
+    title.toLowerCase().startsWith('olak')
+  ) {
+    title = 'Album';
+  }
+
   const artist =
     albumData.header?.strapline_text_one?.text ||
     (albumData.header as any)?.artists?.[0]?.name ||
@@ -915,8 +1051,17 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
   const thumbs = (albumData.header as any)?.thumbnails || (albumData.header as any)?.thumbnail;
   let artworkUrl = extractThumbnailUrl(thumbs);
 
+  // Extract playlistId from album.url or album.endpoint
+  if (!playlistId && albumData.url) {
+    const listMatch = albumData.url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (listMatch) playlistId = listMatch[1];
+  }
+  if (!playlistId && albumData.endpoint?.payload?.playlistId) {
+    playlistId = albumData.endpoint.payload.playlistId;
+  }
+
   const tracks: InnertubeTrack[] = [];
-  const contents: any[] = [...((albumData.contents as any[]) || [])];
+  const contents: any[] = [...((albumData.contents as any[]) || (albumData.items as any[]) || [])];
 
   // Paginate full album tracklist if album has continuation pages
   try {
@@ -966,7 +1111,8 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
     artist,
     year,
     artworkUrl,
-    browseId,
+    browseId: cleanId,
+    playlistId,
     tracks,
   };
 }

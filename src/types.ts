@@ -60,6 +60,7 @@ export interface Playlist {
   updatedAt?: string;
   artworkUrl?: string;
   description?: string;
+  playlistId?: string;
   createdAt?: number;
   lastOpenedAt?: number;
 }
@@ -74,14 +75,17 @@ export interface FollowedArtist {
 }
 
 export interface SavedAlbum {
-  id: string;
-  title: string;
-  artist: string;
-  artworkUrl?: string;
+  id: string;              // browseId or playlistId (OLAK...)
+  playlistId?: string;     // Real playlist ID for playback
+  title: string;           // Real album title (NEVER id!)
+  artist: string;          // Artist name
+  artworkUrl: string;      // Artwork URL
   year?: string;
-  source?: 'YT' | 'SC';
+  totalTracks?: number;
+  source: 'YT' | 'SC';
   savedAt: number;
   lastOpenedAt?: number;
+  tracks?: Track[];        // Tracklist snapshot for instant offline/reboot loading
 }
 
 export const isSystemPlaylist = (
@@ -162,6 +166,7 @@ export interface AlbumDetails {
   year?: string;
   artworkUrl?: string;
   browseId: string;
+  playlistId?: string;
   tracks: SearchResult[];
 }
 
