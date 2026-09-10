@@ -1184,9 +1184,139 @@ export async function getRelatedTracks(videoId: string): Promise<InnertubeTrack[
   return tracks;
 }
 
+export interface SearchPlaylistResult {
+  id: string;
+  title: string;
+  creator: string;
+  songCount?: number;
+  artworkUrl?: string;
+  source: 'YT' | 'SC';
+  sourceLabel: string;
+}
+
+export async function searchPlaylists(query: string): Promise<SearchPlaylistResult[]> {
+  try {
+    const yt = await getInnertube();
+    const res = await yt.music.search(query, { type: 'playlist' });
+    const results: SearchPlaylistResult[] = [];
+
+    const shelves = res.contents || [];
+    for (const shelf of shelves) {
+      const items: any[] = (shelf as any).contents || [];
+      for (const item of items) {
+        if (!item.id) continue;
+        const cleanId = item.id.replace(/^VL/, '');
+        const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Playlist';
+        const creator = item.author?.name || (item.authors && item.authors[0]?.name) || 'YouTube Music';
+        const artworkUrl = extractThumbnailUrl(item.thumbnails || item.thumbnail);
+
+        let songCount: number | undefined;
+        if (item.item_count) {
+          songCount = parseInt(item.item_count, 10);
+        } else if (item.song_count) {
+          songCount = parseInt(item.song_count, 10);
+        }
+
+        results.push({
+          id: cleanId,
+          title,
+          creator,
+          songCount,
+          artworkUrl,
+          source: 'YT',
+          sourceLabel: 'YouTube Music',
+        });
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.warn('[InnertubeService] searchPlaylists error:', err);
+    return [];
+  }
+}
+
+export async function getPlaylistTracks(playlistId: string): Promise<{
+  title: string;
+  author: string;
+  artworkUrl?: string;
+  tracks: InnertubeTrack[];
+}> {
+  const yt = await getInnertube();
+  const cleanId = playlistId.replace(/^VL/, '');
+  const pl = await yt.music.getPlaylist(cleanId);
+  const plTitle = (pl.header as any)?.title?.text || 'Playlist';
+  const plArtist = (pl.header as any)?.author?.name || 'YouTube Music';
+  const plThumb = extractThumbnailUrl((pl.header as any)?.thumbnails || (pl.header as any)?.thumbnail);
+  const tracks: InnertubeTrack[] = [];
+  const plItems: any[] = [...((pl.items as any[]) || [])];
+
+  let plPage = pl;
+  let plPages = 0;
+  while (plPage && (plPage as any).has_continuation && plPages < 20) {
+    try {
+      plPage = await (plPage as any).getContinuation();
+      if (plPage?.items && Array.isArray(plPage.items)) {
+        plItems.push(...plPage.items);
+      } else if (plPage?.contents && Array.isArray(plPage.contents)) {
+        plItems.push(...plPage.contents);
+      }
+    } catch {
+      break;
+    }
+    plPages++;
+  }
+
+  for (const item of plItems) {
+    const vId = item.id;
+    if (!vId) continue;
+    let rawTitle = typeof item.title === 'string' ? item.title : item.title?.text || '';
+    let rawArtist = extractInnertubeArtist(item) || plArtist;
+    let durStr = item.duration?.text || '';
+
+    // Handle flex_columns fallback
+    if (!rawTitle && item.flex_columns && item.flex_columns[0]) {
+      rawTitle = item.flex_columns[0].title?.text || 'Untitled';
+    }
+    if ((!rawArtist || rawArtist === plArtist) && item.flex_columns && item.flex_columns[1]) {
+      const colArtist = item.flex_columns[1].title?.text;
+      if (colArtist && !colArtist.includes('views') && !colArtist.includes('plays')) {
+        rawArtist = colArtist;
+      }
+    }
+    if (!durStr && item.fixed_columns && item.fixed_columns[0]) {
+      durStr = item.fixed_columns[0].title?.text || '0:00';
+    }
+
+    const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(rawTitle || 'Untitled', rawArtist || 'Unknown Artist');
+
+    tracks.push({
+      id: vId,
+      title: tTitle,
+      artist: tArtist,
+      album: plTitle,
+      duration: durStr || '0:00',
+      durationSec: parseDurationToSec(durStr),
+      source: 'YT',
+      sourceLabel: 'YouTube Music',
+      artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail) || plThumb,
+      sourceId: vId,
+    });
+  }
+
+  return {
+    title: plTitle,
+    author: plArtist,
+    artworkUrl: plThumb || tracks[0]?.artworkUrl,
+    tracks,
+  };
+}
+
 export default {
   getInnertube,
   search,
+  searchPlaylists,
+  getPlaylistTracks,
   getArtist,
   getAlbum,
   getGenreTracks,

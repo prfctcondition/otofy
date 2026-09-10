@@ -11,6 +11,9 @@ import {
   Download,
   Loader2,
   Trash2,
+  Pause,
+  X,
+  Clock,
 } from 'lucide-react';
 import { Track, Playlist } from '../types';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
@@ -300,12 +303,92 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           </button>
         </>
       ) : dlStatus.status === 'downloading' ? (
-        <div className="w-full flex items-center justify-between px-3 py-2 text-violet-600 dark:text-violet-400">
-          <div className="flex items-center gap-2.5">
-            <Loader2 size={15} className="animate-spin shrink-0" />
-            <span>Downloading ({Math.round(dlStatus.progress)}%)</span>
+        <>
+          <div className="w-full flex items-center justify-between px-3 py-2 text-violet-600 dark:text-violet-400 font-semibold text-[11px]">
+            <div className="flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin shrink-0" />
+              <span>Downloading ({Math.round(dlStatus.progress)}%)</span>
+            </div>
           </div>
-        </div>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().pauseTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-amber-500 transition-colors text-left cursor-pointer"
+          >
+            <Pause size={14} />
+            <span>Pause download</span>
+          </button>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().cancelTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
+          >
+            <X size={14} />
+            <span>Cancel download</span>
+          </button>
+        </>
+      ) : dlStatus.status === 'queued' ? (
+        <>
+          <div className="w-full flex items-center justify-between px-3 py-2 text-violet-500 font-semibold text-[11px]">
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="animate-pulse shrink-0" />
+              <span>In download queue</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().pauseTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-amber-500 transition-colors text-left cursor-pointer"
+          >
+            <Pause size={14} />
+            <span>Pause download</span>
+          </button>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().cancelTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
+          >
+            <X size={14} />
+            <span>Cancel download</span>
+          </button>
+        </>
+      ) : dlStatus.status === 'paused' ? (
+        <>
+          <div className="w-full flex items-center justify-between px-3 py-2 text-amber-500 font-semibold text-[11px]">
+            <div className="flex items-center gap-2">
+              <Pause size={14} className="shrink-0" />
+              <span>Download paused</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().resumeTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-emerald-500 transition-colors text-left cursor-pointer"
+          >
+            <Play size={14} fill="currentColor" />
+            <span>Resume download</span>
+          </button>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().cancelTrack(track.id);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
+          >
+            <X size={14} />
+            <span>Cancel download</span>
+          </button>
+        </>
       ) : (
         <>
           <button

@@ -29,6 +29,7 @@ import { LyricsModal } from './components/LyricsModal';
 import { LyricsPanel } from './components/LyricsPanel';
 import { FullscreenLyricsModal } from './components/FullscreenLyricsModal';
 import { SearchResultsOverlay } from './components/SearchResultsOverlay';
+import { BatchDownloadBanner } from './components/BatchDownloadBanner';
 import { ToastContainer } from './components/ToastContainer';
 import { seedDatabaseIfEmpty } from './db/seeds';
 import repo from './db/repository';
@@ -106,6 +107,13 @@ export default function App() {
         // Mixes are refreshed/loaded without auto-selecting any track on startup
       } catch (err) {
         console.warn('[App] Daily mixes init error:', err);
+      }
+
+      // Initial scan and load of downloaded/local files
+      try {
+        await useDownloadStore.getState().loadDownloadedTracks();
+      } catch (dlErr) {
+        console.warn('[App] Initial download scan error:', dlErr);
       }
     };
 
@@ -948,6 +956,9 @@ export default function App() {
         <LyricsModal isOpen={isLyricsModalOpen} onClose={libraryStore.toggleLyricsModal} />
       )}
       {isFullscreenLyrics && <FullscreenLyricsModal />}
+
+      {/* Batch Download Floating Banner */}
+      <BatchDownloadBanner />
 
       {/* Floating Notifications / Error Toasts */}
       <ToastContainer />

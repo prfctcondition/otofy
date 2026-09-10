@@ -1,4 +1,4 @@
-export type SourceType = 'YT' | 'SC' | 'FLAC' | 'Master';
+export type SourceType = 'YT' | 'SC' | 'FLAC' | 'Master' | 'LOCAL';
 
 export type IconType =
   | 'disc' | 'music' | 'waves' | 'headphones' | 'radio'
@@ -159,12 +159,41 @@ export interface DailyMixConfig {
 
 export type SearchSourceFilter = 'ALL' | 'YT' | 'SC';
 
+export interface SearchPlaylistResult {
+  id: string;
+  title: string;
+  creator: string;
+  songCount?: number;
+  artworkUrl?: string;
+  source: 'YT' | 'SC';
+  sourceLabel: string;
+}
+
+export interface BatchDownloadState {
+  active: boolean;
+  batchId?: string;
+  playlistTitle: string;
+  total: number;
+  completed: number;
+  failed: number;
+  currentTrackTitle?: string;
+  isPaused: boolean;
+}
+
 // Electron API bridge type
 declare global {
   interface Window {
     electronAPI?: {
       resolveStream: (trackId: string, source: string, title?: string, artist?: string) => Promise<StreamInfo>;
       searchMusic: (query: string, source?: SearchSourceFilter) => Promise<UnifiedSearchResponse | SearchResult[]>;
+      searchPlaylists?: (query: string, source?: SearchSourceFilter) => Promise<SearchPlaylistResult[]>;
+      getPlaylistTracks?: (payload: { id: string; source: 'YT' | 'SC' }) => Promise<{
+        title: string;
+        author?: string;
+        creator?: string;
+        artworkUrl?: string;
+        tracks: any[];
+      }>;
       getArtistDetails?: (artistName: string, source?: 'YT' | 'SC') => Promise<ArtistDetails>;
       getAlbum?: (browseId: string, source?: 'YT' | 'SC') => Promise<AlbumDetails>;
       getLyrics?: (videoId: string) => Promise<string | undefined>;
@@ -197,6 +226,18 @@ declare global {
         track: Track,
         format?: 'mp3' | 'flac'
       ) => Promise<{ started: boolean }>;
+      downloadBatch?: (payload: {
+        tracks: Track[];
+        format?: 'mp3' | 'flac';
+        playlistTitle?: string;
+      }) => Promise<{ started: boolean }>;
+      pauseDownload?: (trackId: string) => Promise<{ success: boolean }>;
+      resumeDownload?: (trackId: string) => Promise<{ success: boolean }>;
+      cancelDownload?: (trackId: string) => Promise<{ success: boolean }>;
+      pauseAllDownloads?: () => Promise<{ success: boolean }>;
+      resumeAllDownloads?: () => Promise<{ success: boolean }>;
+      cancelAllDownloads?: () => Promise<{ success: boolean }>;
+      scanLocalFiles?: () => Promise<Track[]>;
       checkDownloadStatus?: (
         tracks: Track[]
       ) => Promise<Record<string, { downloaded: boolean; format?: 'mp3' | 'flac'; filePath?: string }>>;
@@ -207,10 +248,13 @@ declare global {
         callback: (data: {
           trackId: string;
           progress: number;
-          status: 'downloading' | 'completed' | 'error';
+          status: 'idle' | 'queued' | 'downloading' | 'paused' | 'completed' | 'error';
           error?: string;
           filePath?: string;
         }) => void
+      ) => () => void;
+      onBatchProgress?: (
+        callback: (data: BatchDownloadState) => void
       ) => () => void;
     };
   }

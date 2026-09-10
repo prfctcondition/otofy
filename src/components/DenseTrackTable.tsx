@@ -231,20 +231,47 @@ const TrackRow = React.memo<TrackRowProps>(({
 
         {/* Background download button */}
         {dlStatus.status === 'downloading' ? (
-          <div
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-[10px] font-semibold text-violet-600 dark:text-violet-400"
-            title={`Downloading... ${Math.round(dlStatus.progress)}%`}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              useDownloadStore.getState().pauseTrack(track.id);
+            }}
+            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 hover:bg-amber-500/20 text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:text-amber-500 transition-colors cursor-pointer"
+            title={`Downloading... ${Math.round(dlStatus.progress)}% (Click to pause)`}
           >
-            <Loader2 size={12} className="animate-spin shrink-0" />
+            <Loader2 size={12} className="animate-spin shrink-0 group-hover/dl:hidden" />
+            <Pause size={12} className="hidden group-hover/dl:inline shrink-0" />
             <span className="tabular-nums">{Math.round(dlStatus.progress)}%</span>
-          </div>
+          </button>
+        ) : dlStatus.status === 'queued' ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              useDownloadStore.getState().pauseTrack(track.id);
+            }}
+            className="p-1 rounded-full text-violet-500 hover:text-amber-500 transition-colors cursor-pointer"
+            title="Queued in download list (Click to pause)"
+          >
+            <Clock size={15} className="animate-pulse" />
+          </button>
+        ) : dlStatus.status === 'paused' ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              useDownloadStore.getState().resumeTrack(track.id);
+            }}
+            className="p-1 rounded-full text-amber-500 hover:text-emerald-500 transition-colors cursor-pointer"
+            title="Download paused (Click to resume)"
+          >
+            <Pause size={15} />
+          </button>
         ) : dlStatus.status === 'completed' ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
               openDownloadedFile(track);
             }}
-            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors"
+            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer"
             title="Downloaded (Click to show in folder)"
           >
             <Check size={15} strokeWidth={2.5} />
@@ -255,7 +282,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               startDownload(track);
             }}
-            className={`p-1 rounded-full transition-colors ${
+            className={`p-1 rounded-full transition-colors cursor-pointer ${
               dlStatus.status === 'error'
                 ? 'text-rose-500 hover:text-rose-400 opacity-100'
                 : isHovered

@@ -15,6 +15,7 @@ import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { useLibraryStore } from '../store/libraryStore';
 import { useNetworkStore } from '../store/networkStore';
 import { usePlayerStore } from '../store/playerStore';
+import { useDownloadStore } from '../store/downloadStore';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface LeftLibraryDockProps {
@@ -44,23 +45,31 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   const isOnline = useNetworkStore((state) => state.isOnline);
   const cachedTracks = usePlayerStore((state) => state.cachedTracks);
   const deletePlaylist = useLibraryStore((state) => state.deletePlaylist);
+  const downloadedCount = useDownloadStore((state) => state.downloadedIds.length);
 
   const displayedPlaylists = React.useMemo(() => {
     const list = [...playlists];
-    if (!list.some((p) => p.id === 'pl-downloads')) {
+    const dlIdx = list.findIndex((p) => p.id === 'pl-downloads');
+    if (dlIdx === -1) {
       list.push({
         id: 'pl-downloads',
         title: 'Downloads',
         type: 'Playlist',
         creator: 'System',
-        songCount: 0,
-        duration: '0m',
+        songCount: downloadedCount,
+        duration: `${downloadedCount} tracks`,
         isPinned: true,
         iconName: 'download',
         gradientFrom: '#10B981',
         gradientTo: '#059669',
         description: 'Tracks downloaded to your local device for offline listening.',
       });
+    } else {
+      list[dlIdx] = {
+        ...list[dlIdx],
+        songCount: downloadedCount,
+        duration: `${downloadedCount} tracks`,
+      };
     }
 
     if (!isOnline && !list.some((p) => p.id === 'pl-cached')) {

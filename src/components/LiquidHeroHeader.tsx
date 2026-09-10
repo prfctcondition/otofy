@@ -71,7 +71,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(playlist.title || '');
 
-  const isBatchDownloading = useDownloadStore((s) => s.isBatchDownloading);
+  const isBatchDownloading = useDownloadStore((s) => Boolean(s.batchState?.active));
   const downloadPlaylist = useDownloadStore((s) => s.downloadPlaylist);
   const downloads = useDownloadStore((s) => s.downloads);
 
@@ -433,7 +433,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               id="hero-download-button"
               onClick={() => {
                 if (tracks.length > 0) {
-                  downloadPlaylist(tracks);
+                  downloadPlaylist(tracks, playlist.title);
                 }
               }}
               disabled={isBatchDownloading || allDownloaded || tracks.length === 0}
@@ -539,7 +539,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       <button
                         onClick={() => {
                           setIsOptionsMenuOpen(false);
-                          downloadPlaylist(tracks, 'mp3');
+                          downloadPlaylist(tracks, playlist.title, 'mp3');
                         }}
                         disabled={isBatchDownloading}
                         className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50"
@@ -550,7 +550,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       <button
                         onClick={() => {
                           setIsOptionsMenuOpen(false);
-                          downloadPlaylist(tracks, 'flac');
+                          downloadPlaylist(tracks, playlist.title, 'flac');
                         }}
                         disabled={isBatchDownloading}
                         className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50"

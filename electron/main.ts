@@ -7,6 +7,8 @@ import ytResolver from './services/ytResolver.js';
 import scResolver from './services/scResolver.js';
 import searchService from './services/searchService.js';
 import downloadService, { DownloadFormat, TrackMetadata } from './services/downloadService.js';
+import { DownloadQueueManager } from './services/downloadQueue.js';
+import localScanner from './services/localScanner.js';
 import { cleanArtistAndTitle } from './services/trackParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -47,6 +49,22 @@ function saveAppConfig(cfg: Partial<AppConfig>) {
 
 const initialConfig = loadAppConfig();
 let closeToTray = initialConfig.closeToTray ?? false;
+
+function getDefaultDownloadsPath(): string {
+  const cfg = loadAppConfig();
+  if (cfg.downloadsPath && fs.existsSync(cfg.downloadsPath)) {
+    return cfg.downloadsPath;
+  }
+  const defaultPath = path.join(app.getPath('userData'), 'Downloads');
+  if (!fs.existsSync(defaultPath)) {
+    try {
+      fs.mkdirSync(defaultPath, { recursive: true });
+    } catch {}
+  }
+  return defaultPath;
+}
+
+const downloadQueue = new DownloadQueueManager(getDefaultDownloadsPath());
 
 // Apply hardware acceleration flag before app is ready
 if (initialConfig.hardwareAcceleration === false) {
@@ -193,8 +211,11 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    downloadQueue.setSender(null);
     mainWindow = null;
   });
+
+  downloadQueue.setSender(mainWindow.webContents);
 }
 
 // In-Memory IPC Cache with 1-hour TTL
@@ -236,6 +257,17 @@ import innertubeService from './services/innertubeService.js';
 
 ipcMain.handle('music:search', async (_event, { query, source }: { query: string; source?: 'YT' | 'SC' | 'ALL' }) => {
   return await searchService.searchAll(query, source);
+});
+
+ipcMain.handle('music:search-playlists', async (_event, { query, source }: { query: string; source?: 'YT' | 'SC' | 'ALL' }) => {
+  return await searchService.searchPlaylists(query, source);
+});
+
+ipcMain.handle('music:get-playlist-tracks', async (_event, { id, source }: { id: string; source: 'YT' | 'SC' }) => {
+  if (source === 'SC') {
+    return await scResolver.getAlbum(id);
+  }
+  return await innertubeService.getPlaylistTracks(id);
 });
 
 ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }: { artistName: string; source?: 'YT' | 'SC' }) => {
@@ -697,20 +729,6 @@ ipcMain.handle('app:clear-cache', async () => {
   }
 });
 
-function getDefaultDownloadsPath(): string {
-  const cfg = loadAppConfig();
-  if (cfg.downloadsPath && fs.existsSync(cfg.downloadsPath)) {
-    return cfg.downloadsPath;
-  }
-  const defaultPath = path.join(app.getPath('userData'), 'Downloads');
-  if (!fs.existsSync(defaultPath)) {
-    try {
-      fs.mkdirSync(defaultPath, { recursive: true });
-    } catch {}
-  }
-  return defaultPath;
-}
-
 ipcMain.handle('storage:get-downloads-path', () => {
   return getDefaultDownloadsPath();
 });
@@ -725,6 +743,7 @@ ipcMain.handle('storage:select-downloads-folder', async () => {
   if (!res.canceled && res.filePaths.length > 0) {
     const selected = res.filePaths[0];
     saveAppConfig({ downloadsPath: selected });
+    downloadQueue.setDownloadsPath(selected);
     return selected;
   }
   return null;
@@ -748,29 +767,62 @@ ipcMain.handle('storage:open-folder', async (_event, folderPath?: string) => {
 ipcMain.handle(
   'download:track',
   async (event, { track, format }: { track: TrackMetadata; format?: DownloadFormat }) => {
-    const downloadsPath = getDefaultDownloadsPath();
-    const fmt = format || 'mp3';
-
-    // Start background download without blocking IPC invocation
-    downloadService
-      .downloadTrack(track, fmt, downloadsPath, (progress, status, error, filePath) => {
-        if (event.sender && !event.sender.isDestroyed()) {
-          event.sender.send('download:progress', {
-            trackId: track.id,
-            progress,
-            status,
-            error,
-            filePath,
-          });
-        }
-      })
-      .catch((err) => {
-        console.warn('[Main] downloadTrack error:', err);
-      });
-
+    downloadQueue.setSender(event.sender);
+    downloadQueue.enqueueTrack(track, format || 'mp3');
     return { started: true };
   }
 );
+
+ipcMain.handle(
+  'download:batch',
+  async (
+    event,
+    {
+      tracks,
+      format,
+      playlistTitle,
+    }: { tracks: TrackMetadata[]; format?: DownloadFormat; playlistTitle?: string }
+  ) => {
+    downloadQueue.setSender(event.sender);
+    downloadQueue.enqueueBatch(tracks, format || 'mp3', playlistTitle || 'Playlist');
+    return { started: true };
+  }
+);
+
+ipcMain.handle('download:pause-track', async (_event, { trackId }: { trackId: string }) => {
+  downloadQueue.pauseTrack(trackId);
+  return { success: true };
+});
+
+ipcMain.handle('download:resume-track', async (_event, { trackId }: { trackId: string }) => {
+  downloadQueue.resumeTrack(trackId);
+  return { success: true };
+});
+
+ipcMain.handle('download:cancel-track', async (_event, { trackId }: { trackId: string }) => {
+  downloadQueue.cancelTrack(trackId);
+  return { success: true };
+});
+
+ipcMain.handle('download:pause-all', async () => {
+  downloadQueue.pauseAll();
+  return { success: true };
+});
+
+ipcMain.handle('download:resume-all', async () => {
+  downloadQueue.resumeAll();
+  return { success: true };
+});
+
+ipcMain.handle('download:cancel-all', async () => {
+  downloadQueue.cancelAll();
+  return { success: true };
+});
+
+ipcMain.handle('download:scan-local-files', async () => {
+  const downloadsPath = getDefaultDownloadsPath();
+  return await localScanner.scanLocalFiles(downloadsPath);
+});
 
 ipcMain.handle('download:check-status', async (_event, { tracks }: { tracks: TrackMetadata[] }) => {
   const downloadsPath = getDefaultDownloadsPath();

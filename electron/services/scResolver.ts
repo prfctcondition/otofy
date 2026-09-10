@@ -629,4 +629,34 @@ export async function getRelatedTracks(trackId: string): Promise<SCSearchResult[
   }
 }
 
-export default { resolve, search, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };
+export async function searchPlaylists(query: string) {
+  try {
+    const res = await fetchSC('https://api-v2.soundcloud.com/search/playlists_without_albums', {
+      q: query,
+      limit: 20,
+    });
+    if (!res.ok) return [];
+    const data: any = await res.json();
+    const collection: any[] = data.collection || [];
+
+    return collection.map((item: any) => {
+      const rawArt = item.artwork_url || item.user?.avatar_url || '';
+      const artworkUrl = rawArt ? rawArt.replace('-large.', '-t500x500.') : undefined;
+
+      return {
+        id: String(item.id),
+        title: item.title || 'SoundCloud Playlist',
+        creator: item.user?.username || 'SoundCloud User',
+        songCount: item.track_count,
+        artworkUrl,
+        source: 'SC' as const,
+        sourceLabel: 'SoundCloud',
+      };
+    });
+  } catch (err) {
+    console.warn('[scResolver] searchPlaylists error:', err);
+    return [];
+  }
+}
+
+export default { resolve, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };

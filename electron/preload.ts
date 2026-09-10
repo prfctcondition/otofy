@@ -46,8 +46,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDownloadsPath: () => ipcRenderer.invoke('storage:get-downloads-path'),
   selectDownloadsFolder: () => ipcRenderer.invoke('storage:select-downloads-folder'),
   openFolder: (folderPath?: string) => ipcRenderer.invoke('storage:open-folder', folderPath),
+  searchPlaylists: (query: string, source?: 'YT' | 'SC' | 'ALL') =>
+    ipcRenderer.invoke('music:search-playlists', { query, source }),
+  getPlaylistTracks: (payload: { id: string; source: 'YT' | 'SC' }) =>
+    ipcRenderer.invoke('music:get-playlist-tracks', payload),
   downloadTrack: (track: any, format?: 'mp3' | 'flac') =>
     ipcRenderer.invoke('download:track', { track, format }),
+  downloadBatch: (payload: { tracks: any[]; format?: 'mp3' | 'flac'; playlistTitle?: string }) =>
+    ipcRenderer.invoke('download:batch', payload),
+  pauseDownload: (trackId: string) =>
+    ipcRenderer.invoke('download:pause-track', { trackId }),
+  resumeDownload: (trackId: string) =>
+    ipcRenderer.invoke('download:resume-track', { trackId }),
+  cancelDownload: (trackId: string) =>
+    ipcRenderer.invoke('download:cancel-track', { trackId }),
+  pauseAllDownloads: () =>
+    ipcRenderer.invoke('download:pause-all'),
+  resumeAllDownloads: () =>
+    ipcRenderer.invoke('download:resume-all'),
+  cancelAllDownloads: () =>
+    ipcRenderer.invoke('download:cancel-all'),
+  scanLocalFiles: () =>
+    ipcRenderer.invoke('download:scan-local-files'),
   checkDownloadStatus: (tracks: any[]) =>
     ipcRenderer.invoke('download:check-status', { tracks }),
   showDownloadedFile: (payload: { filePath?: string; track?: any }) =>
@@ -60,7 +80,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     callback: (data: {
       trackId: string;
       progress: number;
-      status: 'downloading' | 'completed' | 'error';
+      status: 'idle' | 'queued' | 'downloading' | 'paused' | 'completed' | 'error';
       error?: string;
       filePath?: string;
     }) => void
@@ -68,5 +88,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event: unknown, data: any) => callback(data);
     ipcRenderer.on('download:progress', handler);
     return () => ipcRenderer.removeListener('download:progress', handler);
+  },
+  onBatchProgress: (
+    callback: (data: {
+      active: boolean;
+      batchId?: string;
+      playlistTitle: string;
+      total: number;
+      completed: number;
+      failed: number;
+      currentTrackTitle?: string;
+      isPaused: boolean;
+    }) => void
+  ) => {
+    const handler = (_event: unknown, data: any) => callback(data);
+    ipcRenderer.on('download:batch-progress', handler);
+    return () => ipcRenderer.removeListener('download:batch-progress', handler);
   },
 });

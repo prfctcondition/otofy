@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import type { SearchResult, SearchSourceFilter } from '../types';
+import type { SearchResult, SearchPlaylistResult, SearchSourceFilter } from '../types';
 import { cleanArtistAndTitle } from '../utils/trackUtils';
 
 interface SearchState {
   query: string;
+  contentType: 'tracks' | 'playlists';
   sourceFilter: SearchSourceFilter;
   results: SearchResult[];
+  playlistResults: SearchPlaylistResult[];
   artistCard?: {
     name: string;
     avatarUrl?: string;
@@ -18,29 +20,78 @@ interface SearchState {
 }
 
 interface SearchActions {
-  search: (query: string, sourceOverride?: SearchSourceFilter) => Promise<void>;
+  search: (query: string, sourceOverride?: SearchSourceFilter, typeOverride?: 'tracks' | 'playlists') => Promise<void>;
   setQuery: (query: string) => void;
   setSourceFilter: (sourceFilter: SearchSourceFilter) => void;
+  setContentType: (contentType: 'tracks' | 'playlists') => void;
   clearResults: () => void;
 }
 
 export const useSearchStore = create<SearchState & SearchActions>()((set, get) => ({
   query: '',
+  contentType: 'tracks',
   sourceFilter: 'ALL',
   results: [],
+  playlistResults: [],
   artistCard: undefined,
   isSearching: false,
   hasSearched: false,
 
-  search: async (query, sourceOverride) => {
+  search: async (query, sourceOverride, typeOverride) => {
     if (!query.trim()) {
-      set({ results: [], artistCard: undefined, isSearching: false, hasSearched: false });
+      set({ results: [], playlistResults: [], artistCard: undefined, isSearching: false, hasSearched: false });
       return;
     }
 
     const activeFilter = sourceOverride || get().sourceFilter;
+    const activeType = typeOverride || get().contentType;
     set({ query, isSearching: true });
 
+    // Handle Playlists Search
+    if (activeType === 'playlists') {
+      try {
+        if (window.electronAPI?.searchPlaylists) {
+          const playlists = await window.electronAPI.searchPlaylists(query, activeFilter);
+          set({
+            playlistResults: Array.isArray(playlists) ? playlists : [],
+            isSearching: false,
+            hasSearched: true,
+          });
+          return;
+        }
+
+        // Fallback to public SoundCloud search if SC or ALL
+        if (activeFilter === 'ALL' || activeFilter === 'SC') {
+          const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
+          const scRes = await fetch(
+            `https://api-v2.soundcloud.com/search/playlists_without_albums?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`
+          );
+          if (scRes.ok) {
+            const scData = await scRes.json();
+            const playlists: SearchPlaylistResult[] = (scData.collection || []).map((p: any) => ({
+              id: String(p.id),
+              title: p.title || 'SoundCloud Playlist',
+              creator: p.user?.username || 'SoundCloud',
+              songCount: p.track_count,
+              artworkUrl: (p.artwork_url || p.user?.avatar_url || '').replace('-large.', '-t500x500.'),
+              source: 'SC' as const,
+              sourceLabel: 'SoundCloud',
+            }));
+            set({ playlistResults: playlists, isSearching: false, hasSearched: true });
+            return;
+          }
+        }
+
+        set({ playlistResults: [], isSearching: false, hasSearched: true });
+        return;
+      } catch (err) {
+        console.error('[Search Playlists] Failed:', err);
+        set({ playlistResults: [], isSearching: false, hasSearched: true });
+        return;
+      }
+    }
+
+    // Handle Tracks Search
     try {
       // 1. If Electron IPC is available
       if (window.electronAPI?.searchMusic) {
@@ -154,5 +205,14 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
       get().search(currentQuery, sourceFilter);
     }
   },
-  clearResults: () => set({ results: [], artistCard: undefined, hasSearched: false, query: '' }),
+  setContentType: (contentType) => {
+    set({ contentType });
+    const currentQuery = get().query;
+    if (currentQuery && currentQuery.trim()) {
+      get().search(currentQuery, undefined, contentType);
+    }
+  },
+  clearResults: () => set({ results: [], playlistResults: [], artistCard: undefined, hasSearched: false, query: '' }),
 }));
+
+export default useSearchStore;

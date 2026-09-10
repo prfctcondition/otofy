@@ -86,10 +86,40 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
     };
   });
 
-  return {
+    return {
     artistCard,
     results: cleanedResults,
   };
 }
 
-export default { searchAll };
+export interface SearchPlaylistResult {
+  id: string;
+  title: string;
+  creator: string;
+  songCount?: number;
+  artworkUrl?: string;
+  source: 'YT' | 'SC';
+  sourceLabel: string;
+}
+
+async function searchPlaylists(
+  query: string,
+  sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL'
+): Promise<SearchPlaylistResult[]> {
+  const shouldSearchYT = sourceFilter === 'ALL' || sourceFilter === 'YT';
+  const shouldSearchSC = sourceFilter === 'ALL' || sourceFilter === 'SC';
+
+  const [ytRes, scRes] = await Promise.allSettled([
+    shouldSearchYT ? innertubeService.searchPlaylists(query) : Promise.resolve([]),
+    shouldSearchSC ? scResolver.searchPlaylists(query) : Promise.resolve([]),
+  ]);
+
+  const yt = ytRes.status === 'fulfilled' ? ytRes.value : [];
+  const sc = scRes.status === 'fulfilled' ? scRes.value : [];
+
+  if (sourceFilter === 'SC') return sc;
+  if (sourceFilter === 'YT') return yt;
+  return [...yt, ...sc];
+}
+
+export default { searchAll, searchPlaylists };

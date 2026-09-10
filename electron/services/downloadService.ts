@@ -79,6 +79,35 @@ async function downloadArtworkToTemp(artworkUrl?: string): Promise<string | null
 
 // Map tracking active ffmpeg commands so downloads can be tracked or cancelled
 const activeDownloads = new Map<string, ffmpeg.FfmpegCommand>();
+const activeTempOutputs = new Map<string, string>();
+const cancelledTracks = new Set<string>();
+
+export function cancelActiveDownload(trackId: string): boolean {
+  cancelledTracks.add(trackId);
+  const cmd = activeDownloads.get(trackId);
+  const tempPath = activeTempOutputs.get(trackId);
+
+  activeDownloads.delete(trackId);
+  activeTempOutputs.delete(trackId);
+
+  if (cmd) {
+    try {
+      cmd.kill('SIGKILL');
+    } catch {}
+  }
+
+  if (tempPath && fs.existsSync(tempPath)) {
+    try {
+      fs.unlinkSync(tempPath);
+    } catch {}
+  }
+
+  return true;
+}
+
+export function isDownloadActive(trackId: string): boolean {
+  return activeDownloads.has(trackId);
+}
 
 export async function downloadTrack(
   track: TrackMetadata,
@@ -98,6 +127,7 @@ export async function downloadTrack(
   const filename = getExpectedFilename(track, format);
   const targetFilePath = path.join(downloadsPath, filename);
   const tempOutput = path.join(os.tmpdir(), `otofy-dl-${Date.now()}-${filename}`);
+  activeTempOutputs.set(trackId, tempOutput);
 
   // Resolve audio stream URL
   const rawId = track.sourceId || track.id;
@@ -179,6 +209,8 @@ export async function downloadTrack(
 
     command.on('end', () => {
       activeDownloads.delete(trackId);
+      activeTempOutputs.delete(trackId);
+      cancelledTracks.delete(trackId);
       try {
         if (artworkTempPath && fs.existsSync(artworkTempPath)) {
           fs.unlinkSync(artworkTempPath);
@@ -218,6 +250,10 @@ export async function downloadTrack(
 
     command.on('error', (err: any) => {
       activeDownloads.delete(trackId);
+      activeTempOutputs.delete(trackId);
+      const wasCancelled = cancelledTracks.has(trackId);
+      cancelledTracks.delete(trackId);
+
       try {
         if (artworkTempPath && fs.existsSync(artworkTempPath)) {
           fs.unlinkSync(artworkTempPath);
@@ -228,6 +264,10 @@ export async function downloadTrack(
           fs.unlinkSync(tempOutput);
         }
       } catch {}
+
+      if (wasCancelled) {
+        return reject(new Error('DOWNLOAD_CANCELLED'));
+      }
 
       onProgress(0, 'error', err?.message || 'FFmpeg conversion failed');
       reject(err);
@@ -340,4 +380,6 @@ export default {
   getDownloadedTracks,
   getExpectedFilename,
   sanitizeFilename,
+  cancelActiveDownload,
+  isDownloadActive,
 };
