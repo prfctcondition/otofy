@@ -81,11 +81,16 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
         setIsOptionsMenuOpen(false);
       }
     };
+    const handleScroll = () => {
+      setIsOptionsMenuOpen(false);
+    };
     if (isOptionsMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOptionsMenuOpen]);
 
@@ -272,7 +277,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const creatorInitial = (playlist.creator?.[0] || 'U').toUpperCase();
 
   return (
-    <div id="liquid-hero-header" className="relative w-full select-none overflow-hidden">
+    <div id="liquid-hero-header" className="relative w-full select-none">
       {/* Ambient background glow for banner */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div
@@ -359,7 +364,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               {isCurrentlyPlayingThisPlaylist ? (
                 <Pause size={24} fill="currentColor" />
               ) : (
-                <Play size={24} fill="currentColor" className="ml-1" />
+                <Play size={24} fill="currentColor" />
               )}
             </button>
 
@@ -395,7 +400,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             </button>
 
             {/* Prominent Save to My Playlists Button */}
-            {onToggleSaveToLibrary && (
+            {onToggleSaveToLibrary && playlist.id !== 'pl-liked' && (
               <button
                 id="hero-save-library-btn"
                 onClick={onToggleSaveToLibrary}
@@ -449,7 +454,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
               {isOptionsMenuOpen && (
                 <div className="absolute left-0 top-full mt-2 w-64 bg-white/95 dark:bg-[#111116] backdrop-blur-3xl border border-white/95 dark:border-white/10 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.5)] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  {onToggleSaveToLibrary && (
+                  {onToggleSaveToLibrary && playlist.id !== 'pl-liked' && (
                     <button
                       onClick={() => {
                         setIsOptionsMenuOpen(false);
