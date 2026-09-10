@@ -118,7 +118,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         e.preventDefault();
         onOpenContextMenu(e, track);
       }}
-      className={`group relative grid grid-cols-[40px_minmax(0,1fr)_auto] [@media(min-width:850px)]:grid-cols-[40px_minmax(0,1fr)_minmax(100px,200px)_auto] lg:grid-cols-[40px_minmax(0,4fr)_minmax(100px,3fr)_minmax(80px,2fr)_auto] gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 select-none ${
+      className={`group relative flex items-center flex-nowrap gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all duration-150 select-none ${
         isCurrent
           ? 'bg-black/[0.08] dark:bg-white/[0.14] border border-black/20 dark:border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
           : isSelected
@@ -126,7 +126,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80 border border-transparent'
       }`}
     >
-      <div className="flex items-center justify-center text-sm font-medium">
+      <div className="w-8 shrink-0 flex items-center justify-center text-sm font-medium">
         {isHovered ? (
           <button
             onClick={(e) => {
@@ -167,7 +167,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         )}
       </div>
 
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-3">
         <PlaceholderArtwork
           icon={track.iconName}
           imageUrl={track.artworkUrl}
@@ -179,7 +179,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           rounded="rounded-lg"
           className="shrink-0 shadow-sm border border-white/80 dark:border-white/10"
         />
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
           <span
             className={`text-sm font-semibold truncate ${
               isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
@@ -198,7 +198,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         </div>
       </div>
 
-      <div className="hidden [@media(min-width:850px)]:flex items-center min-w-0 truncate overflow-hidden">
+      <div className="hidden md:flex items-center justify-between gap-2 min-w-0 w-36 lg:w-56 shrink-0">
         <span
           onClick={(e) => {
             e.stopPropagation();
@@ -206,26 +206,27 @@ const TrackRow = React.memo<TrackRowProps>(({
               onSelectAlbum(undefined, track.album, track.artist, track.source === 'SC' ? 'SC' : 'YT');
             }
           }}
-          className={`text-xs text-[#64748B] dark:text-white/80 truncate overflow-hidden min-w-0 transition-colors ${
+          className={`text-xs text-[#64748B] dark:text-white/80 truncate transition-colors ${
             track.album ? 'hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer' : ''
           }`}
           title={track.album ? `View album ${track.album}` : undefined}
         >
           {track.album}
         </span>
+        <div className="shrink-0">{renderSourceBadge(track.source)}</div>
       </div>
 
-      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 truncate">
+      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 w-28 shrink-0 truncate">
         {formatDisplayDate(track.dateAdded)}
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0 ml-auto justify-end pr-1">
+      <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 ml-auto whitespace-nowrap">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleLike(track.id, track);
           }}
-          className={`p-1 rounded-full transition-colors flex-shrink-0 ${
+          className={`p-1 rounded-full transition-colors shrink-0 ${
             track.isLiked
               ? 'text-rose-500 hover:text-rose-600'
               : isHovered
@@ -240,9 +241,6 @@ const TrackRow = React.memo<TrackRowProps>(({
           />
         </button>
 
-        {/* Source Badge (YT, SC, Master) */}
-        <div className="flex-shrink-0">{renderSourceBadge(track.source)}</div>
-
         {/* Unresolved match review button OR Background download button */}
         {track.unresolved || track.needsMatch ? (
           <button
@@ -250,7 +248,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               onOpenConflictModal(track);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-400 transition-colors text-[11px] font-bold cursor-pointer flex-shrink-0 shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-400 transition-colors text-[11px] font-bold cursor-pointer shrink-0 shadow-xs"
             title="Unresolved match: Click to review candidates"
           >
             <HelpCircle size={13} className="shrink-0 animate-pulse text-amber-500" />
@@ -262,7 +260,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
             }}
-            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.12] hover:bg-amber-500/20 text-[10px] font-semibold text-[#0F172A] dark:text-white hover:text-amber-500 transition-colors cursor-pointer flex-shrink-0"
+            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.12] hover:bg-amber-500/20 text-[10px] font-semibold text-[#0F172A] dark:text-white hover:text-amber-500 transition-colors cursor-pointer shrink-0"
             title={`Downloading... ${Math.round(dlStatus.progress)}% (Click to pause)`}
           >
             <Loader2 size={12} className="animate-spin shrink-0 group-hover/dl:hidden" />
@@ -275,7 +273,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
             }}
-            className="p-1 rounded-full text-[#64748B] dark:text-white/70 hover:text-amber-500 transition-colors cursor-pointer flex-shrink-0"
+            className="p-1 rounded-full text-[#64748B] dark:text-white/70 hover:text-amber-500 transition-colors cursor-pointer shrink-0"
             title="Queued in download list (Click to pause)"
           >
             <Clock size={15} className="animate-pulse" />
@@ -286,7 +284,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().resumeTrack(track.id);
             }}
-            className="p-1 rounded-full text-amber-500 hover:text-emerald-500 transition-colors cursor-pointer flex-shrink-0"
+            className="p-1 rounded-full text-amber-500 hover:text-emerald-500 transition-colors cursor-pointer shrink-0"
             title="Download paused (Click to resume)"
           >
             <Pause size={15} />
@@ -297,7 +295,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               openDownloadedFile(track);
             }}
-            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer flex-shrink-0"
+            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer shrink-0"
             title="Downloaded (Click to show in folder)"
           >
             <Check size={15} strokeWidth={2.5} />
@@ -308,7 +306,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               startDownload(track);
             }}
-            className={`p-1 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+            className={`p-1 rounded-full transition-colors cursor-pointer shrink-0 ${
               dlStatus.status === 'error'
                 ? 'text-rose-500 hover:text-rose-400 opacity-100'
                 : isHovered
@@ -321,7 +319,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         )}
 
-        <span className="text-xs text-[#64748B] dark:text-white/80 min-w-9 text-right tabular-nums flex-shrink-0">
+        <span className="text-xs text-[#64748B] dark:text-white/80 w-9 text-right tabular-nums shrink-0">
           {track.duration}
         </span>
 
@@ -330,7 +328,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             e.stopPropagation();
             onOpenContextMenu(e, track);
           }}
-          className={`p-1 rounded-full text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white transition-colors flex-shrink-0 ${
+          className={`p-1 rounded-full text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white transition-colors shrink-0 ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
           title="More actions"
@@ -495,12 +493,12 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       onClick={handleContainerClick}
       className="w-full px-6 py-2 select-none"
     >
-      <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] [@media(min-width:850px)]:grid-cols-[40px_minmax(0,1fr)_minmax(100px,200px)_auto] lg:grid-cols-[40px_minmax(0,4fr)_minmax(100px,3fr)_minmax(80px,2fr)_auto] gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
-        <div className="flex items-center justify-center">#</div>
-        <div className="flex items-center min-w-0">Title</div>
-        <div className="hidden [@media(min-width:850px)]:flex items-center min-w-0">Album</div>
-        <div className="hidden lg:flex items-center min-w-0">Date Added</div>
-        <div className="flex items-center justify-end pr-2 flex-shrink-0 ml-auto">
+      <div className="flex items-center flex-nowrap gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
+        <div className="w-8 shrink-0 flex items-center justify-center">#</div>
+        <div className="flex-1 min-w-0 flex items-center">Title</div>
+        <div className="hidden md:flex items-center min-w-0 w-36 lg:w-56 shrink-0">Album</div>
+        <div className="hidden lg:flex items-center min-w-0 w-28 shrink-0">Date Added</div>
+        <div className="flex items-center justify-end pr-8 shrink-0 ml-auto">
           <Clock size={14} />
         </div>
       </div>
