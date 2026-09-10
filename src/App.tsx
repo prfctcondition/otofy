@@ -211,26 +211,50 @@ export default function App() {
     });
   }, [currentPlaylistTracks, playlistSearch, isPlaylistSearchVisible]);
 
+  const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
+  const tracklistSortOrder = useLibraryStore((s) => s.tracklistSortOrder);
+
+  const sortedTracks = useMemo(() => {
+    const list = [...filteredTracks];
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (tracklistSortBy === 'title') {
+        cmp = (a.title || '').localeCompare(b.title || '');
+      } else if (tracklistSortBy === 'artist') {
+        cmp = (a.artist || '').localeCompare(b.artist || '');
+      } else if (tracklistSortBy === 'duration') {
+        cmp = (a.durationSec || 0) - (b.durationSec || 0);
+      } else {
+        // dateAdded
+        const timeA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
+        const timeB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
+        cmp = timeA - timeB;
+      }
+      return tracklistSortOrder === 'desc' ? -cmp : cmp;
+    });
+    return list;
+  }, [filteredTracks, tracklistSortBy, tracklistSortOrder]);
+
   const isCurrentPlaylistActive = useMemo(() => {
-    if (!activeTrack || filteredTracks.length === 0) return false;
+    if (!activeTrack || sortedTracks.length === 0) return false;
     return activeQueuePlaylistId === currentPlaylist.id;
-  }, [activeTrack, filteredTracks, activeQueuePlaylistId, currentPlaylist.id]);
+  }, [activeTrack, sortedTracks, activeQueuePlaylistId, currentPlaylist.id]);
 
   const handleTogglePlaylistPlay = () => {
     if (isCurrentPlaylistActive) {
       playerStore.togglePlay();
-    } else if (filteredTracks.length > 0) {
+    } else if (sortedTracks.length > 0) {
       setActiveQueuePlaylistId(currentPlaylist.id);
-      playerStore.playTrack(filteredTracks[0], filteredTracks);
+      playerStore.playTrack(sortedTracks[0], sortedTracks);
     }
   };
 
   const handleTogglePlaylistShuffle = () => {
     playerStore.toggleShuffle();
-    if (filteredTracks.length > 0) {
+    if (sortedTracks.length > 0) {
       setActiveQueuePlaylistId(currentPlaylist.id);
-      const randomIdx = Math.floor(Math.random() * filteredTracks.length);
-      playerStore.playTrack(filteredTracks[randomIdx], filteredTracks);
+      const randomIdx = Math.floor(Math.random() * sortedTracks.length);
+      playerStore.playTrack(sortedTracks[randomIdx], sortedTracks);
     }
   };
 
@@ -796,6 +820,8 @@ export default function App() {
               onToggleCollapse={libraryStore.toggleSidebar}
               onCreatePlaylist={libraryStore.toggleCreatePlaylistModal}
               onImportCode={libraryStore.toggleImportModal}
+              onSelectArtist={handleOpenArtistView}
+              onSelectAlbum={handleOpenAlbumView}
             />
 
             {/* Center Canvas */}
@@ -850,7 +876,7 @@ export default function App() {
 
                   <div className="flex-1 pb-16 relative z-10">
                     <DenseTrackTable
-                      tracks={filteredTracks}
+                      tracks={sortedTracks}
                       activeTrackId={activeTrack?.id || ''}
                       isPlaying={isPlaying}
                       isLoading={libraryStore.isLoadingTracks}
@@ -926,7 +952,7 @@ export default function App() {
                 </div>
                 <div className="pb-6">
                   <DenseTrackTable
-                    tracks={filteredTracks}
+                    tracks={sortedTracks}
                     activeTrackId={activeTrack?.id || ''}
                     isPlaying={isPlaying}
                     isLoading={libraryStore.isLoadingTracks}

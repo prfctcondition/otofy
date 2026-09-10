@@ -60,6 +60,28 @@ export interface Playlist {
   updatedAt?: string;
   artworkUrl?: string;
   description?: string;
+  createdAt?: number;
+  lastOpenedAt?: number;
+}
+
+export interface FollowedArtist {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  source?: 'YT' | 'SC';
+  followedAt: number;
+  lastOpenedAt?: number;
+}
+
+export interface SavedAlbum {
+  id: string;
+  title: string;
+  artist: string;
+  artworkUrl?: string;
+  year?: string;
+  source?: 'YT' | 'SC';
+  savedAt: number;
+  lastOpenedAt?: number;
 }
 
 export const isSystemPlaylist = (

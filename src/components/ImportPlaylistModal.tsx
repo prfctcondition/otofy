@@ -483,7 +483,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                 <div className="flex items-center gap-2">
                   <Sparkles size={16} className="text-emerald-500 animate-pulse" />
                   <span className="font-bold text-[#0F172A] dark:text-white">
-                    Импорт: {matchProgress.current} / {matchProgress.total} треков найдено...
+                    Importing: {matchProgress.current} / {matchProgress.total} tracks matched...
                   </span>
                 </div>
                 <span className="font-mono font-bold text-xs text-[#64748B] dark:text-white/70">
@@ -501,7 +501,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
               <div className="flex items-center justify-between text-[11px] pt-1">
                 <span className="text-[#64748B] dark:text-white/60 truncate max-w-[280px]">
-                  Поиск: {matchProgress.currentTrackTitle || 'Connecting...'}
+                  Searching: {matchProgress.currentTrackTitle || 'Connecting...'}
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">

@@ -323,6 +323,48 @@ export const repo = {
   async setSetting(key: string, value: string): Promise<void> {
     await db.settings.put({ key, value });
   },
+
+  // Followed Artists
+  async getFollowedArtists(): Promise<import('../types').FollowedArtist[]> {
+    const json = await this.getSetting('followed_artists');
+    if (!json) return [];
+    try {
+      return JSON.parse(json);
+    } catch {
+      return [];
+    }
+  },
+  async setFollowedArtists(artists: import('../types').FollowedArtist[]): Promise<void> {
+    await this.setSetting('followed_artists', JSON.stringify(artists));
+  },
+
+  // Saved Albums
+  async getSavedAlbums(): Promise<import('../types').SavedAlbum[]> {
+    const json = await this.getSetting('saved_albums');
+    if (!json) return [];
+    try {
+      return JSON.parse(json);
+    } catch {
+      return [];
+    }
+  },
+  async setSavedAlbums(albums: import('../types').SavedAlbum[]): Promise<void> {
+    await this.setSetting('saved_albums', JSON.stringify(albums));
+  },
+
+  // Confirm match as is
+  async dismissTrackConflict(trackId: string): Promise<Track | null> {
+    const track = await db.tracks.get(trackId);
+    if (!track) return null;
+    const updated: DbTrack = {
+      ...track,
+      unresolved: false,
+      needsMatch: false,
+    };
+    delete (updated as any).alternatives;
+    await db.tracks.put(updated);
+    return dbTrackToTrack(updated);
+  },
 };
 
 export default repo;

@@ -14,6 +14,7 @@ interface TrackConflictModalProps {
 
 export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, track, onClose }) => {
   const resolveTrack = useLibraryStore((state) => state.resolveTrack);
+  const keepCurrentTrackMatch = useLibraryStore((state) => state.keepCurrentTrackMatch);
   const [playingPreviewId, setPlayingPreviewId] = useState<string | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
 
@@ -232,14 +233,27 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
         </div>
 
         {/* Footer info - shrink-0 */}
-        <div className="p-4 px-6 shrink-0 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] text-[#64748B] dark:text-white/60 bg-slate-50/50 dark:bg-white/[0.02]">
-          <span>Selecting a candidate will link this track and enable playback.</span>
-          <button
-            onClick={handleClose}
-            className="hover:underline text-[#0F172A] dark:text-white font-semibold cursor-pointer"
-          >
-            Decide Later
-          </button>
+        <div className="p-4 px-6 shrink-0 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3 text-[11px] text-[#64748B] dark:text-white/60 bg-slate-50/50 dark:bg-white/[0.02]">
+          <span className="truncate">Selecting a candidate or keeping current will confirm playback.</span>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleClose}
+              className="hover:underline text-[#64748B] dark:text-white/70 cursor-pointer"
+            >
+              Decide Later
+            </button>
+            <button
+              onClick={async () => {
+                stopPreview();
+                await keepCurrentTrackMatch(track.id);
+                onClose();
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-[#0F172A] dark:text-white font-semibold transition-colors cursor-pointer"
+              title="Confirm current audio match and permanently dismiss alternatives"
+            >
+              Don't change (Keep current)
+            </button>
+          </div>
         </div>
       </div>
     </div>,

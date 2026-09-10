@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { isSystemPlaylist, type Track, type Playlist, type ArtistDetails } from '../types';
+import {
+  isSystemPlaylist,
+  type Track,
+  type Playlist,
+  type ArtistDetails,
+  type FollowedArtist,
+  type SavedAlbum,
+} from '../types';
 import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
 import { useDownloadStore } from './downloadStore';
@@ -86,6 +93,17 @@ interface LibraryState {
   currentArtistDetails: ArtistDetails | null;
   isLoadingTracks: boolean;
 
+  // Followed artists & Saved albums
+  followedArtists: FollowedArtist[];
+  savedAlbums: SavedAlbum[];
+
+  // Tracklist Sorting
+  tracklistSortBy: 'dateAdded' | 'title' | 'artist' | 'duration';
+  tracklistSortOrder: 'asc' | 'desc';
+
+  // Library Sidebar Sorting
+  librarySortBy: 'recents' | 'recentlyAdded' | 'alphabetical';
+
   // Navigation History
   history: NavigationSnapshot[];
   historyIndex: number;
@@ -110,6 +128,7 @@ interface LibraryActions {
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   resolveTrack: (trackId: string, alternative: import('../types').TrackAlternative) => Promise<void>;
+  keepCurrentTrackMatch: (trackId: string) => Promise<void>;
   updatePlaylistTracks: (playlistId: string, updatedTracks: Track[]) => Promise<void>;
   setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
   openCatalog: () => void;
@@ -129,6 +148,13 @@ interface LibraryActions {
   setCurrentArtistDetails: (details: ArtistDetails | null) => void;
   setIsLoadingTracks: (loading: boolean) => void;
   saveViewingPlaylistToLibrary: () => Promise<void>;
+  toggleFollowArtist: (artist: { name: string; avatarUrl?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
+  isArtistFollowed: (name: string) => boolean;
+  toggleSaveAlbum: (album: { id: string; title: string; artist: string; artworkUrl?: string; year?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
+  isAlbumSaved: (id: string, title?: string) => boolean;
+  recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
+  setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration', order?: 'asc' | 'desc') => void;
+  setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
   updatePlaylistDetails: (
@@ -160,6 +186,8 @@ interface LibraryActions {
 
 export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get) => ({
   playlists: DEFAULT_INITIAL_PLAYLISTS,
+  followedArtists: [],
+  savedAlbums: [],
   selectedPlaylistId: 'pl-liked',
   currentPlaylistTracks: [],
   viewingPlaylist: null,
@@ -176,6 +204,11 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   currentArtistDetails: null,
   isLoadingTracks: false,
   setIsLoadingTracks: (isLoadingTracks) => set({ isLoadingTracks }),
+
+  // Tracklist & Library sorting
+  tracklistSortBy: 'dateAdded',
+  tracklistSortOrder: 'desc',
+  librarySortBy: 'recents',
 
   history: [
     {
@@ -200,6 +233,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   loadLibrary: async () => {
     try {
       let playlists = await repo.getPlaylists();
+      const followedArtists = await repo.getFollowedArtists();
+      const savedAlbums = await repo.getSavedAlbums();
+
       if (playlists.length === 0) {
         await repo.createPlaylist(DEFAULT_INITIAL_PLAYLISTS[0]);
         await repo.createPlaylist(DEFAULT_INITIAL_PLAYLISTS[1]);
@@ -212,7 +248,46 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         }
       }
 
-      // Migrate Liked Songs to luxury graphite palette if on legacy purple
+      // Migrate legacy Artist/Album entries in db.playlists into followedArtists / savedAlbums
+      let migratedAny = false;
+      const cleanPlaylists: Playlist[] = [];
+      for (const pl of playlists) {
+        if (pl.type === 'Artist') {
+          migratedAny = true;
+          if (!followedArtists.some((a) => a.name.toLowerCase() === pl.title.toLowerCase())) {
+            followedArtists.push({
+              id: pl.id,
+              name: pl.title,
+              avatarUrl: pl.artworkUrl,
+              followedAt: typeof pl.createdAt === 'number' ? pl.createdAt : Date.now(),
+              lastOpenedAt: typeof pl.lastOpenedAt === 'number' ? pl.lastOpenedAt : undefined,
+            });
+          }
+          await repo.deletePlaylist(pl.id);
+        } else if (pl.type === 'Album') {
+          migratedAny = true;
+          if (!savedAlbums.some((a) => a.id === pl.id || a.title.toLowerCase() === pl.title.toLowerCase())) {
+            savedAlbums.push({
+              id: pl.id,
+              title: pl.title,
+              artist: pl.creator || 'Unknown Artist',
+              artworkUrl: pl.artworkUrl,
+              savedAt: typeof pl.createdAt === 'number' ? pl.createdAt : Date.now(),
+              lastOpenedAt: typeof pl.lastOpenedAt === 'number' ? pl.lastOpenedAt : undefined,
+            });
+          }
+          await repo.deletePlaylist(pl.id);
+        } else {
+          cleanPlaylists.push(pl);
+        }
+      }
+      if (migratedAny) {
+        playlists = cleanPlaylists;
+        await repo.setFollowedArtists(followedArtists);
+        await repo.setSavedAlbums(savedAlbums);
+      }
+
+
       const likedPl = playlists.find((p) => p.id === 'pl-liked');
       if (likedPl && (likedPl.gradientFrom === '#4F46E5' || likedPl.gradientTo === '#9333EA')) {
         await repo.updatePlaylist('pl-liked', { gradientFrom: '#2C303B', gradientTo: '#13151A' });
@@ -243,15 +318,16 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         return 0;
       });
 
-      set({ playlists, isDbReady: true });
+      set({ playlists, followedArtists, savedAlbums, isDbReady: true });
       await get().refreshPlaylistTracks();
     } catch (err) {
       console.warn('[Library] Failed to load from DB:', err);
-      set({ playlists: DEFAULT_INITIAL_PLAYLISTS, currentPlaylistTracks: [], isDbReady: true });
+      set({ playlists: DEFAULT_INITIAL_PLAYLISTS, followedArtists: [], savedAlbums: [], currentPlaylistTracks: [], isDbReady: true });
     }
   },
 
   selectPlaylist: async (id) => {
+    get().recordEntityOpened(id, 'playlist');
     let pl = get().playlists.find((p) => p.id === id) || null;
     let tracks: Track[] = [];
 
@@ -350,6 +426,25 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const { viewingPlaylist, currentPlaylistTracks, playlists } = get();
     if (!viewingPlaylist) return;
 
+    // Decouple Artist & Album saves
+    if (viewingPlaylist.type === 'Artist') {
+      await get().toggleFollowArtist({
+        name: viewingPlaylist.title,
+        avatarUrl: viewingPlaylist.artworkUrl,
+      });
+      return;
+    }
+
+    if (viewingPlaylist.type === 'Album') {
+      await get().toggleSaveAlbum({
+        id: viewingPlaylist.id,
+        title: viewingPlaylist.title,
+        artist: viewingPlaylist.creator?.split('•')[0]?.trim() || viewingPlaylist.creator || 'Artist',
+        artworkUrl: viewingPlaylist.artworkUrl,
+      });
+      return;
+    }
+
     const existing = playlists.find(
       (p) =>
         p.id === viewingPlaylist.id ||
@@ -392,6 +487,123 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       viewingPlaylist: saved,
     });
     useToastStore.getState().success('Saved to Library', `"${saved.title}" was added to your library.`);
+  },
+
+  toggleFollowArtist: async (artist) => {
+    const cleanName = artist.name.trim();
+    const id = cleanName.toLowerCase().replace(/\s+/g, '-');
+    const existing = get().followedArtists;
+    const isFollowed = existing.some((a) => a.id === id || a.name.toLowerCase() === cleanName.toLowerCase());
+    let nextArtists: FollowedArtist[];
+    if (isFollowed) {
+      nextArtists = existing.filter((a) => a.id !== id && a.name.toLowerCase() !== cleanName.toLowerCase());
+      useToastStore.getState().info('Unfollowed', `Removed "${cleanName}" from your followed artists.`);
+    } else {
+      const newArtist: FollowedArtist = {
+        id,
+        name: cleanName,
+        avatarUrl: artist.avatarUrl,
+        source: artist.source || 'YT',
+        followedAt: Date.now(),
+        lastOpenedAt: Date.now(),
+      };
+      nextArtists = [newArtist, ...existing];
+      useToastStore.getState().success('Following', `"${cleanName}" added to your followed artists.`);
+    }
+    await repo.setFollowedArtists(nextArtists);
+    set({ followedArtists: nextArtists });
+    return !isFollowed;
+  },
+
+  isArtistFollowed: (name) => {
+    const clean = name.trim().toLowerCase();
+    return get().followedArtists.some((a) => a.name.toLowerCase() === clean || a.id === clean.replace(/\s+/g, '-'));
+  },
+
+  toggleSaveAlbum: async (album) => {
+    const cleanTitle = album.title.trim();
+    const existing = get().savedAlbums;
+    const isSaved = existing.some((a) => a.id === album.id || (a.title.toLowerCase() === cleanTitle.toLowerCase() && a.artist.toLowerCase() === album.artist.toLowerCase()));
+    let nextAlbums: SavedAlbum[];
+    if (isSaved) {
+      nextAlbums = existing.filter((a) => a.id !== album.id && !(a.title.toLowerCase() === cleanTitle.toLowerCase() && a.artist.toLowerCase() === album.artist.toLowerCase()));
+      useToastStore.getState().info('Album Removed', `"${cleanTitle}" was removed from your albums.`);
+    } else {
+      const newAlbum: SavedAlbum = {
+        id: album.id,
+        title: cleanTitle,
+        artist: album.artist.trim(),
+        artworkUrl: album.artworkUrl,
+        year: album.year,
+        source: album.source || 'YT',
+        savedAt: Date.now(),
+        lastOpenedAt: Date.now(),
+      };
+      nextAlbums = [newAlbum, ...existing];
+      useToastStore.getState().success('Album Saved', `"${cleanTitle}" was saved to your albums.`);
+    }
+    await repo.setSavedAlbums(nextAlbums);
+    set({ savedAlbums: nextAlbums });
+    return !isSaved;
+  },
+
+  isAlbumSaved: (id, title) => {
+    const albums = get().savedAlbums;
+    if (albums.some((a) => a.id === id)) return true;
+    if (title) {
+      const cleanTitle = title.trim().toLowerCase();
+      return albums.some((a) => a.title.toLowerCase() === cleanTitle);
+    }
+    return false;
+  },
+
+  recordEntityOpened: async (id, type) => {
+    const now = Date.now();
+    if (type === 'playlist') {
+      const playlists = get().playlists.map((p) => p.id === id ? { ...p, lastOpenedAt: now } : p);
+      set({ playlists });
+      await repo.updatePlaylist(id, { lastOpenedAt: now } as any);
+    } else if (type === 'artist') {
+      const followedArtists = get().followedArtists.map((a) => a.id === id || a.name.toLowerCase() === id.toLowerCase() ? { ...a, lastOpenedAt: now } : a);
+      set({ followedArtists });
+      await repo.setFollowedArtists(followedArtists);
+    } else if (type === 'album') {
+      const savedAlbums = get().savedAlbums.map((a) => a.id === id ? { ...a, lastOpenedAt: now } : a);
+      set({ savedAlbums });
+      await repo.setSavedAlbums(savedAlbums);
+    }
+  },
+
+  setTracklistSort: (sortBy, order) => {
+    const currentSort = get().tracklistSortBy;
+    const currentOrder = get().tracklistSortOrder;
+    const nextOrder = order || (currentSort === sortBy ? (currentOrder === 'asc' ? 'desc' : 'asc') : (sortBy === 'dateAdded' ? 'desc' : 'asc'));
+    set({ tracklistSortBy: sortBy, tracklistSortOrder: nextOrder });
+  },
+
+  setLibrarySortBy: (sortBy) => {
+    set({ librarySortBy: sortBy });
+  },
+
+  keepCurrentTrackMatch: async (trackId: string) => {
+    const updated = await repo.dismissTrackConflict(trackId);
+    if (!updated) return;
+
+    const currentTracks = get().currentPlaylistTracks;
+    const nextTracks = currentTracks.map((t) => (t.id === trackId ? { ...t, unresolved: false, needsMatch: false, alternatives: [] } : t));
+    
+    // Also update current active track if playing
+    const playerStore = usePlayerStore.getState();
+    if (playerStore.activeTrack?.id === trackId) {
+      playerStore.setActiveTrackOnly({ ...playerStore.activeTrack, unresolved: false, needsMatch: false, alternatives: [] });
+    }
+
+    set({ currentPlaylistTracks: nextTracks });
+    const viewingPlId = get().selectedPlaylistId;
+    if (viewingPlId) {
+      await get().updatePlaylistTracks(viewingPlId, nextTracks);
+    }
+    useToastStore.getState().info('Match Confirmed', `Track confirmed with current audio stream.`);
   },
 
   createPlaylistFromTracks: async (title: string, tracks: Track[]) => {

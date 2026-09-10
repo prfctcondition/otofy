@@ -119,10 +119,12 @@ const TrackRow = React.memo<TrackRowProps>(({
         onOpenContextMenu(e, track);
       }}
       className={`group relative flex items-center flex-nowrap gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all duration-150 select-none ${
-        isCurrent
-          ? 'bg-black/[0.08] dark:bg-white/[0.14] border border-black/20 dark:border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
+        isCurrent && isSelected
+          ? 'bg-slate-200/90 dark:bg-white/[0.14] border-l-[3px] border-l-emerald-600 dark:border-l-emerald-400 pl-[9px] border-t border-r border-b border-emerald-500/30 dark:border-emerald-500/40 text-[#0F172A] dark:text-white shadow-xs'
+          : isCurrent
+          ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-l-[3px] border-l-emerald-600 dark:border-l-emerald-400 pl-[9px] border-t border-r border-b border-emerald-500/20 dark:border-emerald-500/30 text-[#0F172A] dark:text-white'
           : isSelected
-          ? 'bg-black/[0.05] dark:bg-white/[0.10] border border-black/10 dark:border-white/20 text-[#0F172A] dark:text-white'
+          ? 'bg-slate-200/90 dark:bg-white/[0.12] border border-slate-300/80 dark:border-white/20 text-[#0F172A] dark:text-white shadow-xs'
           : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80 border border-transparent'
       }`}
     >
@@ -137,11 +139,15 @@ const TrackRow = React.memo<TrackRowProps>(({
                 onDoubleClick(track);
               }
             }}
-            className="text-[#0F172A] dark:text-white hover:text-black dark:hover:text-white active:scale-90 transition-all p-1"
+            className={`${
+              isCurrent
+                ? 'text-emerald-600 dark:text-emerald-400 hover:scale-105'
+                : 'text-[#0F172A] dark:text-white hover:text-black dark:hover:text-white'
+            } active:scale-90 transition-all p-1`}
             title={isCurrent && isPlaying ? 'Pause' : 'Play'}
           >
             {isCurrent && isBuffering ? (
-              <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" />
+              <Loader2 size={14} className="animate-spin text-emerald-600 dark:text-emerald-400" />
             ) : isCurrent && isPlaying ? (
               <Pause size={14} fill="currentColor" />
             ) : (
@@ -149,17 +155,17 @@ const TrackRow = React.memo<TrackRowProps>(({
             )}
           </button>
         ) : isCurrent && isBuffering ? (
-          <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" title="Loading audio..." />
+          <Loader2 size={14} className="animate-spin text-emerald-600 dark:text-emerald-400" title="Loading audio..." />
         ) : isCurrent && isPlaying ? (
           <div className="flex items-end gap-0.5 h-3.5" title="Playing">
-            <span className="w-0.5 bg-[#0F172A] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
-            <span className="w-0.5 bg-[#0F172A]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
-            <span className="w-0.5 bg-[#0F172A]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
+            <span className="w-0.5 bg-emerald-600 dark:bg-emerald-400 animate-[bounce_0.8s_infinite] h-full rounded-full" />
+            <span className="w-0.5 bg-emerald-600/80 dark:bg-emerald-400/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
+            <span className="w-0.5 bg-emerald-600/90 dark:bg-emerald-400/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
           </div>
         ) : (
           <span
             className={`text-xs ${
-              isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
+              isCurrent ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-[#94A3B8] dark:text-white/70'
             }`}
           >
             {track.number || index + 1}
@@ -182,7 +188,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="flex flex-col min-w-0 flex-1">
           <span
             className={`text-sm font-semibold truncate ${
-              isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
+              isCurrent ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-[#0F172A] dark:text-white'
             }`}
           >
             {track.title}

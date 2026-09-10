@@ -19,6 +19,9 @@ import {
   Music,
   Loader2,
   Download,
+  UserPlus,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { Playlist, Track, isSystemPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
@@ -72,12 +75,20 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const isCurrentlyPlayingThisPlaylist = isPlaylistActive && isPlaying;
 
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(playlist.title || '');
 
   const isBatchDownloading = useDownloadStore((s) => Boolean(s.batchState?.active));
   const downloadPlaylist = useDownloadStore((s) => s.downloadPlaylist);
   const downloads = useDownloadStore((s) => s.downloads);
+
+  const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
+  const tracklistSortOrder = useLibraryStore((s) => s.tracklistSortOrder);
+  const setTracklistSort = useLibraryStore((s) => s.setTracklistSort);
+  const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed(playlist.title || ''));
+  const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved(playlist.id, playlist.title));
 
   const allDownloaded = useMemo(() => {
     return tracks.length > 0 && tracks.every((t) => downloads[t.id]?.status === 'completed');
@@ -92,11 +103,15 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
       if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target as Node)) {
         setIsOptionsMenuOpen(false);
       }
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setIsSortMenuOpen(false);
+      }
     };
     const handleScroll = () => {
       setIsOptionsMenuOpen(false);
+      setIsSortMenuOpen(false);
     };
-    if (isOptionsMenuOpen) {
+    if (isOptionsMenuOpen || isSortMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       window.addEventListener('scroll', handleScroll, true);
     }
@@ -104,7 +119,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [isOptionsMenuOpen]);
+  }, [isOptionsMenuOpen, isSortMenuOpen]);
 
   const handleCreateNewPlaylistFromThis = async () => {
     const activeTracks =
@@ -422,20 +437,68 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               )}
             </button>
 
-            {/* Prominent Save to My Playlists Button */}
+            {/* Prominent Action Button: Follow artist / Save to My Albums / Save to My Playlists */}
             {onToggleSaveToLibrary && !isSystemPlaylist(playlist) && (
               <button
                 id="hero-save-library-btn"
                 onClick={onToggleSaveToLibrary}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
-                  isSavedInLibrary
+                  (playlist.type === 'Artist' ? isArtistFollowed : playlist.type === 'Album' ? isAlbumSaved : isSavedInLibrary)
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-[0_4px_14px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_14px_rgba(255,255,255,0.2)]'
                     : 'bg-white/85 dark:bg-white/[0.08] hover:bg-white dark:hover:bg-white/[0.14] text-[#0F172A] dark:text-white border border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md'
                 }`}
-                title={isSavedInLibrary ? 'In My Playlists (click to remove)' : 'Save to My Playlists'}
-                aria-label={isSavedInLibrary ? 'In My Playlists' : 'Save to My Playlists'}
+                title={
+                  playlist.type === 'Artist'
+                    ? isArtistFollowed
+                      ? 'Following artist (click to unfollow)'
+                      : 'Follow artist'
+                    : playlist.type === 'Album'
+                    ? isAlbumSaved
+                      ? 'In My Albums (click to remove)'
+                      : 'Save to My Albums'
+                    : isSavedInLibrary
+                    ? 'In My Playlists (click to remove)'
+                    : 'Save to My Playlists'
+                }
+                aria-label={
+                  playlist.type === 'Artist'
+                    ? isArtistFollowed
+                      ? 'Following'
+                      : 'Follow artist'
+                    : playlist.type === 'Album'
+                    ? isAlbumSaved
+                      ? 'Saved'
+                      : 'Save to My Albums'
+                    : isSavedInLibrary
+                    ? 'In My Playlists'
+                    : 'Save to My Playlists'
+                }
               >
-                {isSavedInLibrary ? (
+                {playlist.type === 'Artist' ? (
+                  isArtistFollowed ? (
+                    <>
+                      <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
+                      <span>Following</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
+                      <span>Follow artist</span>
+                    </>
+                  )
+                ) : playlist.type === 'Album' ? (
+                  isAlbumSaved ? (
+                    <>
+                      <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
+                      <span>Saved</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
+                      <span>Save to My Albums</span>
+                    </>
+                  )
+                ) : isSavedInLibrary ? (
                   <>
                     <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
                     <span>In My Playlists</span>
@@ -509,7 +572,31 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       }}
                       className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
-                      {isSavedInLibrary ? (
+                      {playlist.type === 'Artist' ? (
+                        isArtistFollowed ? (
+                          <>
+                            <Check size={15} className="text-emerald-600" />
+                            <span>Unfollow artist</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={15} className="text-slate-600 dark:text-white/70" />
+                            <span>Follow artist</span>
+                          </>
+                        )
+                      ) : playlist.type === 'Album' ? (
+                        isAlbumSaved ? (
+                          <>
+                            <Check size={15} className="text-emerald-600" />
+                            <span>Remove from My Albums</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={15} className="text-slate-600 dark:text-white/70" />
+                            <span>Save to My Albums</span>
+                          </>
+                        )
+                      ) : isSavedInLibrary ? (
                         <>
                           <Check size={15} className="text-emerald-600" />
                           <span>Remove from Your Library</span>
@@ -613,12 +700,67 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </button>
             )}
 
-            <div
-              id="playlist-sort-dropdown"
-              className="flex items-center gap-1.5 text-xs font-medium text-[#334155] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white cursor-pointer px-3 py-1.5 rounded-full bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none transition-all"
-            >
-              <span>Date added</span>
-              <ListFilter size={14} />
+            {/* Tracklist Sorting Dropdown */}
+            <div className="relative" ref={sortMenuRef}>
+              <button
+                id="playlist-sort-dropdown"
+                onClick={() => setIsSortMenuOpen((v) => !v)}
+                className="flex items-center gap-1.5 text-xs font-medium text-[#334155] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white cursor-pointer px-3 py-1.5 rounded-full bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none transition-all"
+                title="Sort tracks"
+              >
+                <span>
+                  {tracklistSortBy === 'dateAdded'
+                    ? 'Date added'
+                    : tracklistSortBy === 'title'
+                    ? 'Title'
+                    : tracklistSortBy === 'artist'
+                    ? 'Artist'
+                    : 'Duration'}
+                </span>
+                {tracklistSortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
+              </button>
+
+              {isSortMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white/95 dark:bg-[#111116] backdrop-blur-3xl border border-white/95 dark:border-white/10 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.5)] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3.5 py-1 text-[10px] font-bold text-[#94A3B8] dark:text-white/50 uppercase tracking-wider">
+                    Sort tracks by
+                  </div>
+                  {[
+                    { key: 'dateAdded', label: 'Date added' },
+                    { key: 'title', label: 'Title (A–Z)' },
+                    { key: 'artist', label: 'Artist' },
+                    { key: 'duration', label: 'Duration' },
+                  ].map((opt) => {
+                    const isActive = tracklistSortBy === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          setTracklistSort(opt.key as any);
+                          setIsSortMenuOpen(false);
+                        }}
+                        className={`w-full px-3.5 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                          isActive
+                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                            : 'text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && (
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                            {tracklistSortOrder === 'asc' ? (
+                              <ArrowUp size={13} strokeWidth={2.5} />
+                            ) : (
+                              <ArrowDown size={13} strokeWidth={2.5} />
+                            )}
+                            <Check size={14} strokeWidth={2.5} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
