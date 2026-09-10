@@ -50,8 +50,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('download:track', { track, format }),
   checkDownloadStatus: (tracks: any[]) =>
     ipcRenderer.invoke('download:check-status', { tracks }),
-  showDownloadedFile: (filePath: string) =>
-    ipcRenderer.invoke('download:show-in-folder', { filePath }),
+  showDownloadedFile: (payload: { filePath?: string; track?: any }) =>
+    ipcRenderer.invoke('download:show-in-folder', payload),
+  removeDownloadedTrack: (track: any) =>
+    ipcRenderer.invoke('download:remove-track', { track }),
+  getDownloadedTracks: () =>
+    ipcRenderer.invoke('download:get-tracks'),
   onDownloadProgress: (
     callback: (data: {
       trackId: string;

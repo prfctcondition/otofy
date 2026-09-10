@@ -13,6 +13,8 @@ import {
 import { Playlist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { useLibraryStore } from '../store/libraryStore';
+import { useNetworkStore } from '../store/networkStore';
+import { usePlayerStore } from '../store/playerStore';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface LeftLibraryDockProps {
@@ -39,9 +41,47 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [deletingPlaylist, setDeletingPlaylist] = useState<Playlist | null>(null);
 
+  const isOnline = useNetworkStore((state) => state.isOnline);
+  const cachedTracks = usePlayerStore((state) => state.cachedTracks);
   const deletePlaylist = useLibraryStore((state) => state.deletePlaylist);
 
-  const filteredPlaylists = playlists.filter((pl) => {
+  const displayedPlaylists = React.useMemo(() => {
+    const list = [...playlists];
+    if (!list.some((p) => p.id === 'pl-downloads')) {
+      list.push({
+        id: 'pl-downloads',
+        title: 'Downloads',
+        type: 'Playlist',
+        creator: 'System',
+        songCount: 0,
+        duration: '0m',
+        isPinned: true,
+        iconName: 'download',
+        gradientFrom: '#10B981',
+        gradientTo: '#059669',
+        description: 'Tracks downloaded to your local device for offline listening.',
+      });
+    }
+
+    if (!isOnline && !list.some((p) => p.id === 'pl-cached')) {
+      list.push({
+        id: 'pl-cached',
+        title: 'Cached Songs',
+        type: 'Playlist',
+        creator: 'System',
+        songCount: cachedTracks.length,
+        duration: `${cachedTracks.length} tracks`,
+        isPinned: true,
+        iconName: 'music',
+        gradientFrom: '#06B6D4',
+        gradientTo: '#0284C7',
+        description: 'Songs cached during your current session for offline playback.',
+      });
+    }
+    return list;
+  }, [playlists, isOnline, cachedTracks.length]);
+
+  const filteredPlaylists = displayedPlaylists.filter((pl) => {
     if (filterTag === 'playlists' && pl.type !== 'Playlist') return false;
     if (filterTag === 'albums' && pl.type !== 'Album') return false;
     if (searchFilter.trim()) {
@@ -269,7 +309,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     </div>
 
                     {/* Delete button on hover for custom playlists */}
-                    {pl.id !== 'pl-liked' && (
+                    {pl.id !== 'pl-liked' && pl.id !== 'pl-downloads' && pl.id !== 'pl-cached' && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

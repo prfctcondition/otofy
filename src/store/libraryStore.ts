@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Track, Playlist, ArtistDetails } from '../types';
 import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
+import { useDownloadStore } from './downloadStore';
 import { useToastStore } from './toastStore';
 
 export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
@@ -17,6 +18,19 @@ export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
     gradientFrom: '#4F46E5',
     gradientTo: '#9333EA',
     description: 'Your personal collection of saved and favorite songs.',
+  },
+  {
+    id: 'pl-downloads',
+    title: 'Downloads',
+    type: 'Playlist',
+    creator: 'System',
+    songCount: 0,
+    duration: '0m',
+    isPinned: true,
+    iconName: 'download',
+    gradientFrom: '#10B981',
+    gradientTo: '#059669',
+    description: 'Tracks downloaded to your local device for offline listening.',
   },
 ];
 
@@ -91,7 +105,7 @@ interface LibraryActions {
   loadLibrary: () => Promise<void>;
   selectPlaylist: (id: string) => Promise<void>;
   toggleLike: (trackId: string, trackData?: Track) => Promise<void>;
-  createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string }) => Promise<Playlist>;
+  createPlaylist: (data: { title: string; creator?: string; iconName?: string; gradientFrom?: string; gradientTo?: string; description?: string; artworkUrl?: string }) => Promise<Playlist>;
   deletePlaylist: (id: string) => Promise<void>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
@@ -173,7 +187,14 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       let playlists = await repo.getPlaylists();
       if (playlists.length === 0) {
         await repo.createPlaylist(DEFAULT_INITIAL_PLAYLISTS[0]);
+        await repo.createPlaylist(DEFAULT_INITIAL_PLAYLISTS[1]);
         playlists = await repo.getPlaylists();
+      } else {
+        const hasDownloads = playlists.some((p) => p.id === 'pl-downloads');
+        if (!hasDownloads) {
+          await repo.createPlaylist(DEFAULT_INITIAL_PLAYLISTS[1]);
+          playlists = await repo.getPlaylists();
+        }
       }
       set({ playlists, isDbReady: true });
       await get().refreshPlaylistTracks();
@@ -184,12 +205,38 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   selectPlaylist: async (id) => {
-    const pl = get().playlists.find((p) => p.id === id) || null;
+    let pl = get().playlists.find((p) => p.id === id) || null;
     let tracks: Track[] = [];
-    try {
-      tracks = await repo.getPlaylistTracks(id);
-    } catch {
-      tracks = [];
+
+    if (id === 'pl-downloads') {
+      tracks = await useDownloadStore.getState().loadDownloadedTracks();
+      if (!pl) {
+        pl = DEFAULT_INITIAL_PLAYLISTS.find((p) => p.id === 'pl-downloads') || null;
+      }
+      if (pl) {
+        pl = { ...pl, songCount: tracks.length };
+      }
+    } else if (id === 'pl-cached') {
+      tracks = usePlayerStore.getState().getCachedTracks();
+      pl = {
+        id: 'pl-cached',
+        title: 'Cached Songs',
+        type: 'Playlist',
+        creator: 'System',
+        songCount: tracks.length,
+        duration: `${tracks.length} tracks`,
+        isPinned: true,
+        iconName: 'music',
+        gradientFrom: '#06B6D4',
+        gradientTo: '#0284C7',
+        description: 'Songs cached during your current session for offline playback.',
+      };
+    } else {
+      try {
+        tracks = await repo.getPlaylistTracks(id);
+      } catch {
+        tracks = [];
+      }
     }
 
     const state = get();
@@ -314,7 +361,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     });
 
     for (const track of tracks) {
-      await repo.putTrack(track);
+      const dateAdded = track.dateAdded && !isNaN(Date.parse(track.dateAdded)) ? track.dateAdded : new Date().toISOString();
+      await repo.putTrack({ ...track, dateAdded });
       await repo.addTrackToPlaylist(newPlaylist.id, track.id);
     }
 
@@ -398,12 +446,15 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       iconName: (data.iconName || 'music') as any,
       gradientFrom: data.gradientFrom || '#6366F1',
       gradientTo: data.gradientTo || '#9333EA',
+      artworkUrl: data.artworkUrl,
+      description: data.description,
     });
     set((s) => ({ playlists: [playlist, ...s.playlists] }));
     return playlist;
   },
 
   deletePlaylist: async (id) => {
+    if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached') return;
     await repo.deletePlaylist(id);
     set((s) => ({
       playlists: s.playlists.filter((p) => p.id !== id),
@@ -414,6 +465,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   addTrackToPlaylist: async (playlistId, track) => {
+    const dateAdded = track.dateAdded && !isNaN(Date.parse(track.dateAdded)) ? track.dateAdded : new Date().toISOString();
+    const trackWithDate = { ...track, dateAdded };
+
     // If adding to Liked Songs
     if (playlistId === 'pl-liked') {
       const currentLiked = await repo.getPlaylistTracks('pl-liked');
@@ -430,7 +484,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         return;
       }
 
-      await repo.putTrack({ ...track, isLiked: true });
+      await repo.putTrack({ ...trackWithDate, isLiked: true });
       await repo.addTrackToPlaylist('pl-liked', track.id);
 
       set((s) => ({
@@ -461,7 +515,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
 
     // Normal playlist add
-    await repo.putTrack(track);
+    await repo.putTrack(trackWithDate);
     await repo.addTrackToPlaylist(playlistId, track.id);
     if (get().selectedPlaylistId === playlistId) {
       await get().refreshPlaylistTracks();
@@ -603,6 +657,16 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
 
   refreshPlaylistTracks: async () => {
     const { selectedPlaylistId } = get();
+    if (selectedPlaylistId === 'pl-downloads') {
+      const tracks = await useDownloadStore.getState().loadDownloadedTracks();
+      set({ currentPlaylistTracks: tracks });
+      return;
+    }
+    if (selectedPlaylistId === 'pl-cached') {
+      const tracks = usePlayerStore.getState().getCachedTracks();
+      set({ currentPlaylistTracks: tracks });
+      return;
+    }
     try {
       const tracks = await repo.getPlaylistTracks(selectedPlaylistId);
       set({ currentPlaylistTracks: tracks });

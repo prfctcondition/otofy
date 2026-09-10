@@ -3,6 +3,8 @@ import type { Track } from '../types';
 import audioEngine from '../audio/AudioEngine';
 import useToastStore from './toastStore';
 import { useSettingsStore } from './settingsStore';
+import { useDownloadStore } from './downloadStore';
+import { useNetworkStore } from './networkStore';
 
 interface PlayerState {
   activeTrack: Track | null;
@@ -20,6 +22,7 @@ interface PlayerState {
   isCrossfading: boolean;
   isAutoplayLoading: boolean;
   isLoadingAutoplay: boolean;
+  cachedTracks: Track[];
 }
 
 interface PlayerActions {
@@ -44,6 +47,7 @@ interface PlayerActions {
   clearQueue: () => void;
   initAudioListeners: () => () => void;
   appendAutoplayTracks: () => Promise<void>;
+  getCachedTracks: () => Track[];
 }
 
 export const cleanTrackId = (id: string): string => {
@@ -79,6 +83,30 @@ export const toPlayableStreamUrl = (url: string): string => {
 };
 
 const resolveStreamUrl = async (track: Track): Promise<{ url: string; error?: string }> => {
+  // 0. Check if track is downloaded locally on disk
+  const dlState = useDownloadStore.getState().downloads[track.id];
+  if (dlState?.status === 'completed' && dlState.filePath) {
+    return { url: `atom://local/${encodeURIComponent(dlState.filePath)}` };
+  }
+  if (window.electronAPI?.checkDownloadStatus) {
+    try {
+      const statusMap = await window.electronAPI.checkDownloadStatus([track]);
+      if (statusMap && statusMap[track.id]?.downloaded && statusMap[track.id]?.filePath) {
+        return { url: `atom://local/${encodeURIComponent(statusMap[track.id].filePath!)}` };
+      }
+    } catch {}
+  }
+
+  // 0.1 Check offline mode
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  if (!isOnline) {
+    useToastStore.getState().warning(
+      'Offline Mode',
+      'You are offline. Only downloaded or cached tracks are available.'
+    );
+    return { url: '', error: 'You are offline. Only downloaded or cached tracks are available.' };
+  }
+
   // If track already has a direct stream URL, use it
   if (track.streamUrl) return { url: toPlayableStreamUrl(track.streamUrl) };
 
@@ -197,6 +225,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   isCrossfading: false,
   isAutoplayLoading: false,
   isLoadingAutoplay: false,
+  cachedTracks: [],
+  getCachedTracks: () => get().cachedTracks,
 
   clearPlaybackError: () => set({ playbackError: null }),
 
@@ -246,11 +276,17 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (url) {
         await audioEngine.loadTrack(url);
         await audioEngine.play();
-        set({
-          isPlaying: true,
-          isBuffering: false,
-          playbackError: null,
-          duration: audioEngine.duration || track.durationSec || 0,
+        set((s) => {
+          const exists = s.cachedTracks.some((t) => t.id === track.id);
+          return {
+            isPlaying: true,
+            isBuffering: false,
+            playbackError: null,
+            duration: audioEngine.duration || track.durationSec || 0,
+            cachedTracks: exists
+              ? s.cachedTracks.map((t) => (t.id === track.id ? { ...t, streamUrl: url } : t))
+              : [...s.cachedTracks, { ...track, streamUrl: url }],
+          };
         });
 
         // Background Prefetch next track in queue for seamless instant 0ms switching
@@ -603,13 +639,19 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
               .then(async ({ url }) => {
                 if (url) {
                   await audioEngine.crossfadeTo(url, crossfadeDuration);
-                  set({
-                    activeTrack: nextTrack,
-                    queueIndex: nextIdx as number,
-                    currentTime: 0,
-                    duration: nextTrack.durationSec || 0,
-                    isPlaying: true,
-                    isBuffering: false,
+                  set((s) => {
+                    const exists = s.cachedTracks.some((t) => t.id === nextTrack.id);
+                    return {
+                      activeTrack: nextTrack,
+                      queueIndex: nextIdx as number,
+                      currentTime: 0,
+                      duration: nextTrack.durationSec || 0,
+                      isPlaying: true,
+                      isBuffering: false,
+                      cachedTracks: exists
+                        ? s.cachedTracks.map((t) => (t.id === nextTrack.id ? { ...t, streamUrl: url } : t))
+                        : [...s.cachedTracks, { ...nextTrack, streamUrl: url }],
+                    };
                   });
                   setTimeout(() => {
                     set({ isCrossfading: false });

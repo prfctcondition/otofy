@@ -17,11 +17,14 @@ import {
   Heart,
   Radio,
   Music,
+  Loader2,
+  Download,
 } from 'lucide-react';
 import { Playlist, Track } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
+import { useDownloadStore } from '../store/downloadStore';
 
 interface LiquidHeroHeaderProps {
   playlist: Playlist;
@@ -67,6 +70,14 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(playlist.title || '');
+
+  const isBatchDownloading = useDownloadStore((s) => s.isBatchDownloading);
+  const downloadPlaylist = useDownloadStore((s) => s.downloadPlaylist);
+  const downloads = useDownloadStore((s) => s.downloads);
+
+  const allDownloaded = useMemo(() => {
+    return tracks.length > 0 && tracks.every((t) => downloads[t.id]?.status === 'completed');
+  }, [tracks, downloads]);
 
   useEffect(() => {
     setRenameTitle(playlist.title || '');
@@ -420,11 +431,35 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* Download Button */}
             <button
               id="hero-download-button"
-              className="p-2.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
-              title="Download to cache"
+              onClick={() => {
+                if (tracks.length > 0) {
+                  downloadPlaylist(tracks);
+                }
+              }}
+              disabled={isBatchDownloading || allDownloaded || tracks.length === 0}
+              className={`p-2.5 rounded-full transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                allDownloaded
+                  ? 'text-emerald-500 hover:bg-emerald-500/10'
+                  : isBatchDownloading
+                  ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-500/10'
+                  : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
+              }`}
+              title={
+                allDownloaded
+                  ? 'All tracks downloaded'
+                  : isBatchDownloading
+                  ? 'Downloading playlist tracks...'
+                  : 'Download entire playlist'
+              }
               aria-label="Download"
             >
-              <ArrowDownCircle size={21} />
+              {isBatchDownloading ? (
+                <Loader2 size={21} className="animate-spin" />
+              ) : allDownloaded ? (
+                <Check size={21} strokeWidth={2.5} />
+              ) : (
+                <ArrowDownCircle size={21} />
+              )}
             </button>
 
             {/* 3-dots dropdown menu */}
@@ -498,6 +533,33 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
                     <span>Share playlist</span>
                   </button>
+
+                  {tracks.length > 0 && (
+                    <div className="border-t border-slate-100 dark:border-white/10 my-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setIsOptionsMenuOpen(false);
+                          downloadPlaylist(tracks, 'mp3');
+                        }}
+                        disabled={isBatchDownloading}
+                        className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <Download size={15} className="text-[#64748B] dark:text-white/70" />
+                        <span>Download all tracks (MP3 320kbps)</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsOptionsMenuOpen(false);
+                          downloadPlaylist(tracks, 'flac');
+                        }}
+                        disabled={isBatchDownloading}
+                        className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <Download size={15} className="text-[#64748B] dark:text-white/70" />
+                        <span>Download all tracks (FLAC)</span>
+                      </button>
+                    </div>
+                  )}
 
                   {playlist.id !== 'pl-liked' && (
                     <div className="border-t border-slate-100 dark:border-white/10 my-1 pt-1">

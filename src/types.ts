@@ -3,7 +3,7 @@ export type SourceType = 'YT' | 'SC' | 'FLAC' | 'Master';
 export type IconType =
   | 'disc' | 'music' | 'waves' | 'headphones' | 'radio'
   | 'mic' | 'zap' | 'sparkles' | 'flame' | 'heart'
-  | 'user' | 'sliders';
+  | 'user' | 'sliders' | 'download';
 
 export interface Track {
   id: string;
@@ -200,7 +200,9 @@ declare global {
       checkDownloadStatus?: (
         tracks: Track[]
       ) => Promise<Record<string, { downloaded: boolean; format?: 'mp3' | 'flac'; filePath?: string }>>;
-      showDownloadedFile?: (filePath: string) => Promise<boolean>;
+      showDownloadedFile?: (payload: { filePath?: string; track?: Track }) => Promise<{ success: boolean; filePath?: string; notFound?: boolean }>;
+      removeDownloadedTrack?: (track: Track) => Promise<{ removed: boolean; filePath?: string }>;
+      getDownloadedTracks?: () => Promise<Track[]>;
       onDownloadProgress?: (
         callback: (data: {
           trackId: string;

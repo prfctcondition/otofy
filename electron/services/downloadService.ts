@@ -194,6 +194,21 @@ export async function downloadTrack(
         fs.unlinkSync(tempOutput);
 
         onProgress(100, 'completed', undefined, targetFilePath);
+
+        // Save track to persistent downloads index
+        try {
+          const index = readDownloadedIndex();
+          index[track.id] = {
+            track,
+            filePath: targetFilePath,
+            format,
+            downloadedAt: Date.now(),
+          };
+          writeDownloadedIndex(index);
+        } catch (idxErr) {
+          console.warn('[DownloadService] Failed to update downloaded index:', idxErr);
+        }
+
         resolve(targetFilePath);
       } catch (copyErr: any) {
         onProgress(0, 'error', copyErr?.message || 'Failed to finalize downloaded file');
@@ -222,9 +237,107 @@ export async function downloadTrack(
   });
 }
 
+function getMetadataIndexPath(): string {
+  try {
+    return path.join(app.getPath('userData'), 'downloaded_tracks.json');
+  } catch {
+    return path.join(os.homedir(), '.otofy-downloads.json');
+  }
+}
+
+export function readDownloadedIndex(): Record<
+  string,
+  { track: TrackMetadata; filePath: string; format: DownloadFormat; downloadedAt: number }
+> {
+  try {
+    const metaPath = getMetadataIndexPath();
+    if (fs.existsSync(metaPath)) {
+      const content = fs.readFileSync(metaPath, 'utf8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.warn('[DownloadService] readDownloadedIndex error:', err);
+  }
+  return {};
+}
+
+export function writeDownloadedIndex(
+  data: Record<string, { track: TrackMetadata; filePath: string; format: DownloadFormat; downloadedAt: number }>
+): void {
+  try {
+    const metaPath = getMetadataIndexPath();
+    const dir = path.dirname(metaPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(metaPath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('[DownloadService] writeDownloadedIndex error:', err);
+  }
+}
+
+export function removeDownloadedTrack(
+  track: TrackMetadata,
+  downloadsPath: string
+): { removed: boolean; filePath?: string } {
+  let removed = false;
+  let targetPath: string | undefined;
+
+  const status = checkTrackDownloaded(track, downloadsPath);
+  if (status.downloaded && status.filePath && fs.existsSync(status.filePath)) {
+    try {
+      fs.unlinkSync(status.filePath);
+      targetPath = status.filePath;
+      removed = true;
+    } catch (err) {
+      console.warn('[DownloadService] Failed to unlink file:', status.filePath, err);
+    }
+  }
+
+  // Also check direct index
+  const index = readDownloadedIndex();
+  if (index[track.id]) {
+    const idxPath = index[track.id].filePath;
+    if (idxPath && fs.existsSync(idxPath)) {
+      try {
+        fs.unlinkSync(idxPath);
+        targetPath = idxPath;
+        removed = true;
+      } catch {}
+    }
+    delete index[track.id];
+    writeDownloadedIndex(index);
+  }
+
+  return { removed, filePath: targetPath };
+}
+
+export function getDownloadedTracks(downloadsPath: string): TrackMetadata[] {
+  const index = readDownloadedIndex();
+  const validTracks: TrackMetadata[] = [];
+  let indexModified = false;
+
+  for (const [id, item] of Object.entries(index)) {
+    if (item.filePath && fs.existsSync(item.filePath)) {
+      validTracks.push(item.track);
+    } else {
+      delete index[id];
+      indexModified = true;
+    }
+  }
+
+  if (indexModified) {
+    writeDownloadedIndex(index);
+  }
+
+  return validTracks;
+}
+
 export default {
   downloadTrack,
   checkTrackDownloaded,
+  removeDownloadedTrack,
+  getDownloadedTracks,
   getExpectedFilename,
   sanitizeFilename,
 };

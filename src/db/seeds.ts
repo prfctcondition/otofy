@@ -2,12 +2,31 @@ import db from './database';
 import type { DbPlaylist } from './database';
 
 export async function seedDatabaseIfEmpty(): Promise<void> {
+  const downloadsExists = await db.playlists.get('pl-downloads');
+  if (!downloadsExists) {
+    await db.playlists.put({
+      id: 'pl-downloads',
+      title: 'Downloads',
+      type: 'Playlist',
+      creator: 'System',
+      songCount: 0,
+      duration: '0m',
+      isPinned: true,
+      iconName: 'download',
+      gradientFrom: '#10B981',
+      gradientTo: '#059669',
+      isDailyMix: false,
+      description: 'Tracks downloaded to your local device for offline listening.',
+      updatedAt: Date.now(),
+    });
+  }
+
   const existingPlaylists = await db.playlists.count();
-  if (existingPlaylists > 0) return; // Already seeded
+  if (existingPlaylists > 1) return; // Already seeded
 
   console.log('[ZenMusic] Initializing clean library...');
 
-  // Start with a clean slate: only the default "Liked Songs" playlist
+  // Start with a clean slate: Liked Songs playlist
   const initialPlaylist: DbPlaylist = {
     id: 'pl-liked',
     title: 'Liked Songs',

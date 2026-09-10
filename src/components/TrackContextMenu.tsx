@@ -275,18 +275,30 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
 
       {/* Download Options */}
       {dlStatus.status === 'completed' ? (
-        <button
-          onClick={() => {
-            openDownloadedFile(track.id);
-            onClose();
-          }}
-          className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-emerald-600 dark:text-emerald-400 cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5">
-            <Check size={15} />
-            <span>Show downloaded file</span>
-          </div>
-        </button>
+        <>
+          <button
+            onClick={() => {
+              openDownloadedFile(track);
+              onClose();
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-emerald-600 dark:text-emerald-400 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Check size={15} />
+              <span>Show downloaded file</span>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              useDownloadStore.getState().removeDownload(track);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
+          >
+            <Trash2 size={15} />
+            <span>Remove from downloads</span>
+          </button>
+        </>
       ) : dlStatus.status === 'downloading' ? (
         <div className="w-full flex items-center justify-between px-3 py-2 text-violet-600 dark:text-violet-400">
           <div className="flex items-center gap-2.5">

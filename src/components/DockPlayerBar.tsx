@@ -219,7 +219,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
         ) : dlStatus.status === 'completed' ? (
           <button
             id="player-download-btn"
-            onClick={() => openDownloadedFile(activeTrack.id)}
+            onClick={() => openDownloadedFile(activeTrack)}
             className="p-1.5 rounded-full text-emerald-500 hover:text-emerald-400 transition-all active:scale-125 shrink-0"
             title="Downloaded (Click to show in folder)"
           >

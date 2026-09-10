@@ -17,6 +17,7 @@ import { useLibraryStore } from './store/libraryStore';
 import { useSearchStore } from './store/searchStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useDownloadStore } from './store/downloadStore';
+import { useNetworkStore } from './store/networkStore';
 
 import { EqualizerModal } from './components/EqualizerModal';
 import { QueueModal } from './components/QueueModal';
@@ -111,9 +112,11 @@ export default function App() {
     initApp();
     const cleanupAudio = playerStore.initAudioListeners();
     const cleanupDl = useDownloadStore.getState().initListeners();
+    const cleanupNet = useNetworkStore.getState().initNetworkListeners();
     return () => {
       cleanupAudio?.();
       cleanupDl?.();
+      cleanupNet?.();
     };
   }, []);
 
@@ -436,7 +439,7 @@ export default function App() {
                 album: r.album || `${cleanName} - Top Tracks`,
                 duration: r.duration,
                 durationSec: r.durationSec,
-                dateAdded: 'Top Track',
+                dateAdded: new Date().toISOString(),
                 source: (r.source || source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,
@@ -480,7 +483,7 @@ export default function App() {
                   album: r.album || `${cleanName} - Top Tracks`,
                   duration: r.duration,
                   durationSec: r.durationSec,
-                  dateAdded: 'Top Track',
+                  dateAdded: new Date().toISOString(),
                   source: (r.source || source || 'YT') as SourceType,
                   sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                   sourceId: r.sourceId,
@@ -537,7 +540,7 @@ export default function App() {
               album: r.album || `${cleanName} - Top Tracks`,
               duration: r.duration,
               durationSec: r.durationSec,
-              dateAdded: 'Top Release',
+              dateAdded: new Date().toISOString(),
               source: r.source,
               sourceLabel: r.sourceLabel,
               sourceId: r.sourceId,
@@ -615,7 +618,7 @@ export default function App() {
             album: title,
             duration: r.duration,
             durationSec: r.durationSec,
-            dateAdded: albumData.year || 'Album Release',
+            dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
             source: (r.source || source || 'YT') as SourceType,
             sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
             sourceId: r.sourceId,
@@ -656,7 +659,7 @@ export default function App() {
                 album: title,
                 duration: r.duration,
                 durationSec: r.durationSec,
-                dateAdded: albumData.year || 'Album Release',
+                dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
                 source: (r.source || source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,

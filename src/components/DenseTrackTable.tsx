@@ -43,6 +43,33 @@ interface TrackRowProps {
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
 }
 
+const formatDisplayDate = (dateStr?: string): string => {
+  if (!dateStr) return '';
+  if (
+    dateStr.toLowerCase().includes('ago') ||
+    dateStr.toLowerCase().includes('yesterday') ||
+    dateStr.toLowerCase().includes('today')
+  ) {
+    return dateStr;
+  }
+  const timestamp = Date.parse(dateStr);
+  if (isNaN(timestamp)) {
+    return 'Recently';
+  }
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} wk ago`;
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  });
+};
+
 const renderSourceBadge = (source: Track['source']) => {
   return (
     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-white/70 dark:bg-white/10 text-[#334155] dark:text-white/70 border border-white/90 dark:border-white/10 shadow-[inset_0_1px_1px_#FFFFFF] dark:shadow-none">
@@ -79,13 +106,13 @@ const TrackRow = React.memo<TrackRowProps>(({
         e.preventDefault();
         onOpenContextMenu(e, track);
       }}
-      className={`group relative grid grid-cols-12 gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 ${
+      className={`group relative grid grid-cols-[40px_1fr_135px] md:grid-cols-[40px_minmax(180px,1fr)_minmax(120px,200px)_140px] lg:grid-cols-[40px_minmax(180px,4fr)_minmax(120px,3fr)_minmax(90px,2fr)_140px] gap-3 px-3 py-2 rounded-xl items-center cursor-pointer transition-all duration-150 ${
         isCurrent
           ? 'bg-white/90 dark:bg-white/15 border border-violet-200/80 dark:border-white/20 shadow-[0_4px_16px_rgba(124,58,237,0.08),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white ring-1 ring-violet-500/20'
           : 'hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80 border border-transparent'
       }`}
     >
-      <div className="col-span-1 flex items-center justify-center text-sm font-medium">
+      <div className="flex items-center justify-center text-sm font-medium">
         {isHovered ? (
           <button
             onClick={(e) => {
@@ -126,7 +153,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         )}
       </div>
 
-      <div className="col-span-5 flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <PlaceholderArtwork
           icon={track.iconName}
           imageUrl={track.artworkUrl}
@@ -159,7 +186,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         </div>
       </div>
 
-      <div className="col-span-3 hidden md:flex items-center justify-between gap-2 min-w-0">
+      <div className="hidden md:flex items-center justify-between gap-2 min-w-0">
         <span
           onClick={(e) => {
             e.stopPropagation();
@@ -177,11 +204,11 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="shrink-0">{renderSourceBadge(track.source)}</div>
       </div>
 
-      <div className="col-span-2 hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70">
-        {track.dateAdded}
+      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 truncate">
+        {formatDisplayDate(track.dateAdded)}
       </div>
 
-      <div className="col-span-6 md:col-span-3 lg:col-span-1 flex items-center justify-end gap-2 pr-2">
+      <div className="flex items-center justify-end gap-1.5 pr-1 min-w-0">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -215,7 +242,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              openDownloadedFile(track.id);
+              openDownloadedFile(track);
             }}
             className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors"
             title="Downloaded (Click to show in folder)"
@@ -241,7 +268,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         )}
 
-        <span className="text-xs text-[#64748B] dark:text-white/80 w-9 text-right tabular-nums">
+        <span className="text-xs text-[#64748B] dark:text-white/80 w-9 text-right tabular-nums shrink-0">
           {track.duration}
         </span>
 
@@ -321,12 +348,12 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   return (
     <div id="dense-track-table" className="w-full px-6 py-2 select-none">
-      <div className="grid grid-cols-12 gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
-        <div className="col-span-1 flex items-center justify-center">#</div>
-        <div className="col-span-5 flex items-center">Title</div>
-        <div className="col-span-3 hidden md:flex items-center">Album</div>
-        <div className="col-span-2 hidden lg:flex items-center">Date Added</div>
-        <div className="col-span-6 md:col-span-3 lg:col-span-1 flex items-center justify-end pr-2">
+      <div className="grid grid-cols-[40px_1fr_135px] md:grid-cols-[40px_minmax(180px,1fr)_minmax(120px,200px)_140px] lg:grid-cols-[40px_minmax(180px,4fr)_minmax(120px,3fr)_minmax(90px,2fr)_140px] gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
+        <div className="flex items-center justify-center">#</div>
+        <div className="flex items-center">Title</div>
+        <div className="hidden md:flex items-center">Album</div>
+        <div className="hidden lg:flex items-center">Date Added</div>
+        <div className="flex items-center justify-end pr-2">
           <Clock size={14} />
         </div>
       </div>

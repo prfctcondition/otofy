@@ -20,12 +20,17 @@ export const IDLE_DOWNLOAD: DownloadItemState = {
 interface DownloadState {
   downloads: Record<string, DownloadItemState>;
   downloadedIds: string[];
+  isBatchDownloading: boolean;
+  batchProgress: { current: number; total: number };
 }
 
 interface DownloadActions {
   startDownload: (track: Track, format?: 'mp3' | 'flac') => Promise<void>;
   checkStatus: (tracks: Track[]) => Promise<void>;
-  openDownloadedFile: (filePath: string) => Promise<void>;
+  openDownloadedFile: (track: Track) => Promise<void>;
+  removeDownload: (track: Track) => Promise<void>;
+  downloadPlaylist: (tracks: Track[], format?: 'mp3' | 'flac') => Promise<void>;
+  loadDownloadedTracks: () => Promise<Track[]>;
   initListeners: () => () => void;
   getTrackStatus: (trackId: string) => DownloadItemState;
 }
@@ -33,6 +38,8 @@ interface DownloadActions {
 export const useDownloadStore = create<DownloadState & DownloadActions>()((set, get) => ({
   downloads: {},
   downloadedIds: [],
+  isBatchDownloading: false,
+  batchProgress: { current: 0, total: 0 },
 
   getTrackStatus: (trackId: string): DownloadItemState => {
     return get().downloads[trackId] || IDLE_DOWNLOAD;
@@ -113,10 +120,99 @@ export const useDownloadStore = create<DownloadState & DownloadActions>()((set, 
     }
   },
 
-  openDownloadedFile: async (filePath: string) => {
-    if (window.electronAPI?.showDownloadedFile) {
-      await window.electronAPI.showDownloadedFile(filePath);
+  openDownloadedFile: async (track: Track) => {
+    if (!window.electronAPI?.showDownloadedFile) return;
+    const current = get().downloads[track.id];
+    const res = await window.electronAPI.showDownloadedFile({
+      filePath: current?.filePath,
+      track,
+    });
+    if (res?.notFound) {
+      set((s) => {
+        const next = { ...s.downloads };
+        delete next[track.id];
+        return {
+          downloads: next,
+          downloadedIds: s.downloadedIds.filter((id) => id !== track.id),
+        };
+      });
+      useToastStore.getState().warning('File Missing', 'This file was moved or deleted from your Downloads folder.');
     }
+  },
+
+  removeDownload: async (track: Track) => {
+    if (!window.electronAPI?.removeDownloadedTrack) return;
+    try {
+      await window.electronAPI.removeDownloadedTrack(track);
+      set((s) => {
+        const next = { ...s.downloads };
+        delete next[track.id];
+        return {
+          downloads: next,
+          downloadedIds: s.downloadedIds.filter((id) => id !== track.id),
+        };
+      });
+      useToastStore.getState().info('Download Removed', `"${track.title}" deleted from your device.`);
+    } catch (err: any) {
+      useToastStore.getState().error('Error', err?.message || 'Failed to remove downloaded track');
+    }
+  },
+
+  downloadPlaylist: async (tracks: Track[], format: 'mp3' | 'flac' = 'mp3') => {
+    if (!tracks || tracks.length === 0) return;
+    if (get().isBatchDownloading) {
+      useToastStore.getState().info('Download in Progress', 'A batch download is already running.');
+      return;
+    }
+
+    set({ isBatchDownloading: true, batchProgress: { current: 0, total: tracks.length } });
+    useToastStore.getState().info('Downloading Playlist', `Starting sequential download for ${tracks.length} tracks...`);
+
+    let completedCount = 0;
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      set({ batchProgress: { current: i + 1, total: tracks.length } });
+
+      // Skip if already downloaded
+      const isAlreadyDownloaded = get().downloadedIds.includes(track.id);
+      if (!isAlreadyDownloaded) {
+        try {
+          await get().startDownload(track, format);
+          await new Promise((r) => setTimeout(r, 600));
+        } catch (err) {
+          console.warn(`[DownloadStore] Failed to download "${track.title}":`, err);
+        }
+      }
+      completedCount++;
+    }
+
+    set({ isBatchDownloading: false });
+    useToastStore.getState().success('Playlist Download Complete', `Processed ${completedCount} tracks.`);
+  },
+
+  loadDownloadedTracks: async (): Promise<Track[]> => {
+    if (!window.electronAPI?.getDownloadedTracks) return [];
+    try {
+      const list = await window.electronAPI.getDownloadedTracks();
+      if (Array.isArray(list)) {
+        const newDownloads = { ...get().downloads };
+        const idList = list.map((t) => t.id);
+        for (const t of list) {
+          newDownloads[t.id] = {
+            status: 'completed',
+            progress: 100,
+          };
+        }
+        set({
+          downloads: newDownloads,
+          downloadedIds: idList,
+        });
+        return list;
+      }
+    } catch (err) {
+      console.warn('[DownloadStore] loadDownloadedTracks error:', err);
+    }
+    return [];
   },
 
   initListeners: () => {

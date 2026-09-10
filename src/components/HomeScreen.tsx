@@ -182,14 +182,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
 
-        {/* 6 Stations Horizontal Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+        {/* Recommended Stations Responsive Grid */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
           {RECOMMENDED_STATIONS.map((station) => (
             <div
               key={station.id}
               id={`station-card-${station.id}`}
               onClick={() => onOpenStation(station)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
             >
               {/* Authentic Spotify-style Radio Graphic Artwork */}
               <div
@@ -200,7 +200,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <div className="flex items-center gap-1 opacity-90">
                     <Radio size={13} className="text-white" />
                   </div>
-                  <span className="text-[10px] font-black tracking-widest text-white/90 bg-black/35 px-1.5 py-0.5 rounded backdrop-blur-xs">
+                  <span className="text-[10px] font-black tracking-widest text-white/90 bg-black/35 px-1.5 py-0.5 rounded backdrop-blur-xs shrink-0">
                     {station.badgeLabel}
                   </span>
                 </div>
@@ -215,8 +215,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 </div>
 
                 {/* Bottom Bold Station Title */}
-                <div className="relative z-10 pt-4">
-                  <span className="text-base font-extrabold text-white tracking-tight leading-none block drop-shadow-md">
+                <div className="relative z-10 pt-4 min-w-0">
+                  <span className="text-sm sm:text-base font-extrabold text-white tracking-tight leading-none block drop-shadow-md truncate">
                     {station.title}
                   </span>
                 </div>
@@ -263,14 +263,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
 
-        {/* 6 Made For You Mix Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+        {/* Made For You Responsive Grid */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
           {displayMixes.map((item) => (
             <div
               key={item.id}
               id={`made-for-you-card-${item.id}`}
               onClick={() => onOpenMix(item)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
             >
               {/* Artwork Box */}
               <div
@@ -288,8 +288,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-400 via-indigo-500 to-fuchsia-500 opacity-80 blur-lg pointer-events-none" />
 
                     {/* Big Condensed Typography */}
-                    <div className="relative z-10">
-                      <span className="text-[20px] font-black tracking-tight text-white leading-[0.95] block uppercase font-mono">
+                    <div className="relative z-10 min-w-0">
+                      <span className="text-[17px] sm:text-[20px] font-black tracking-tight text-white leading-[0.95] block uppercase font-mono truncate">
                         DISCOVER
                         <br />
                         WEEKLY
@@ -308,15 +308,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </div>
 
                     {/* Bottom Pill Banner: "Daily Mix | 01" */}
-                    <div className="p-2 relative z-10">
-                      <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md rounded-lg p-1.5 border border-white/10">
+                    <div className="p-2 relative z-10 min-w-0">
+                      <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1.5 border border-white/10 min-w-0 overflow-hidden">
                         <div
-                          className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase text-black"
+                          className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black uppercase text-black shrink-0"
                           style={{ backgroundColor: item.badgeColor }}
                         >
                           Daily Mix
                         </div>
-                        <span className="text-xs font-black text-white ml-auto pr-1">
+                        <span className="text-xs font-black text-white ml-auto pr-1 shrink-0">
                           {item.mixNumber}
                         </span>
                       </div>

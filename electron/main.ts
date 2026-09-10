@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import ytResolver from './services/ytResolver.js';
 import scResolver from './services/scResolver.js';
 import searchService from './services/searchService.js';
@@ -52,6 +52,20 @@ let closeToTray = initialConfig.closeToTray ?? false;
 if (initialConfig.hardwareAcceleration === false) {
   app.disableHardwareAcceleration();
 }
+
+// Register custom protocol for local audio streaming with Range support & Web Audio API graph
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'atom',
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: true,
+      stream: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -770,12 +784,41 @@ ipcMain.handle('download:check-status', async (_event, { tracks }: { tracks: Tra
   return results;
 });
 
-ipcMain.handle('download:show-in-folder', async (_event, { filePath }: { filePath: string }) => {
-  if (filePath && fs.existsSync(filePath)) {
-    shell.showItemInFolder(filePath);
-    return true;
+ipcMain.handle(
+  'download:show-in-folder',
+  async (_event, payload: { filePath?: string; track?: TrackMetadata }) => {
+    const downloadsPath = getDefaultDownloadsPath();
+    let targetPath = payload?.filePath;
+
+    if (!targetPath && payload?.track) {
+      const status = downloadService.checkTrackDownloaded(payload.track, downloadsPath);
+      if (status.downloaded && status.filePath) {
+        targetPath = status.filePath;
+      } else {
+        const expectedMp3 = path.join(downloadsPath, downloadService.getExpectedFilename(payload.track, 'mp3'));
+        if (fs.existsSync(expectedMp3)) targetPath = expectedMp3;
+        const expectedFlac = path.join(downloadsPath, downloadService.getExpectedFilename(payload.track, 'flac'));
+        if (fs.existsSync(expectedFlac)) targetPath = expectedFlac;
+      }
+    }
+
+    if (targetPath && fs.existsSync(targetPath)) {
+      shell.showItemInFolder(path.resolve(targetPath));
+      return { success: true, filePath: targetPath };
+    }
+
+    return { success: false, notFound: true };
   }
-  return false;
+);
+
+ipcMain.handle('download:remove-track', async (_event, { track }: { track: TrackMetadata }) => {
+  const downloadsPath = getDefaultDownloadsPath();
+  return downloadService.removeDownloadedTrack(track, downloadsPath);
+});
+
+ipcMain.handle('download:get-tracks', async () => {
+  const downloadsPath = getDefaultDownloadsPath();
+  return downloadService.getDownloadedTracks(downloadsPath);
 });
 
 let cachedUserProfile: { username: string; avatarUrl: string | null } | null = null;
@@ -831,6 +874,31 @@ app.whenReady().then(() => {
         'Access-Control-Allow-Methods': ['GET, POST, OPTIONS'],
       },
     });
+  });
+
+  // Handle local file streaming for downloaded audio via atom:// protocol with Range support
+  protocol.handle('atom', async (request) => {
+    try {
+      let pathname = request.url.replace(/^atom:\/\/(local\/)?/, '');
+      pathname = decodeURIComponent(pathname);
+      if (process.platform === 'win32' && pathname.startsWith('/')) {
+        pathname = pathname.slice(1);
+      }
+      const fileUrl = pathToFileURL(pathname).toString();
+      const res = await net.fetch(fileUrl);
+      const headers = new Headers(res.headers);
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', '*');
+      return new Response(res.body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+      });
+    } catch (err) {
+      console.warn('[Protocol atom] Failed to stream file:', err);
+      return new Response('File not found', { status: 404 });
+    }
   });
 
   createWindow();
