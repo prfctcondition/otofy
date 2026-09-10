@@ -110,6 +110,7 @@ interface LibraryActions {
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   resolveTrack: (trackId: string, alternative: import('../types').TrackAlternative) => Promise<void>;
+  updatePlaylistTracks: (playlistId: string, updatedTracks: Track[]) => Promise<void>;
   setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
   openCatalog: () => void;
   openSettings: () => void;
@@ -696,6 +697,20 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       }
 
       useToastStore.getState().success('Track Resolved', `Matched to "${updated.title}".`);
+    }
+  },
+
+  updatePlaylistTracks: async (playlistId, updatedTracks) => {
+    set((s) => ({
+      currentPlaylistTracks: [...updatedTracks],
+      history: s.history.map((entry) =>
+        entry.selectedPlaylistId === playlistId || entry.viewingPlaylist?.id === playlistId
+          ? { ...entry, currentPlaylistTracks: [...updatedTracks] }
+          : entry
+      ),
+    }));
+    for (const t of updatedTracks) {
+      await repo.putTrack(t);
     }
   },
 

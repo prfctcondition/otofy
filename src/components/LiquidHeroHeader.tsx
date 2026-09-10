@@ -176,7 +176,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
     }
     const artistSet = new Set<string>();
     for (const t of tracks || []) {
-      for (const a of splitArtists(t.artist)) {
+      for (const a of splitArtists(t.artist, t.artists)) {
         if (
           a &&
           a.toLowerCase() !== 'unknown artist' &&

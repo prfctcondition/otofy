@@ -9,10 +9,12 @@ export interface TrackAlternative {
   id: string;
   title: string;
   artist: string;
+  artists?: string[];
   duration: string;
   durationSec: number;
   sourceId: string;
   artworkUrl?: string;
+  thumbnail?: string;
 }
 
 export interface Track {
@@ -20,6 +22,7 @@ export interface Track {
   number: number;
   title: string;
   artist: string;
+  artists?: string[];
   album: string;
   duration: string;
   durationSec: number;
@@ -33,8 +36,10 @@ export interface Track {
   // New fields for streaming
   streamUrl?: string;
   artworkUrl?: string;
+  thumbnail?: string;
   sourceId?: string; // YouTube video ID or SoundCloud track ID
   unresolved?: boolean;
+  needsMatch?: boolean;
   alternatives?: TrackAlternative[];
   originalSpotifyPreview?: string;
 }

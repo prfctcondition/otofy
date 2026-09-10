@@ -3,6 +3,7 @@ import { splitArtists } from '../utils/trackUtils';
 
 interface ArtistLinksProps {
   artist: string;
+  artists?: string[];
   source?: 'YT' | 'SC';
   onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
   className?: string;
@@ -14,6 +15,7 @@ interface ArtistLinksProps {
 
 export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   artist,
+  artists: explicitArtists,
   source = 'YT',
   onSelectArtist,
   className = 'text-xs text-[#64748B] dark:text-white/80 truncate',
@@ -22,7 +24,7 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   prefix,
   suffix,
 }) => {
-  const artists = splitArtists(artist);
+  const artists = splitArtists(artist, explicitArtists);
   if (!artists.length) return null;
 
   return (

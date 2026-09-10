@@ -228,6 +228,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
           </div>
           <ArtistLinks
             artist={activeTrack.artist}
+            artists={activeTrack.artists}
             source={activeTrack.source === 'SC' ? 'SC' : 'YT'}
             onSelectArtist={onSelectArtist ? (art) => onSelectArtist(art) : undefined}
             className="text-xs text-[#64748B] dark:text-white/80 truncate mt-0.5 inline-block max-w-[200px] sm:max-w-[280px]"

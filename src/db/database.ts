@@ -5,6 +5,7 @@ export interface DbTrack {
   number: number;
   title: string;
   artist: string;
+  artists?: string[];
   album: string;
   duration: string;
   durationSec: number;
@@ -17,10 +18,12 @@ export interface DbTrack {
   isLiked: boolean;
   streamUrl?: string;
   artworkUrl?: string;
+  thumbnail?: string;
   sourceId?: string;
   playbackCount: number;
   lastPlayedAt?: number;
   unresolved?: boolean;
+  needsMatch?: boolean;
   alternatives?: any[];
   originalSpotifyPreview?: string;
 }

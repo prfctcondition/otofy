@@ -5,12 +5,12 @@ import type { Track, Playlist } from '../types';
 import { cleanArtistAndTitle } from '../utils/trackUtils';
 
 function dbTrackToTrack(dt: DbTrack): Track {
-  const { title, artist } = cleanArtistAndTitle(dt.title, dt.artist);
   return {
     id: dt.id,
     number: dt.number,
-    title,
-    artist,
+    title: dt.title || 'Untitled',
+    artist: dt.artist || 'Unknown Artist',
+    artists: dt.artists,
     album: dt.album,
     duration: dt.duration,
     durationSec: dt.durationSec,
@@ -22,9 +22,11 @@ function dbTrackToTrack(dt: DbTrack): Track {
     gradientTo: dt.gradientTo,
     isLiked: dt.isLiked,
     streamUrl: dt.streamUrl,
-    artworkUrl: dt.artworkUrl,
+    artworkUrl: dt.artworkUrl || dt.thumbnail,
+    thumbnail: dt.thumbnail || dt.artworkUrl,
     sourceId: dt.sourceId,
     unresolved: dt.unresolved,
+    needsMatch: dt.needsMatch,
     alternatives: dt.alternatives,
     originalSpotifyPreview: dt.originalSpotifyPreview,
   };
@@ -154,12 +156,14 @@ export const repo = {
       iconName: track.iconName,
       gradientFrom: track.gradientFrom,
       gradientTo: track.gradientTo,
-      artworkUrl: track.artworkUrl,
+      artworkUrl: track.artworkUrl || track.thumbnail,
+      thumbnail: track.thumbnail || track.artworkUrl,
       streamUrl: track.streamUrl,
       isLiked: track.isLiked ?? false,
       sourceId: track.sourceId,
       playbackCount: (track as any).playbackCount ?? 0,
       unresolved: track.unresolved,
+      needsMatch: track.needsMatch,
       alternatives: track.alternatives,
       originalSpotifyPreview: track.originalSpotifyPreview,
     };
@@ -170,17 +174,25 @@ export const repo = {
     const track = await db.tracks.get(oldTrackId);
     if (!track) return null;
 
-    const newTrackId = `yt-${chosenAlternative.sourceId}`;
+    const newTrackId = chosenAlternative.id?.startsWith('yt-')
+      ? chosenAlternative.id
+      : `yt-${chosenAlternative.sourceId}`;
+
     const resolvedDbTrack: DbTrack = {
       ...track,
       id: newTrackId,
+      title: chosenAlternative.title || track.title,
+      artist: chosenAlternative.artist || track.artist,
+      artists: chosenAlternative.artists || (chosenAlternative.artist ? [chosenAlternative.artist] : track.artists),
       sourceId: chosenAlternative.sourceId,
       duration: chosenAlternative.duration,
       durationSec: chosenAlternative.durationSec,
-      artworkUrl: chosenAlternative.artworkUrl || track.artworkUrl,
+      artworkUrl: chosenAlternative.artworkUrl || chosenAlternative.thumbnail || track.artworkUrl,
+      thumbnail: chosenAlternative.thumbnail || chosenAlternative.artworkUrl || track.thumbnail,
       source: 'YT',
       sourceLabel: 'YouTube Music',
       unresolved: false,
+      needsMatch: false,
     };
     delete (resolvedDbTrack as any).alternatives;
 

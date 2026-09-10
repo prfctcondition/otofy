@@ -4,6 +4,7 @@ import { cleanArtistAndTitle } from './trackParser.js';
 export interface SpotifyTrackItem {
   title: string;
   artist: string;
+  artists?: string[];
   durationMs: number;
   durationSec: number;
   previewUrl?: string;
@@ -24,6 +25,7 @@ export interface MatchedTrackResult {
   number: number;
   title: string;
   artist: string;
+  artists?: string[];
   album: string;
   duration: string;
   durationSec: number;
@@ -32,18 +34,22 @@ export interface MatchedTrackResult {
   sourceLabel: string;
   sourceId?: string;
   artworkUrl?: string;
+  thumbnail?: string;
   iconName: string;
   gradientFrom: string;
   gradientTo: string;
   unresolved?: boolean;
+  needsMatch?: boolean;
   alternatives?: Array<{
     id: string;
     title: string;
     artist: string;
+    artists?: string[];
     duration: string;
     durationSec: number;
     sourceId: string;
     artworkUrl?: string;
+    thumbnail?: string;
   }>;
   originalSpotifyPreview?: string;
 }
@@ -116,11 +122,15 @@ export async function inspectSpotifyPlaylist(urlOrId: string): Promise<SpotifyPl
     const dMs = t.duration || 0;
     const durSec = Math.round(dMs / 1000);
     const rawA = t.subtitle || (Array.isArray(t.artists) ? t.artists.map((a: any) => a.name).join(', ') : '');
-    const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(t.title || 'Untitled', rawA || 'Unknown Artist');
+    const artistsList = Array.isArray(t.artists) && t.artists.length > 0
+      ? t.artists.map((a: any) => (typeof a === 'string' ? a : a.name)).filter(Boolean)
+      : (t.subtitle ? [t.subtitle] : ['Unknown Artist']);
 
+    // Spotify metadata is clean and official: preserve title and artist as-is
     return {
-      title: cleanT,
-      artist: cleanA,
+      title: t.title || 'Untitled',
+      artist: rawA || 'Unknown Artist',
+      artists: artistsList,
       durationMs: dMs,
       durationSec: durSec,
       previewUrl: t.audioPreview?.url,
@@ -165,10 +175,12 @@ export async function matchSpotifyTracks(
         id: string;
         title: string;
         artist: string;
+        artists?: string[];
         duration: string;
         durationSec: number;
         sourceId: string;
         artworkUrl?: string;
+        thumbnail?: string;
       }> = [];
 
       try {
@@ -179,23 +191,49 @@ export async function matchSpotifyTracks(
         for (const item of items.slice(0, 5)) {
           const vId = item.id;
           if (!vId) continue;
-          const rawT = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
-          const rawA = Array.isArray(item.artists)
-            ? item.artists.map((a: any) => a.name).join(', ')
-            : item.author?.name || spTrack.artist;
-          const { title: candTitle, artist: candArtist } = cleanArtistAndTitle(rawT, rawA);
+
+          // Priority 2: Structured metadata from YouTube Music API
+          let candTitle = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
+          let candArtist = '';
+          let candArtists: string[] = [];
+          if (Array.isArray(item.artists) && item.artists.length > 0) {
+            candArtists = item.artists.map((a: any) => (typeof a === 'string' ? a : a.name)).filter(Boolean);
+            candArtist = candArtists.join(', ');
+          } else if (item.author?.name) {
+            candArtist = item.author.name.replace(/\s*-\s*topic$/i, '').trim();
+            candArtists = [candArtist];
+          } else {
+            candArtist = spTrack.artist;
+            candArtists = spTrack.artists || [spTrack.artist];
+          }
+
+          // Strip pure video junk tags from candidate title without removing music version suffixes
+          candTitle = candTitle
+            .replace(/\[\s*(copyright\s*free|no\s*copyright|ncs(\s*release)?|free(\s*download)?|official\s*(music\s*)?video|official\s*audio|lyrics|hd|4k|hq|audio|visualizer)\s*\]/gi, '')
+            .replace(/\(\s*(copyright\s*free|no\s*copyright|ncs(\s*release)?|free(\s*download)?|official\s*(music\s*)?video|official\s*audio|lyrics|hd|4k|hq|audio|visualizer)\s*\)/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          // If candTitle begins with redundant "candArtist - ", remove the prefix
+          if (candArtist) {
+            const prefixRegex = new RegExp(`^${candArtist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[-–—]\\s*`, 'i');
+            candTitle = candTitle.replace(prefixRegex, '').trim();
+          }
+
           const durStr = item.duration?.text || '0:00';
           const durSec = parseDurationToSec(durStr);
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
           candidates.push({
-            id: vId,
+            id: `yt-${vId}`,
             title: candTitle,
             artist: candArtist,
+            artists: candArtists,
             duration: durStr,
             durationSec: durSec,
             sourceId: vId,
             artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
+            thumbnail: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
           });
         }
       } catch (err) {
@@ -213,11 +251,13 @@ export async function matchSpotifyTracks(
       const durationDiff = bestCandidate ? Math.abs(bestCandidate.durationSec - spTrack.durationSec) : 999;
       const isConfirmed = Boolean(bestCandidate && durationDiff <= 10);
 
+      // Priority 3: Keep pristine Spotify title and artist when auto-matched!
       const trackItem: MatchedTrackResult = {
         id: isConfirmed ? `yt-${bestCandidate.sourceId}` : `sp-${Date.now()}-${globalIndex}-${Math.random().toString(36).slice(2, 6)}`,
         number: globalIndex + 1,
         title: spTrack.title,
         artist: spTrack.artist,
+        artists: spTrack.artists || [spTrack.artist],
         album: playlistTitle || 'Spotify Import',
         duration: isConfirmed ? bestCandidate.duration : formatDuration(spTrack.durationSec),
         durationSec: isConfirmed ? bestCandidate.durationSec : spTrack.durationSec,
@@ -226,10 +266,12 @@ export async function matchSpotifyTracks(
         sourceLabel: 'YouTube Music',
         sourceId: isConfirmed ? bestCandidate.sourceId : bestCandidate?.sourceId,
         artworkUrl: bestCandidate?.artworkUrl,
+        thumbnail: bestCandidate?.artworkUrl,
         iconName: 'music',
         gradientFrom: '#1E293B',
         gradientTo: '#0F172A',
         unresolved: !isConfirmed,
+        needsMatch: !isConfirmed,
         alternatives: candidates.slice(0, 3),
         originalSpotifyPreview: spTrack.previewUrl,
       };
