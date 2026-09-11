@@ -46,7 +46,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 
 ---
 
-## ✦ Features & Architecture
+## ✧ Features & Architecture
 
 ### ▸ 01. Zero Accounts, Zero Tracking, Zero Ads
 - **No Sign-Up Required**: Launch Otofy and play music immediately. No emails, no passwords, no phone numbers, and no behavioral profiling.
@@ -107,7 +107,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 
 ---
 
-## ✦ Platform Comparison
+## 🕮 Platform Comparison
 
 | Feature | Otofy | Spotify Free | Apple Music | YouTube Music | SoundCloud Free | Typical Offline Players |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -163,7 +163,7 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 
 ---
 
-## ✦ Roadmap
+## ⏱ Roadmap
 
 - ✔ **Universal Playlist Importer**: Spotify, YouTube Music, SoundCloud, and JSON codes with conflict resolution.
 - ✔ **Two-Way Cloud Playlist Sync**: Real-time bidirectional synchronization with YouTube Music & SoundCloud accounts.
@@ -178,7 +178,7 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 
 ---
 
-## ✦ Support
+## ☆ Support
 
 Otofy is 100% free, open-source, and built on the conviction that music and convenience are fundamental human rights. There are zero subscriptions, audio ads, or trackers.
 
@@ -197,5 +197,3 @@ If Otofy brought harmony to your days, preserved your offline playlists, or simp
 ## 🕮 License
 
 Distributed under the [MIT License](LICENSE). Built for music lovers who cherish privacy, sound fidelity, and freedom.
-
-p.s пользуйся моим приложением или я убью тебя
