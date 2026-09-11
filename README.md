@@ -173,7 +173,7 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 - [x] **10-Band Graphic Equalizer**: Web Audio hardware filter bank with audio presets (up from standard 6-band limitations).
 - [x] **Multi-Select & Advanced Sorting**: Bulk library operations, deterministic recents, and tracklist organization.
 - [x] **Local Files Discovery**: Scan and play local `.mp3`, `.flac`, `.opus`, `.m4a`.
-- [ ] **Discord Rich Presence**: Broadcast currently playing track, artist, album art, and progress to Discord.
+- [x] **Discord Rich Presence**: Broadcast currently playing track, artist, album art, and progress to Discord.
 - [ ] **Native Global Media Keys & Windows SMTC**: Enhanced hardware keyboard controls when minimized to tray.
 
 ---
