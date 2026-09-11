@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Download, X, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
+import { ArrowUpCircle, Download, X, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
 import type { UpdateCheckResult, UpdateDownloadProgress } from '../types';
 
 interface UpdateAvailableModalProps {
@@ -152,7 +152,7 @@ export const UpdateAvailableModal: React.FC<UpdateAvailableModalProps> = ({
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3.5">
             <div className="p-3 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl shadow-md shrink-0">
-              <Sparkles size={22} />
+              <ArrowUpCircle size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">

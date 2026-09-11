@@ -36,7 +36,7 @@
 
 ---
 
-## ✦ Why Otofy?
+## ◆ Why Otofy?
 
 Modern music streaming has lost its way. Mainstream platforms are bloated with podcasts, forced algorithmic feeds, intrusive audio commercials, paywalled basic controls, and relentless tracking of your listening habits.
 
