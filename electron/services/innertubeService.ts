@@ -220,12 +220,13 @@ export async function search(query: string): Promise<{
     avatarUrl?: string;
     subtitle?: string;
     browseId?: string;
+    externalUrl?: string;
   };
   songs: InnertubeTrack[];
 }> {
   const yt = await getInnertube();
   const songs: InnertubeTrack[] = [];
-  let artistCard: { name: string; avatarUrl?: string; subtitle?: string; browseId?: string } | undefined;
+  let artistCard: { name: string; avatarUrl?: string; subtitle?: string; browseId?: string; externalUrl?: string } | undefined;
 
   // Run general search (for Top Result / MusicCardShelf), song, video, and artist checks in parallel
   const [genRes, songRes, videoRes, artistRes] = await Promise.allSettled([
@@ -274,17 +275,47 @@ export async function search(query: string): Promise<{
     }
   }
 
-  if (topResultArtist) {
-    artistCard = topResultArtist;
+  if (topResultArtist && bestArtistCandidate) {
+    const topSubs = parseSubscriberCount(topResultArtist.subtitle);
+    const candSubs = parseSubscriberCount(bestArtistCandidate.subscribers || bestArtistCandidate.subtitle?.text);
+    const candName = (bestArtistCandidate.name || '').toLowerCase().trim();
+    const cleanQ = query.trim().toLowerCase();
+    // Prefer bestArtistCandidate if exact match and has substantially more subscribers
+    if (candName === cleanQ && candSubs > topSubs * 2) {
+      const bId = bestArtistCandidate.id || topResultArtist.browseId;
+      artistCard = {
+        name: bestArtistCandidate.name || query,
+        avatarUrl: extractThumbnailUrl(bestArtistCandidate.thumbnails || bestArtistCandidate.thumbnail) || topResultArtist.avatarUrl,
+        subtitle: bestArtistCandidate.subscribers || topResultArtist.subtitle || 'Official Artist',
+        browseId: bId,
+        externalUrl: bId?.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : undefined,
+      };
+    } else {
+      artistCard = {
+        ...topResultArtist,
+        externalUrl: topResultArtist.browseId?.startsWith('UC')
+          ? `https://music.youtube.com/channel/${topResultArtist.browseId}`
+          : undefined,
+      };
+    }
+  } else if (topResultArtist) {
+    artistCard = {
+      ...topResultArtist,
+      externalUrl: topResultArtist.browseId?.startsWith('UC')
+        ? `https://music.youtube.com/channel/${topResultArtist.browseId}`
+        : undefined,
+    };
   } else if (bestArtistCandidate) {
     const cleanQ = query.trim().toLowerCase();
-    const candName = (bestArtistCandidate.name || '').toLowerCase();
+    const candName = (bestArtistCandidate.name || '').toLowerCase().trim();
     if (candName.includes(cleanQ) || cleanQ.includes(candName)) {
+      const bId = bestArtistCandidate.id;
       artistCard = {
         name: bestArtistCandidate.name || query,
         avatarUrl: extractThumbnailUrl(bestArtistCandidate.thumbnails || bestArtistCandidate.thumbnail),
         subtitle: bestArtistCandidate.subscribers || 'Official YouTube Music Artist',
-        browseId: bestArtistCandidate.id,
+        browseId: bId,
+        externalUrl: bId?.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : undefined,
       };
     }
   }
@@ -361,27 +392,29 @@ export async function search(query: string): Promise<{
   }
 
   const artistSubs = parseSubscriberCount(
+    artistCard?.subtitle ||
     topResultArtist?.subtitle ||
     bestArtistCandidate?.subscribers ||
     bestArtistCandidate?.subtitle?.text
   );
 
-  // If a track matching the query has massive views (> 1M) and the artist has very few subscribers (< 50k or < maxTrackViews / 20):
-  // User is looking for the viral track, NOT the obscure channel!
-  const isViralTrackQuery = maxTrackViews >= 1_000_000 && (artistSubs < 50_000 || maxTrackViews > artistSubs * 20);
+  // An artist query is considered overshadowed by a viral track ONLY if the artist is obscure (< 25k subscribers).
+  // Established artists (>= 25k subscribers, such as BONES with 316k subs) must NEVER be suppressed!
+  const isObscureArtist = artistSubs < 25_000;
+  const isViralTrackQuery = isObscureArtist && maxTrackViews >= 1_000_000 && (artistSubs < 10_000 || maxTrackViews > artistSubs * 20);
 
-  if (isViralTrackQuery && (!topResultArtist || artistSubs < 25_000)) {
+  if (isViralTrackQuery) {
     artistCard = undefined;
   }
 
   // Top Tracks vs Artist Page:
-  // Only load artist's official top hits if confirmed topResultArtist OR verified established artist
+  // Load artist's official top hits if confirmed topResultArtist OR verified established artist
   const isArtistQuery = Boolean(
     !isViralTrackQuery &&
     artistCard &&
     artistCard.browseId &&
     (topResultArtist ||
-      (artistSubs >= 25_000 && (
+      (artistSubs >= 15_000 && (
         artistCard.name.toLowerCase().trim() === cleanQ ||
         cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
       )))

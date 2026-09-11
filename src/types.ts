@@ -209,6 +209,7 @@ export interface UnifiedSearchResponse {
     avatarUrl?: string;
     subtitle?: string;
     browseId?: string;
+    externalUrl?: string;
     source?: 'YT' | 'SC';
   };
   results: SearchResult[];

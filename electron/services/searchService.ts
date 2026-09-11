@@ -244,12 +244,34 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
 
   if (ytRes.status === 'fulfilled' && ytRes.value) {
     if (ytRes.value.artistCard) {
+      const bId = ytRes.value.artistCard.browseId;
       artistCard = {
         ...ytRes.value.artistCard,
         source: 'YT',
+        externalUrl: bId && bId.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : ytRes.value.artistCard.externalUrl,
       };
     }
     results.push(...ytRes.value.songs);
+  }
+
+  // If no artistCard returned from YouTube search, try scoped artist resolution
+  if (!artistCard && shouldSearchYT && query.trim().length >= 2) {
+    try {
+      const aDetails = await innertubeService.getArtist(query);
+      if (aDetails && (aDetails.topTracks.length > 0 || aDetails.albums.length > 0) && aDetails.channelId?.startsWith('UC')) {
+        const subs = parseSubscriberCount(aDetails.subscribers);
+        if (subs >= 25_000 || aDetails.artist.toLowerCase().trim() === query.trim().toLowerCase()) {
+          artistCard = {
+            name: aDetails.artist,
+            avatarUrl: aDetails.avatarUrl,
+            subtitle: aDetails.subscribers || 'Official Artist',
+            browseId: aDetails.channelId,
+            source: 'YT',
+            externalUrl: `https://music.youtube.com/channel/${aDetails.channelId}`,
+          };
+        }
+      }
+    } catch {}
   }
 
   if (scRes.status === 'fulfilled' && scRes.value) {
@@ -269,6 +291,7 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
             subtitle: scArtist.subscribers || 'SoundCloud Artist',
             browseId: scArtist.browseId,
             source: 'SC',
+            externalUrl: scArtist.externalUrl,
           };
         }
       } catch {}
@@ -292,12 +315,48 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
 
   const cleanQ = query.trim().toLowerCase();
 
+  // If we have an artistCard, check whether an overshadowing viral track exists BEFORE scoring!
+  // ONLY obscure artists (< 25k subscribers) can be overshadowed by a viral track with the same name.
+  // Established artists (>= 25k subscribers, like BONES or Michael Jackson) must NEVER be suppressed!
+  if (artistCard) {
+    const artistSubs = parseSubscriberCount(artistCard.subtitle);
+    const isObscureArtist = artistSubs < 25_000;
+    if (isObscureArtist) {
+      const viralTrack = cleanedResults.find((t) => {
+        const tTitle = (t.title || '').toLowerCase().trim();
+        const tViews = t.views || t.playbackCount || 0;
+        const matches = tTitle === cleanQ || tTitle.startsWith(cleanQ);
+        return matches && tViews >= 1_000_000 && (artistSubs < 10_000 || tViews > artistSubs * 20);
+      });
+      if (viralTrack) {
+        artistCard = undefined;
+      }
+    }
+  }
+
+  const hasConfirmedArtist = Boolean(
+    artistCard &&
+    (artistCard.name.toLowerCase().trim() === cleanQ ||
+     cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, ''))
+  );
+
   // Weighted scoring for each track in search results
   const scoredResults = cleanedResults.map((track, originalIndex) => {
     let score = 0;
     const tTitle = (track.title || '').toLowerCase().trim();
     const tArtist = (track.artist || '').toLowerCase().trim();
     const views = track.views || track.playbackCount || 0;
+
+    // If an established official artist matches the query, songs BY this artist take supreme priority!
+    if (hasConfirmedArtist) {
+      if (tArtist === cleanQ) {
+        score += 2_000_000_000;
+      } else if (tArtist.startsWith(cleanQ)) {
+        score += 800_000_000;
+      } else if (tArtist.includes(cleanQ)) {
+        score += 400_000_000;
+      }
+    }
 
     // Exact title match: massive priority
     if (tTitle === cleanQ) {
@@ -315,13 +374,15 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
       score += 80_000_000;
     }
 
-    // Artist match
-    if (tArtist === cleanQ) {
-      score += 200_000_000;
-    } else if (tArtist.startsWith(cleanQ)) {
-      score += 50_000_000;
-    } else if (tArtist.includes(cleanQ)) {
-      score += 20_000_000;
+    // General artist match (when not already boosted by hasConfirmedArtist)
+    if (!hasConfirmedArtist) {
+      if (tArtist === cleanQ) {
+        score += 200_000_000;
+      } else if (tArtist.startsWith(cleanQ)) {
+        score += 50_000_000;
+      } else if (tArtist.includes(cleanQ)) {
+        score += 20_000_000;
+      }
     }
 
     // Popularity scaling: log scale + raw count bonus
@@ -343,20 +404,6 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
 
   scoredResults.sort((a, b) => b.score - a.score);
   const finalResults = scoredResults.map((s) => s.track);
-
-  // If we have an artistCard, verify whether an overshadowing popular track exists
-  if (artistCard) {
-    const artistSubs = parseSubscriberCount(artistCard.subtitle);
-    const topTrack = finalResults[0];
-    const topTrackViews = topTrack ? (topTrack.views || topTrack.playbackCount || 0) : 0;
-    const topTrackTitle = topTrack ? (topTrack.title || '').toLowerCase().trim() : '';
-    const topTrackMatches = topTrackTitle === cleanQ || topTrackTitle.startsWith(cleanQ);
-
-    // If top track has huge views (> 1M) and artist is obscure (< 25k subs or topTrack has 20x subs)
-    if (topTrackMatches && topTrackViews >= 1_000_000 && (artistSubs < 25_000 || topTrackViews > artistSubs * 20)) {
-      artistCard = undefined;
-    }
-  }
 
   return {
     artistCard,

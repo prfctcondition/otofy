@@ -556,19 +556,11 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* External Official Link Button (YouTube Music ↗ / SoundCloud ↗) */}
             {(playlist.type === 'Artist' || playlist.type === 'Album') && (
               (() => {
-                const targetUrl =
-                  playlist.externalUrl ||
-                  (playlist as any).artistUrl ||
-                  (playlist.type === 'Artist'
-                    ? (playlist.id?.includes('sc-') || playlist.creator?.toLowerCase().includes('soundcloud')
-                        ? `https://soundcloud.com/search/people?q=${encodeURIComponent(playlist.title)}`
-                        : `https://music.youtube.com/search?q=${encodeURIComponent(playlist.title)}`)
-                    : playlist.type === 'Album'
-                    ? (playlist.id?.includes('sc-') || playlist.creator?.toLowerCase().includes('soundcloud')
-                        ? `https://soundcloud.com/search/sets?q=${encodeURIComponent(`${playlist.title} ${playlist.creator || ''}`.trim())}`
-                        : `https://music.youtube.com/search?q=${encodeURIComponent(`${playlist.title} ${playlist.creator || ''}`.trim())}`)
-                    : undefined);
-                if (!targetUrl) return null;
+                const targetUrl = playlist.externalUrl || (playlist as any).artistUrl;
+                // Strictly refuse to render external button if no direct canonical link is present or if it's a search query
+                if (!targetUrl || targetUrl.includes('/search?') || targetUrl.includes('/search/')) {
+                  return null;
+                }
                 const isSC = targetUrl.includes('soundcloud.com') || playlist.id?.startsWith('artist-sc-') || playlist.creator?.toLowerCase().includes('soundcloud');
                 const label = isSC ? 'SoundCloud' : 'YouTube Music';
                 return (

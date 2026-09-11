@@ -555,8 +555,10 @@ export default function App() {
     // Instant optimistic navigation
     libraryStore.setTracklistSort('popularity', 'desc');
     const initialExternalUrl = browseId
-      ? (source === 'SC' ? `https://soundcloud.com/${browseId}` : `https://music.youtube.com/channel/${browseId}`)
-      : (source === 'SC' ? `https://soundcloud.com/search/people?q=${encodeURIComponent(cleanName)}` : `https://music.youtube.com/search?q=${encodeURIComponent(cleanName)}`);
+      ? (source === 'SC'
+          ? (browseId.startsWith('http') ? browseId : `https://soundcloud.com/${browseId}`)
+          : (browseId.startsWith('UC') ? `https://music.youtube.com/channel/${browseId}` : undefined))
+      : undefined;
 
     libraryStore.setCustomPlaylistView(cleanName, [], {
       id: artistViewId,
@@ -758,11 +760,13 @@ export default function App() {
           detailsResult?.externalUrl ||
           (detailsResult?.browseId || browseId
             ? (source === 'SC'
-                ? `https://soundcloud.com/${detailsResult?.browseId || browseId}`
-                : `https://music.youtube.com/channel/${detailsResult?.browseId || browseId}`)
-            : (source === 'SC'
-                ? `https://soundcloud.com/search/people?q=${encodeURIComponent(cleanName)}`
-                : `https://music.youtube.com/search?q=${encodeURIComponent(cleanName)}`)),
+                ? ((detailsResult?.browseId || browseId)!.startsWith('http')
+                    ? (detailsResult?.browseId || browseId)
+                    : `https://soundcloud.com/${detailsResult?.browseId || browseId}`)
+                : ((detailsResult?.browseId || browseId)!.startsWith('UC')
+                    ? `https://music.youtube.com/channel/${detailsResult?.browseId || browseId}`
+                    : undefined))
+            : undefined),
       });
     } catch (e) {
       console.warn('[App] handleOpenArtistView error:', e);
@@ -810,8 +814,12 @@ export default function App() {
     const initialArtist = savedAlbum?.artist || artistName || 'Artist';
     const initialCover = savedAlbum?.artworkUrl || (hasCachedTracks ? savedAlbum!.tracks![0]?.artworkUrl : undefined);
     const initialExternalUrl = cleanBrowseId
-      ? (source === 'SC' ? `https://soundcloud.com/${cleanBrowseId}` : `https://music.youtube.com/browse/${cleanBrowseId}`)
-      : (source === 'SC' ? `https://soundcloud.com/search/sets?q=${encodeURIComponent(`${initialTitle} ${initialArtist}`)}` : `https://music.youtube.com/search?q=${encodeURIComponent(`${initialTitle} ${initialArtist}`)}`);
+      ? (source === 'SC'
+          ? (cleanBrowseId.startsWith('http') ? cleanBrowseId : `https://soundcloud.com/${cleanBrowseId}`)
+          : ((cleanBrowseId.startsWith('MPREb_') || cleanBrowseId.startsWith('OLAK') || cleanBrowseId.startsWith('FEmusic_'))
+              ? `https://music.youtube.com/browse/${cleanBrowseId}`
+              : undefined))
+      : undefined;
 
     if (hasCachedTracks && savedAlbum?.tracks) {
       libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
@@ -914,8 +922,10 @@ export default function App() {
             albumData.externalUrl ||
             (cleanBrowseId
               ? (source === 'SC'
-                  ? `https://soundcloud.com/${cleanBrowseId}`
-                  : `https://music.youtube.com/browse/${cleanBrowseId}`)
+                  ? (cleanBrowseId.startsWith('http') ? cleanBrowseId : `https://soundcloud.com/${cleanBrowseId}`)
+                  : ((cleanBrowseId.startsWith('MPREb_') || cleanBrowseId.startsWith('OLAK') || cleanBrowseId.startsWith('FEmusic_'))
+                      ? `https://music.youtube.com/browse/${cleanBrowseId}`
+                      : undefined))
               : undefined),
         });
 
