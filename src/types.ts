@@ -102,6 +102,7 @@ export interface SavedAlbum {
   savedAt: number;
   lastOpenedAt?: number;
   tracks?: Track[];        // Tracklist snapshot for instant offline/reboot loading
+  externalUrl?: string;
 }
 
 export const isSystemPlaylist = (

@@ -103,7 +103,8 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
     >
       <div
         className="bg-white/95 dark:bg-black backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden relative shadow-[0_25px_60px_rgba(0,0,0,0.22),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.9)]"
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           setOpenDropdownId(null);
           setIsAddQueueOpen(false);
         }}
@@ -198,7 +199,10 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
               </button>
             )}
             <button
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="w-9 h-9 rounded-full bg-slate-100/80 dark:bg-white/10 hover:bg-slate-200/80 dark:hover:bg-white/20 text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               title="Close"
             >

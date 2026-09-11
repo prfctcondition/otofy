@@ -729,9 +729,19 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           if (!vId) continue;
           const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
           const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
-          const album = item.album?.name || `${artistName} Top Tracks`;
           const durStr = item.duration?.text || '0:00';
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
+
+          const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+            text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+            browseId: fc?.title?.runs?.[0]?.endpoint?.payload?.browseId,
+            pageType: fc?.title?.runs?.[0]?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType,
+          }));
+          const viewCol = flexRuns.find((f: any) => /plays|views/i.test(f.text));
+          const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views);
+          const albumCol = flexRuns.find((f: any) => f.pageType === 'MUSIC_PAGE_TYPE_ALBUM') || flexRuns[3];
+          const album = item.album?.name || albumCol?.text || `${artistName} Top Tracks`;
+          const albumBrowseId = item.album?.id || albumCol?.browseId || undefined;
 
           const rawYear =
             item.year?.text ||
@@ -742,7 +752,6 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const releaseDate = rawYear ? String(rawYear) : undefined;
           const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
           const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
-          const albumBrowseId = item.album?.id || undefined;
           const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
 
           topTracks.push({
@@ -762,6 +771,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             artistUrl,
             albumBrowseId,
             externalUrl,
+            views: parsedViews,
           });
         }
       }
@@ -791,9 +801,19 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           if (!vId) continue;
           const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
           const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
-          const album = item.album?.name || `${artistName} Top Tracks`;
           const durStr = item.duration?.text || '0:00';
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
+
+          const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+            text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+            browseId: fc?.title?.runs?.[0]?.endpoint?.payload?.browseId,
+            pageType: fc?.title?.runs?.[0]?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType,
+          }));
+          const viewCol = flexRuns.find((f: any) => /plays|views/i.test(f.text));
+          const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views);
+          const albumCol = flexRuns.find((f: any) => f.pageType === 'MUSIC_PAGE_TYPE_ALBUM') || flexRuns[3];
+          const album = item.album?.name || albumCol?.text || `${artistName} Top Tracks`;
+          const albumBrowseId = item.album?.id || albumCol?.browseId || undefined;
 
           const rawYear =
             item.year?.text ||
@@ -804,7 +824,6 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const releaseDate = rawYear ? String(rawYear) : undefined;
           const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
           const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
-          const albumBrowseId = item.album?.id || undefined;
           const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
 
           topTracks.push({
@@ -824,6 +843,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             artistUrl,
             albumBrowseId,
             externalUrl,
+            views: parsedViews,
           });
         }
       }
@@ -894,6 +914,24 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
         }
       }
     }
+
+    // Enrich topTracks with release year / release date from matched albums & singles
+    for (const t of topTracks) {
+      if (!t.releaseYear || !t.releaseDate) {
+        const matched = albums.find((a) =>
+          (t.albumBrowseId && a.browseId === t.albumBrowseId) ||
+          (t.album && a.title.toLowerCase().trim() === t.album.toLowerCase().trim())
+        ) || singles.find((s) =>
+          (t.albumBrowseId && s.browseId === t.albumBrowseId) ||
+          (t.title && s.title.toLowerCase().trim() === t.title.toLowerCase().trim()) ||
+          (t.album && s.title.toLowerCase().trim() === t.album.toLowerCase().trim())
+        );
+        if (matched) {
+          if (matched.year) t.releaseYear = matched.year;
+          if (matched.releaseDate || matched.year) t.releaseDate = matched.releaseDate || matched.year;
+        }
+      }
+    }
   }
 
   // 3. Merge full video uploads from the artist's real YouTube channel to lift the 100-track ceiling
@@ -944,6 +982,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
 
           const relDate = item.published?.text || undefined;
           const relYear = relDate ? String(relDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+          const vidViews = parseViewsToNumber(item.view_count?.text || item.short_view_count?.text || item.views?.text);
 
           topTracks.push({
             id: vId,
@@ -961,6 +1000,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             artistBrowseId: realChannelId,
             artistUrl: realChannelId ? `https://music.youtube.com/channel/${realChannelId}` : undefined,
             externalUrl: `https://music.youtube.com/watch?v=${vId}`,
+            views: vidViews,
           });
         }
       }

@@ -23,6 +23,8 @@ export interface SCSearchResult {
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;
+  views?: number;
+  playbackCount?: number;
 }
 
 let cachedClientId: string | null = null;
@@ -503,6 +505,8 @@ export async function getArtistDetails(artistNameOrId: string) {
       artistBrowseId: String(user.id),
       artistUrl: user.permalink_url || (user.permalink ? `https://soundcloud.com/${user.permalink}` : undefined),
       externalUrl: item.permalink_url || undefined,
+      views: item.playback_count,
+      playbackCount: item.playback_count,
     });
   }
 

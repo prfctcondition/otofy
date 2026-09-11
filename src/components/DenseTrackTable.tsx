@@ -173,7 +173,7 @@ const TrackRow = React.memo<TrackRowProps>(({
       onContextMenu={(e) => onOpenContextMenu(e, track)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group flex items-center flex-nowrap gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative cursor-pointer border ${
+      className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative cursor-pointer border ${
         isSelected
           ? 'bg-black/[0.08] dark:bg-white/[0.14] border-black/20 dark:border-white/20 shadow-xs'
           : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
@@ -184,7 +184,7 @@ const TrackRow = React.memo<TrackRowProps>(({
       }`}
     >
       {/* 1. Track Number / Play Button Column */}
-      <div className="w-8 shrink-0 flex items-center justify-center">
+      <div className="w-9 shrink-0 flex items-center justify-center">
         {isHovered ? (
           <button
             onClick={(e) => {
@@ -225,7 +225,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         )}
       </div>
 
-      <div className="flex-1 min-w-0 flex items-center gap-3">
+      <div className="min-w-0 flex items-center gap-3">
         <PlaceholderArtwork
           icon={track.iconName}
           imageUrl={track.artworkUrl}
@@ -257,7 +257,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         </div>
       </div>
 
-      <div className="hidden md:flex items-center justify-between gap-2 min-w-0 w-36 lg:w-56 shrink-0">
+      <div className="hidden md:flex items-center gap-2 min-w-0">
         <span
           onClick={(e) => {
             e.stopPropagation();
@@ -270,16 +270,16 @@ const TrackRow = React.memo<TrackRowProps>(({
           }`}
           title={track.album ? `View album ${track.album}` : undefined}
         >
-          {track.album}
+          {track.album || '—'}
         </span>
         <div className="shrink-0">{renderSourceBadge(track.source)}</div>
       </div>
 
-      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 w-36 shrink-0 truncate">
-        {isArtistView ? formatUploadedDate(track) : formatAddedDate(track)}
+      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 truncate">
+        {isArtistView ? (formatUploadedDate(track) || '—') : formatAddedDate(track)}
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 ml-auto whitespace-nowrap">
+      <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 whitespace-nowrap">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -554,17 +554,19 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       onClick={handleContainerClick}
       className="w-full px-6 py-2 select-none"
     >
-      <div className="flex items-center flex-nowrap gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
-        <div className="w-8 shrink-0 flex items-center justify-center">
+      <div className="grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
+        <div className="w-9 shrink-0 flex items-center justify-center">
           {hideTrackNumber ? '' : '#'}
         </div>
-        <div className="flex-1 min-w-0 flex items-center">Title</div>
-        <div className="hidden md:flex items-center min-w-0 w-36 lg:w-56 shrink-0">Album</div>
-        <div className="hidden lg:flex items-center min-w-0 w-36 shrink-0">
+        <div className="min-w-0 flex items-center">Title</div>
+        <div className="hidden md:flex items-center min-w-0">Album</div>
+        <div className="hidden lg:flex items-center min-w-0">
           {isArtistView ? 'Date Uploaded' : 'Date Added'}
         </div>
-        <div className="flex items-center justify-end pr-8 shrink-0 ml-auto">
-          <Clock size={14} />
+        <div className="flex items-center justify-end pr-1 text-right">
+          <span className="w-9 flex justify-end mr-6" title="Duration">
+            <Clock size={14} />
+          </span>
         </div>
       </div>
 

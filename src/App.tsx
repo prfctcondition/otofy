@@ -554,12 +554,17 @@ export default function App() {
 
     // Instant optimistic navigation
     libraryStore.setTracklistSort('popularity', 'desc');
+    const initialExternalUrl = browseId
+      ? (source === 'SC' ? `https://soundcloud.com/${browseId}` : `https://music.youtube.com/channel/${browseId}`)
+      : (source === 'SC' ? `https://soundcloud.com/search/people?q=${encodeURIComponent(cleanName)}` : `https://music.youtube.com/search?q=${encodeURIComponent(cleanName)}`);
+
     libraryStore.setCustomPlaylistView(cleanName, [], {
       id: artistViewId,
       type: 'Artist',
       creator: cleanName,
       description: `${cleanName} Discography`,
       iconName: 'user',
+      externalUrl: initialExternalUrl,
     });
     libraryStore.setIsLoadingTracks(true);
 
@@ -603,7 +608,7 @@ export default function App() {
                 source: (r.source || source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,
-                artworkUrl: r.artworkUrl || details.avatarUrl,
+                artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined) || details.avatarUrl,
                 iconName: 'user' as const,
                 gradientFrom: '#4338CA',
                 gradientTo: '#7C3AED',
@@ -650,10 +655,12 @@ export default function App() {
                   artistUrl: r.artistUrl || details.externalUrl,
                   albumBrowseId: r.albumBrowseId,
                   externalUrl: r.externalUrl,
+                  views: (r as any).views,
+                  playbackCount: (r as any).playbackCount || (r as any).playback_count,
                   source: (r.source || source || 'YT') as SourceType,
                   sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                   sourceId: r.sourceId,
-                  artworkUrl: r.artworkUrl || details.avatarUrl,
+                  artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined) || details.avatarUrl,
                   iconName: 'user' as const,
                   gradientFrom: '#4338CA',
                   gradientTo: '#7C3AED',
@@ -802,6 +809,9 @@ export default function App() {
       : (albumTitle || 'Album');
     const initialArtist = savedAlbum?.artist || artistName || 'Artist';
     const initialCover = savedAlbum?.artworkUrl || (hasCachedTracks ? savedAlbum!.tracks![0]?.artworkUrl : undefined);
+    const initialExternalUrl = cleanBrowseId
+      ? (source === 'SC' ? `https://soundcloud.com/${cleanBrowseId}` : `https://music.youtube.com/browse/${cleanBrowseId}`)
+      : (source === 'SC' ? `https://soundcloud.com/search/sets?q=${encodeURIComponent(`${initialTitle} ${initialArtist}`)}` : `https://music.youtube.com/search?q=${encodeURIComponent(`${initialTitle} ${initialArtist}`)}`);
 
     if (hasCachedTracks && savedAlbum?.tracks) {
       libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
@@ -811,6 +821,7 @@ export default function App() {
         iconName: 'disc',
         artworkUrl: initialCover,
         playlistId: savedAlbum.playlistId,
+        externalUrl: savedAlbum.externalUrl || initialExternalUrl,
       });
       libraryStore.setIsLoadingTracks(false);
     } else {
@@ -822,6 +833,7 @@ export default function App() {
         artworkUrl: initialCover,
         description: 'Loading album tracks...',
         playlistId: savedAlbum?.playlistId,
+        externalUrl: savedAlbum?.externalUrl || initialExternalUrl,
       });
       libraryStore.setIsLoadingTracks(true);
     }

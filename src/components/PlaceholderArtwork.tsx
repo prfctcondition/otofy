@@ -33,6 +33,19 @@ interface PlaceholderArtworkProps {
 
 const failedImageUrls = new Set<string>();
 
+const extractYtVideoId = (str?: string): string | undefined => {
+  if (!str || typeof str !== 'string') return undefined;
+  const trimmed = str.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  const withoutPrefix = trimmed.replace(/^(yt|sc)[-_]/i, '').trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(withoutPrefix)) return withoutPrefix;
+  const vMatch = trimmed.match(/(?:v=|\/vi\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (vMatch) return vMatch[1];
+  const endMatch = trimmed.match(/[-_]([a-zA-Z0-9_-]{11})$/);
+  if (endMatch) return endMatch[1];
+  return undefined;
+};
+
 export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(({
   icon,
   imageUrl,
@@ -49,16 +62,14 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
   const [imageError, setImageError] = React.useState(false);
 
   const ytFallbackUrl = React.useMemo(() => {
-    if (!sourceId) return undefined;
-    const cleanId = sourceId.trim();
-    const isYtSource = source === 'YT' || source?.toLowerCase().includes('youtube');
-    const isYtId = /^[a-zA-Z0-9_-]{11}$/.test(cleanId);
-    if (isYtSource || isYtId) {
-      const url = `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`;
+    const vId = extractYtVideoId(sourceId) || extractYtVideoId(imageUrl);
+    const isYtSource = source === 'YT' || source?.toLowerCase().includes('youtube') || Boolean(vId);
+    if (vId && isYtSource) {
+      const url = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
       return failedImageUrls.has(url) ? undefined : url;
     }
     return undefined;
-  }, [source, sourceId]);
+  }, [source, sourceId, imageUrl]);
 
   const normalizedImgUrl = React.useMemo(() => {
     if (!imageUrl || typeof imageUrl !== 'string') return undefined;
