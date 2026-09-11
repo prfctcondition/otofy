@@ -5,7 +5,8 @@ interface ArtistLinksProps {
   artist: string;
   artists?: string[];
   source?: 'YT' | 'SC';
-  onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
+  browseId?: string;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
   className?: string;
   artistClassName?: string;
   separatorClassName?: string;
@@ -17,6 +18,7 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   artist,
   artists: explicitArtists,
   source = 'YT',
+  browseId,
   onSelectArtist,
   className = 'text-xs text-[#64748B] dark:text-white/80 truncate',
   artistClassName = 'cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors',
@@ -37,7 +39,7 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
             title={`View ${art}`}
             onClick={(e) => {
               e.stopPropagation();
-              onSelectArtist?.(art, source);
+              onSelectArtist?.(art, source, idx === 0 ? browseId : undefined);
             }}
           >
             {art}

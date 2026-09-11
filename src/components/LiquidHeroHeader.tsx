@@ -22,6 +22,7 @@ import {
   UserPlus,
   ArrowUp,
   ArrowDown,
+  ExternalLink,
 } from 'lucide-react';
 import { Playlist, Track, isSystemPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
@@ -335,6 +336,28 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 <Sparkles size={12} className="text-[#0F172A] dark:text-white" />
                 Hi-Res Master Audio
               </span>
+              {playlist.externalUrl && (
+                <>
+                  <span className="text-[#94A3B8] dark:text-white/40">·</span>
+                  <a
+                    href={playlist.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if ((window as any).electronAPI?.openExternal) {
+                        e.preventDefault();
+                        (window as any).electronAPI.openExternal(playlist.externalUrl);
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-[#0F172A] dark:text-white/90 bg-white/70 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 px-2 py-0.5 rounded-full border border-black/10 dark:border-white/15 flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Open on official website"
+                  >
+                    <span>{playlist.externalUrl.includes('soundcloud.com') ? 'SoundCloud' : 'YouTube Music'}</span>
+                    <ExternalLink size={10} className="opacity-70" />
+                  </a>
+                </>
+              )}
             </div>
 
             {/* Giant Bold Title */}

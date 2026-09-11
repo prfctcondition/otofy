@@ -42,6 +42,15 @@ export interface Track {
   needsMatch?: boolean;
   alternatives?: TrackAlternative[];
   originalSpotifyPreview?: string;
+  // Canonical identifiers & external references
+  releaseDate?: string;
+  releaseYear?: string;
+  browseId?: string;
+  artistBrowseId?: string;
+  artistUrl?: string;
+  albumBrowseId?: string;
+  albumUrl?: string;
+  externalUrl?: string;
 }
 
 export interface Playlist {
@@ -67,6 +76,7 @@ export interface Playlist {
   isSynced?: boolean;
   syncSource?: 'youtube' | 'soundcloud';
   removedTrackIds?: string[];
+  externalUrl?: string;
 }
 
 export interface FollowedArtist {
@@ -136,15 +146,23 @@ export interface SearchResult {
   sourceLabel: string;
   artworkUrl?: string;
   sourceId: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  artistBrowseId?: string;
+  artistUrl?: string;
+  albumBrowseId?: string;
+  externalUrl?: string;
 }
 
 export interface ArtistAlbum {
   title: string;
   year?: string;
+  releaseDate?: string;
   artworkUrl?: string;
   browseId?: string;
   type?: string;
   source?: 'YT' | 'SC';
+  externalUrl?: string;
 }
 
 export interface ArtistDetails {
@@ -152,6 +170,9 @@ export interface ArtistDetails {
   avatarUrl?: string;
   bio?: string;
   browseId?: string;
+  channelId?: string;
+  userId?: string;
+  externalUrl?: string;
   subscribers?: string;
   source?: 'YT' | 'SC';
   topTracks: SearchResult[];
@@ -168,9 +189,12 @@ export interface AlbumDetails {
   title: string;
   artist: string;
   year?: string;
+  releaseDate?: string;
   artworkUrl?: string;
   browseId: string;
   playlistId?: string;
+  externalUrl?: string;
+  source?: 'YT' | 'SC';
   tracks: SearchResult[];
 }
 

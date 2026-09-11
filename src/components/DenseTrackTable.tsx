@@ -28,7 +28,7 @@ interface DenseTrackTableProps {
   onTrackSelect: (track: Track, queue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
-  onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
 }
 
@@ -44,14 +44,37 @@ interface TrackRowProps {
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
-  onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
   onOpenConflictModal: (track: Track) => void;
 }
 
-const formatDisplayDate = (dateStr?: string): string => {
+const formatDisplayDate = (track: Track): string => {
+  // If track has a release date or release year, display official release info
+  if (track.releaseDate || track.releaseYear) {
+    if (track.releaseYear && /^\d{4}$/.test(track.releaseYear.trim())) {
+      return track.releaseYear.trim();
+    }
+    if (track.releaseDate && /^\d{4}$/.test(track.releaseDate.trim())) {
+      return track.releaseDate.trim();
+    }
+    const relTimestamp = Date.parse(track.releaseDate || '');
+    if (!isNaN(relTimestamp)) {
+      const relDate = new Date(relTimestamp);
+      return relDate.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+    if (track.releaseDate) return track.releaseDate;
+  }
+
+  const dateStr = track.dateAdded;
   if (!dateStr) return '';
+
+  // Check if string is already formatted relative text like "2 days ago"
   if (
     dateStr.toLowerCase().includes('ago') ||
     dateStr.toLowerCase().includes('yesterday') ||
@@ -59,22 +82,52 @@ const formatDisplayDate = (dateStr?: string): string => {
   ) {
     return dateStr;
   }
+
   const timestamp = Date.parse(dateStr);
   if (isNaN(timestamp)) {
-    return 'Recently';
+    return dateStr;
   }
+
   const date = new Date(timestamp);
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} wk ago`;
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  if (diffMinutes < 1) {
+    return 'Just now';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  }
+
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return `Today at ${timeStr}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  if (isYesterday) {
+    return `Yesterday at ${timeStr}`;
+  }
+
+  if (date.getFullYear() === now.getFullYear()) {
+    const monthDay = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `${monthDay}, ${timeStr}`;
+  }
+
+  return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}, ${timeStr}`;
 };
 
 const renderSourceBadge = (source: Track['source']) => {
@@ -191,6 +244,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             artist={track.artist}
             artists={track.artists}
             source={track.source === 'SC' ? 'SC' : 'YT'}
+            browseId={track.artistBrowseId}
             onSelectArtist={onSelectArtist}
             className="text-xs text-[#64748B] dark:text-white/80 truncate"
             artistClassName="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors"
@@ -203,7 +257,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           onClick={(e) => {
             e.stopPropagation();
             if (track.album && onSelectAlbum) {
-              onSelectAlbum(undefined, track.album, track.artist, track.source === 'SC' ? 'SC' : 'YT');
+              onSelectAlbum(track.albumBrowseId || undefined, track.album, track.artist, track.source === 'SC' ? 'SC' : 'YT');
             }
           }}
           className={`text-xs text-[#64748B] dark:text-white/80 truncate transition-colors ${
@@ -216,8 +270,8 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="shrink-0">{renderSourceBadge(track.source)}</div>
       </div>
 
-      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 w-28 shrink-0 truncate">
-        {formatDisplayDate(track.dateAdded)}
+      <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 w-36 shrink-0 truncate">
+        {formatDisplayDate(track)}
       </div>
 
       <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 ml-auto whitespace-nowrap">
@@ -500,7 +554,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         </div>
         <div className="flex-1 min-w-0 flex items-center">Title</div>
         <div className="hidden md:flex items-center min-w-0 w-36 lg:w-56 shrink-0">Album</div>
-        <div className="hidden lg:flex items-center min-w-0 w-28 shrink-0">Date Added</div>
+        <div className="hidden lg:flex items-center min-w-0 w-36 shrink-0">Date Added</div>
         <div className="flex items-center justify-end pr-8 shrink-0 ml-auto">
           <Clock size={14} />
         </div>

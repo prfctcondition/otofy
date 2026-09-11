@@ -68,14 +68,22 @@ export interface InnertubeTrack {
   sourceLabel: string;
   artworkUrl?: string;
   sourceId: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  artistBrowseId?: string;
+  artistUrl?: string;
+  albumBrowseId?: string;
+  externalUrl?: string;
 }
 
 export interface InnertubeAlbum {
   title: string;
   year?: string;
+  releaseDate?: string;
   artworkUrl?: string;
   browseId?: string;
   type?: string;
+  externalUrl?: string;
 }
 
 export interface InnertubeArtistDetails {
@@ -83,6 +91,9 @@ export interface InnertubeArtistDetails {
   avatarUrl?: string;
   bio?: string;
   browseId?: string;
+  channelId?: string;
+  userId?: string;
+  externalUrl?: string;
   subscribers?: string;
   topTracks: InnertubeTrack[];
   albums: InnertubeAlbum[];
@@ -98,9 +109,11 @@ export interface InnertubeAlbumDetails {
   title: string;
   artist: string;
   year?: string;
+  releaseDate?: string;
   artworkUrl?: string;
   browseId: string;
   playlistId?: string;
+  externalUrl?: string;
   tracks: InnertubeTrack[];
 }
 
@@ -275,6 +288,18 @@ export async function search(query: string): Promise<{
       const thumbs = item.thumbnails || item.thumbnail || [];
       const artworkUrl = extractThumbnailUrl(thumbs);
 
+      const rawYear =
+        item.year?.text ||
+        item.year ||
+        item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
+        item.published?.text;
+      const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+      const releaseDate = rawYear ? String(rawYear) : undefined;
+      const primaryArtistBrowseId = item.artists?.[0]?.id || (artistCard?.browseId && (artistCard.name.toLowerCase() === artist.toLowerCase()) ? artistCard.browseId : undefined);
+      const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
+      const albumBrowseId = item.album?.id || undefined;
+      const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
+
       songs.push({
         id: vId,
         title,
@@ -286,6 +311,12 @@ export async function search(query: string): Promise<{
         sourceLabel: 'YouTube Music',
         artworkUrl: artworkUrl || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
         sourceId: vId,
+        releaseDate,
+        releaseYear,
+        artistBrowseId: primaryArtistBrowseId,
+        artistUrl,
+        albumBrowseId,
+        externalUrl,
       });
     }
   };
@@ -647,6 +678,18 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const durStr = item.duration?.text || '0:00';
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
+          const rawYear =
+            item.year?.text ||
+            item.year ||
+            item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
+            item.published?.text;
+          const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+          const releaseDate = rawYear ? String(rawYear) : undefined;
+          const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
+          const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
+          const albumBrowseId = item.album?.id || undefined;
+          const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
+
           topTracks.push({
             id: vId,
             title,
@@ -658,6 +701,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             sourceLabel: 'YouTube Music',
             artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
             sourceId: vId,
+            releaseDate,
+            releaseYear,
+            artistBrowseId: primaryArtistBrowseId,
+            artistUrl,
+            albumBrowseId,
+            externalUrl,
           });
         }
       }
@@ -691,6 +740,18 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const durStr = item.duration?.text || '0:00';
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
+          const rawYear =
+            item.year?.text ||
+            item.year ||
+            item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
+            item.published?.text;
+          const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+          const releaseDate = rawYear ? String(rawYear) : undefined;
+          const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
+          const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
+          const albumBrowseId = item.album?.id || undefined;
+          const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
+
           topTracks.push({
             id: vId,
             title,
@@ -702,6 +763,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             sourceLabel: 'YouTube Music',
             artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
             sourceId: vId,
+            releaseDate,
+            releaseYear,
+            artistBrowseId: primaryArtistBrowseId,
+            artistUrl,
+            albumBrowseId,
+            externalUrl,
           });
         }
       }
@@ -714,14 +781,17 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const year = it.year?.text || it.subtitle?.text || it.year || '';
           const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails) || avatarUrl;
           const browseId = it.id || it.endpoint?.payload?.browseId;
+          const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
 
           if (!albums.some((a) => a.browseId === browseId)) {
             albums.push({
               title: alTitle,
-              year: String(year),
+              year: relYear,
+              releaseDate: String(year) || undefined,
               artworkUrl: artwork,
               browseId,
               type: 'Album',
+              externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
             });
           }
         }
@@ -735,14 +805,17 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const year = it.year?.text || it.subtitle?.text || it.year || 'Single';
           const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails) || avatarUrl;
           const browseId = it.id || it.endpoint?.payload?.browseId;
+          const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
 
           if (!singles.some((a) => a.browseId === browseId)) {
             singles.push({
               title: sglTitle,
-              year: String(year),
+              year: relYear,
+              releaseDate: String(year) || undefined,
               artworkUrl: artwork,
               browseId,
               type: 'Single',
+              externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
             });
           }
         }
@@ -814,6 +887,9 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
 
           const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
 
+          const relDate = item.published?.text || undefined;
+          const relYear = relDate ? String(relDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+
           topTracks.push({
             id: vId,
             title: cleanT,
@@ -825,6 +901,11 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
             sourceLabel: 'YouTube Music',
             artworkUrl: artwork,
             sourceId: vId,
+            releaseDate: relDate,
+            releaseYear: relYear,
+            artistBrowseId: realChannelId,
+            artistUrl: realChannelId ? `https://music.youtube.com/channel/${realChannelId}` : undefined,
+            externalUrl: `https://music.youtube.com/watch?v=${vId}`,
           });
         }
       }
@@ -848,6 +929,8 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
         const durStr = item.duration?.text || '0:00';
         const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
+        const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
+
         topTracks.push({
           id: vId,
           title,
@@ -859,6 +942,9 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           sourceLabel: 'YouTube Music',
           artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
           sourceId: vId,
+          artistBrowseId: primaryArtistBrowseId,
+          artistUrl: primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined,
+          externalUrl: `https://music.youtube.com/watch?v=${vId}`,
         });
       }
     } catch (e) {
@@ -875,10 +961,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
         seenAlbums.add(albName.toLowerCase());
         albums.push({
           title: albName,
-          year: '',
+          year: t.releaseYear || '',
+          releaseDate: t.releaseDate,
           artworkUrl: t.artworkUrl || avatarUrl,
           browseId: albName,
           type: 'Album',
+          externalUrl: t.albumBrowseId ? `https://music.youtube.com/browse/${t.albumBrowseId}` : undefined,
         });
       }
     }
@@ -891,11 +979,16 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
     avatarUrl = topTracks[0].artworkUrl;
   }
 
+  const artistBrowseId = channelId.startsWith('UC') ? channelId : (realChannelId || undefined);
+  const artistUrl = artistBrowseId ? `https://music.youtube.com/channel/${artistBrowseId}` : undefined;
+
   return {
     artist: artistName,
     avatarUrl,
     bio,
     browseId: channelId,
+    channelId: artistBrowseId,
+    externalUrl: artistUrl,
     subscribers,
     topTracks,
     albums,
@@ -1218,6 +1311,9 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
     const { title: trackTitle, artist: trackArtist } = cleanArtistAndTitle(rawTrackTitle, rawTrackArtist);
     const durStr = item.duration?.text || '0:00';
 
+    const rawYear = year;
+    const relYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+
     tracks.push({
       id: vId,
       title: trackTitle,
@@ -1229,6 +1325,12 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
       sourceLabel: 'YouTube Music',
       artworkUrl: artworkUrl || extractThumbnailUrl(item.thumbnails || item.thumbnail) || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
       sourceId: vId,
+      releaseDate: rawYear ? String(rawYear) : undefined,
+      releaseYear: relYear,
+      artistBrowseId: (albumData.header as any)?.artists?.[0]?.id || undefined,
+      artistUrl: (albumData.header as any)?.artists?.[0]?.id ? `https://music.youtube.com/channel/${(albumData.header as any).artists[0].id}` : undefined,
+      albumBrowseId: cleanId,
+      externalUrl: `https://music.youtube.com/watch?v=${vId}`,
     });
   }
 
@@ -1239,10 +1341,12 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
   return {
     title,
     artist,
-    year,
+    year: year ? String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year) : undefined,
+    releaseDate: year ? String(year) : undefined,
     artworkUrl,
     browseId: cleanId,
     playlistId,
+    externalUrl: `https://music.youtube.com/browse/${cleanId}`,
     tracks,
   };
 }

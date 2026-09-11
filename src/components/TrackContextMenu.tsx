@@ -35,7 +35,7 @@ interface TrackContextMenuProps {
   onRemoveFromPlaylist?: (playlistId: string, trackId: string) => void;
   onCreatePlaylistWithTrack: (track: Track) => void;
   onToggleLike: (trackId: string, track?: Track) => void;
-  onSelectArtist?: (artist: string) => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
 }
 
 const getInitialCoords = (clickX: number, clickY: number, menuW = 256, menuH = 360) => {
@@ -629,7 +629,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         ) && (
           <button
             onClick={() => {
-              onSelectArtist(track.artist);
+              onSelectArtist(track.artist, track.source === 'SC' ? 'SC' : 'YT', track.artistBrowseId);
               onClose();
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"

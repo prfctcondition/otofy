@@ -31,7 +31,7 @@ import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
 
 interface DockPlayerBarProps {
-  onSelectArtist?: (artist: string) => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
 }
 
 export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) => {
@@ -230,7 +230,8 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             artist={activeTrack.artist}
             artists={activeTrack.artists}
             source={activeTrack.source === 'SC' ? 'SC' : 'YT'}
-            onSelectArtist={onSelectArtist ? (art) => onSelectArtist(art) : undefined}
+            browseId={activeTrack.artistBrowseId}
+            onSelectArtist={onSelectArtist}
             className="text-xs text-[#64748B] dark:text-white/80 truncate mt-0.5 inline-block max-w-[200px] sm:max-w-[280px]"
             artistClassName="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors"
           />

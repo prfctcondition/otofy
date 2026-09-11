@@ -304,7 +304,7 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, 
   if (cached) return cached;
 
   if (source === 'SC') {
-    const res = await scResolver.getArtistDetails(artistName);
+    const res = await scResolver.getArtistDetails(browseId || artistName);
     if (res) setIpcCache(cacheKey, res);
     return res;
   }
@@ -313,7 +313,7 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, 
     if (ytDetails && (ytDetails.topTracks.length > 0 || ytDetails.albums.length > 0)) {
       if (!ytDetails.avatarUrl || ytDetails.albums.length === 0) {
         try {
-          const scDetails = await scResolver.getArtistDetails(artistName);
+          const scDetails = await scResolver.getArtistDetails(browseId || artistName);
           if (scDetails) {
             if (!ytDetails.avatarUrl && scDetails.avatarUrl) {
               ytDetails.avatarUrl = scDetails.avatarUrl;
@@ -333,7 +333,7 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, 
   } catch (err) {
     console.warn('[main] innertube getArtist failed, falling back to soundcloud:', err);
   }
-  const fallback = await scResolver.getArtistDetails(artistName);
+  const fallback = await scResolver.getArtistDetails(browseId || artistName);
   if (fallback) setIpcCache(cacheKey, fallback);
   return fallback;
 });

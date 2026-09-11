@@ -17,6 +17,12 @@ export interface SCSearchResult {
   sourceLabel?: string;
   artworkUrl?: string;
   sourceId: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  artistBrowseId?: string;
+  artistUrl?: string;
+  albumBrowseId?: string;
+  externalUrl?: string;
 }
 
 let cachedClientId: string | null = null;
@@ -252,11 +258,25 @@ export async function search(query: string): Promise<SCSearchResult[]> {
     const rawArtwork: string = item.artwork_url || item.user?.avatar_url || '';
     const artworkUrl = rawArtwork ? rawArtwork.replace('-large.', '-t500x500.') : undefined;
 
-    const rawArtist =
+    const hasPublisher = Boolean(item.publisher_metadata?.artist);
+    let title = item.title || 'Untitled';
+    let artist =
       item.publisher_metadata?.artist ||
       item.publisher_metadata?.album_artist ||
-      item.user?.username;
-    const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+      item.user?.username ||
+      '';
+    if (!hasPublisher) {
+      const cleaned = cleanArtistAndTitle(title, artist);
+      title = cleaned.title;
+      artist = cleaned.artist;
+    }
+
+    const relDate = item.release_date || item.created_at || undefined;
+    const relYear = item.release_date
+      ? new Date(item.release_date).getFullYear().toString()
+      : item.created_at
+      ? new Date(item.created_at).getFullYear().toString()
+      : undefined;
 
     return {
       id: String(item.id),
@@ -265,9 +285,14 @@ export async function search(query: string): Promise<SCSearchResult[]> {
       album: item.publisher_metadata?.album_title || '',
       duration: formatDuration(durationSec),
       durationSec,
-      source: 'SC',
+      source: 'SC' as const,
       artworkUrl,
       sourceId: String(item.id),
+      releaseDate: relDate,
+      releaseYear: relYear,
+      artistBrowseId: item.user?.id ? String(item.user.id) : undefined,
+      artistUrl: item.user?.permalink_url || (item.user?.permalink ? `https://soundcloud.com/${item.user.permalink}` : undefined),
+      externalUrl: item.permalink_url || undefined,
     };
   });
 }
@@ -440,12 +465,25 @@ export async function getArtistDetails(artistNameOrId: string) {
     if (durSec <= 35 && item.full_duration > 60000) continue;
 
     const rawArt = item.artwork_url || item.user?.avatar_url || '';
-    const rawArtist =
+    const hasPublisher = Boolean(item.publisher_metadata?.artist);
+    let title = item.title || 'Untitled';
+    let artist =
       item.publisher_metadata?.artist ||
       item.publisher_metadata?.album_artist ||
       item.user?.username ||
       artistName;
-    const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+    if (!hasPublisher) {
+      const cleaned = cleanArtistAndTitle(title, artist);
+      title = cleaned.title;
+      artist = cleaned.artist;
+    }
+
+    const relDate = item.release_date || item.created_at || undefined;
+    const relYear = item.release_date
+      ? new Date(item.release_date).getFullYear().toString()
+      : item.created_at
+      ? new Date(item.created_at).getFullYear().toString()
+      : undefined;
 
     topTracks.push({
       id: String(item.id),
@@ -458,6 +496,11 @@ export async function getArtistDetails(artistNameOrId: string) {
       sourceLabel: 'SoundCloud',
       artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : avatarUrl,
       sourceId: String(item.id),
+      releaseDate: relDate,
+      releaseYear: relYear,
+      artistBrowseId: String(user.id),
+      artistUrl: user.permalink_url || (user.permalink ? `https://soundcloud.com/${user.permalink}` : undefined),
+      externalUrl: item.permalink_url || undefined,
     });
   }
 
@@ -465,7 +508,7 @@ export async function getArtistDetails(artistNameOrId: string) {
     avatarUrl = topTracks[0].artworkUrl;
   }
 
-  const albums: Array<{ title: string; year?: string; artworkUrl?: string; browseId?: string; type?: string; source?: 'SC' }> = [];
+  const albums: Array<{ title: string; year?: string; releaseDate?: string; artworkUrl?: string; browseId?: string; type?: string; source?: 'SC'; externalUrl?: string }> = [];
   const seenAlbumIds = new Set<string>();
 
   const processAlbumItems = (collection: any[]) => {
@@ -476,13 +519,22 @@ export async function getArtistDetails(artistNameOrId: string) {
       seenAlbumIds.add(idStr);
 
       const rawArt = item.artwork_url || (item.tracks?.[0]?.artwork_url) || avatarUrl || topTracks[0]?.artworkUrl || '';
+      const relDate = item.release_date || item.created_at || undefined;
+      const relYear = item.release_date
+        ? new Date(item.release_date).getFullYear().toString()
+        : item.created_at
+        ? new Date(item.created_at).getFullYear().toString()
+        : '';
+
       albums.push({
         title: item.title || 'Album',
-        year: item.release_date ? new Date(item.release_date).getFullYear().toString() : '',
+        year: relYear,
+        releaseDate: relDate,
         artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : (avatarUrl || topTracks[0]?.artworkUrl),
         browseId: idStr,
         type: item.set_type === 'ep' ? 'EP' : item.set_type === 'single' ? 'Single' : 'Album',
         source: 'SC',
+        externalUrl: item.permalink_url || undefined,
       });
     }
   };
@@ -505,21 +557,28 @@ export async function getArtistDetails(artistNameOrId: string) {
         seenAlbums.add(t.album.toLowerCase());
         albums.push({
           title: t.album,
-          year: '',
+          year: t.releaseYear || '',
+          releaseDate: t.releaseDate,
           artworkUrl: t.artworkUrl || avatarUrl,
           browseId: t.album,
           type: 'Album',
           source: 'SC',
+          externalUrl: t.externalUrl,
         });
       }
     }
   }
+
+  const artistExternalUrl = user.permalink_url || (user.permalink ? `https://soundcloud.com/${user.permalink}` : undefined);
 
   return {
     artist: artistName,
     avatarUrl,
     bio,
     browseId: String(user.id),
+    channelId: String(user.id),
+    userId: String(user.id),
+    externalUrl: artistExternalUrl,
     subscribers,
     topTracks,
     albums,
@@ -605,17 +664,30 @@ export async function getAlbum(playlistId: string) {
   const tracks: SCSearchResult[] = validTracks.map((t: any) => {
     const durSec = Math.round((t.duration || 0) / 1000);
     const tArt = t.artwork_url || t.user?.avatar_url || '';
-    const rawArtist =
+    const hasPublisher = Boolean(t.publisher_metadata?.artist);
+    let title = t.title || 'Untitled';
+    let trackArtist =
       t.publisher_metadata?.artist ||
       t.publisher_metadata?.album_artist ||
       t.user?.username ||
       artist;
-    const { title: cleanTitle, artist: cleanArtist } = cleanArtistAndTitle(t.title || 'Untitled', rawArtist);
+    if (!hasPublisher) {
+      const cleaned = cleanArtistAndTitle(title, trackArtist);
+      title = cleaned.title;
+      trackArtist = cleaned.artist;
+    }
+
+    const relDate = t.release_date || t.created_at || undefined;
+    const relYear = t.release_date
+      ? new Date(t.release_date).getFullYear().toString()
+      : t.created_at
+      ? new Date(t.created_at).getFullYear().toString()
+      : undefined;
 
     return {
       id: String(t.id),
-      title: cleanTitle,
-      artist: cleanArtist,
+      title,
+      artist: trackArtist,
       album: title,
       duration: formatDuration(durSec),
       durationSec: durSec,
@@ -623,14 +695,31 @@ export async function getAlbum(playlistId: string) {
       sourceLabel: 'SoundCloud',
       artworkUrl: tArt ? tArt.replace('-large.', '-t500x500.') : artworkUrl,
       sourceId: String(t.id),
+      releaseDate: relDate,
+      releaseYear: relYear,
+      artistBrowseId: t.user?.id ? String(t.user.id) : undefined,
+      artistUrl: t.user?.permalink_url,
+      albumBrowseId: resolvedId,
+      externalUrl: t.permalink_url || undefined,
     };
   });
+
+  const albumRelDate = data.release_date || data.created_at || undefined;
+  const albumRelYear = data.release_date
+    ? new Date(data.release_date).getFullYear().toString()
+    : data.created_at
+    ? new Date(data.created_at).getFullYear().toString()
+    : undefined;
 
   return {
     title,
     artist,
+    year: albumRelYear,
+    releaseDate: albumRelDate,
     artworkUrl,
     browseId: playlistId,
+    externalUrl: data.permalink_url || undefined,
+    source: 'SC' as const,
     tracks,
   };
 }
@@ -765,4 +854,15 @@ export async function searchPlaylists(query: string) {
   }
 }
 
-export default { resolve, resolveBySearch, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC };
+export async function resolveUrl(scUrl: string): Promise<any | null> {
+  try {
+    const res = await fetchSC(`https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(scUrl)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn('[scResolver] resolveUrl error:', err);
+    return null;
+  }
+}
+
+export default { resolve, resolveBySearch, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC, resolveUrl };

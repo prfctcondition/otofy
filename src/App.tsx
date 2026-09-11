@@ -243,9 +243,13 @@ export default function App() {
         cmp = (a.durationSec || 0) - (b.durationSec || 0);
       } else {
         // dateAdded
-        const timeA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
-        const timeB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
-        cmp = timeA - timeB;
+        const timeA = a.dateAdded && !isNaN(Date.parse(a.dateAdded)) ? Date.parse(a.dateAdded) : 0;
+        const timeB = b.dateAdded && !isNaN(Date.parse(b.dateAdded)) ? Date.parse(b.dateAdded) : 0;
+        if (timeA !== timeB) {
+          cmp = timeA - timeB;
+        } else {
+          cmp = (a.number || 0) - (b.number || 0);
+        }
       }
       return tracklistSortOrder === 'desc' ? -cmp : cmp;
     });
@@ -577,7 +581,13 @@ export default function App() {
                 album: r.album || `${cleanName} - Top Tracks`,
                 duration: r.duration,
                 durationSec: r.durationSec,
-                dateAdded: new Date().toISOString(),
+                dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
+                releaseDate: r.releaseDate,
+                releaseYear: r.releaseYear,
+                artistBrowseId: r.artistBrowseId || details.browseId || browseId,
+                artistUrl: r.artistUrl || details.externalUrl,
+                albumBrowseId: r.albumBrowseId,
+                externalUrl: r.externalUrl,
                 source: (r.source || source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,
@@ -621,7 +631,13 @@ export default function App() {
                   album: r.album || `${cleanName} - Top Tracks`,
                   duration: r.duration,
                   durationSec: r.durationSec,
-                  dateAdded: new Date().toISOString(),
+                  dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
+                  releaseDate: r.releaseDate,
+                  releaseYear: r.releaseYear,
+                  artistBrowseId: r.artistBrowseId || details.browseId || browseId,
+                  artistUrl: r.artistUrl || details.externalUrl,
+                  albumBrowseId: r.albumBrowseId,
+                  externalUrl: r.externalUrl,
                   source: (r.source || source || 'YT') as SourceType,
                   sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                   sourceId: r.sourceId,
@@ -678,7 +694,13 @@ export default function App() {
               album: r.album || `${cleanName} - Top Tracks`,
               duration: r.duration,
               durationSec: r.durationSec,
-              dateAdded: new Date().toISOString(),
+              dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
+              releaseDate: r.releaseDate,
+              releaseYear: r.releaseYear,
+              artistBrowseId: r.artistBrowseId || browseId,
+              artistUrl: r.artistUrl,
+              albumBrowseId: r.albumBrowseId,
+              externalUrl: r.externalUrl,
               source: r.source,
               sourceLabel: r.sourceLabel,
               sourceId: r.sourceId,
@@ -713,6 +735,7 @@ export default function App() {
         gradientFrom: '#4338CA',
         gradientTo: '#6D28D9',
         artworkUrl: detailsResult?.avatarUrl || artistTracks[0]?.artworkUrl,
+        externalUrl: detailsResult?.externalUrl,
       });
     } catch (e) {
       console.warn('[App] handleOpenArtistView error:', e);
@@ -822,7 +845,18 @@ export default function App() {
           album: resolvedTitle,
           duration: r.duration,
           durationSec: r.durationSec,
-          dateAdded: albumData.year && !isNaN(Date.parse(albumData.year)) ? new Date(albumData.year).toISOString() : new Date().toISOString(),
+          dateAdded: (r.releaseDate && !isNaN(Date.parse(r.releaseDate)))
+            ? new Date(r.releaseDate).toISOString()
+            : (albumData.year && !isNaN(Date.parse(albumData.year)))
+            ? new Date(albumData.year).toISOString()
+            : (r.releaseDate || albumData.year || ''),
+          releaseDate: r.releaseDate || albumData.releaseDate || (albumData.year ? String(albumData.year) : undefined),
+          releaseYear: r.releaseYear || (albumData.year ? String(albumData.year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
+          artistBrowseId: r.artistBrowseId,
+          artistUrl: r.artistUrl,
+          albumBrowseId: cleanBrowseId || r.albumBrowseId,
+          albumUrl: albumData.externalUrl,
+          externalUrl: r.externalUrl,
           source: (r.source || source || 'YT') as SourceType,
           sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
           sourceId: r.sourceId,
@@ -844,6 +878,7 @@ export default function App() {
           iconName: 'disc',
           artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
           playlistId: albumData.playlistId || savedAlbum?.playlistId,
+          externalUrl: albumData.externalUrl,
         });
 
         // If album was already saved or is in savedAlbums, update its cached snapshot!

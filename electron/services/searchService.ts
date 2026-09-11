@@ -1,6 +1,7 @@
 import innertubeService from './innertubeService.js';
 import scResolver from './scResolver.js';
 import { cleanArtistAndTitle } from './trackParser.js';
+import { detectMusicUrl } from './urlDetector.js';
 
 export interface SearchResult {
   id: string;
@@ -13,6 +14,12 @@ export interface SearchResult {
   sourceLabel: string;
   artworkUrl?: string;
   sourceId: string;
+  releaseDate?: string;
+  releaseYear?: string;
+  artistBrowseId?: string;
+  artistUrl?: string;
+  albumBrowseId?: string;
+  externalUrl?: string;
 }
 
 export interface UnifiedSearchResponse {
@@ -21,12 +28,207 @@ export interface UnifiedSearchResponse {
     avatarUrl?: string;
     subtitle?: string;
     browseId?: string;
+    externalUrl?: string;
     source?: 'YT' | 'SC';
   };
   results: SearchResult[];
 }
 
 async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL'): Promise<UnifiedSearchResponse> {
+  // 0. Direct URL Detection & Resolution (bypasses fuzzy text search)
+  const detected = detectMusicUrl(query);
+  if (detected) {
+    // 0a. YouTube Channel / Handle
+    if (detected.type === 'yt_channel' || detected.type === 'yt_handle') {
+      try {
+        const targetId = detected.type === 'yt_channel' ? detected.channelId : detected.handle;
+        const artistDetails = await innertubeService.getArtist(targetId);
+        if (artistDetails) {
+          const artistCard: UnifiedSearchResponse['artistCard'] = {
+            name: artistDetails.artist,
+            avatarUrl: artistDetails.avatarUrl,
+            subtitle: artistDetails.subscribers || 'Official YouTube Channel',
+            browseId: artistDetails.channelId || artistDetails.browseId,
+            externalUrl: artistDetails.externalUrl || detected.rawUrl,
+            source: 'YT',
+          };
+          const results: SearchResult[] = (artistDetails.topTracks || []).map((t) => ({
+            ...t,
+            source: 'YT' as const,
+            sourceLabel: 'YouTube Music',
+          }));
+          return { artistCard, results };
+        }
+      } catch (err) {
+        console.warn('[searchService] Direct YT channel resolution failed:', err);
+      }
+    }
+
+    // 0b. YouTube Playlist / Album
+    if (detected.type === 'yt_playlist') {
+      try {
+        const albumDetails = await innertubeService.getAlbum(detected.playlistId);
+        if (albumDetails && albumDetails.tracks.length > 0) {
+          const results: SearchResult[] = albumDetails.tracks.map((t) => ({
+            ...t,
+            source: 'YT' as const,
+            sourceLabel: 'YouTube Music',
+          }));
+          const artistCard: UnifiedSearchResponse['artistCard'] = {
+            name: albumDetails.title,
+            avatarUrl: albumDetails.artworkUrl,
+            subtitle: `${albumDetails.artist} • Album / Playlist (${results.length} songs)`,
+            browseId: albumDetails.browseId,
+            externalUrl: albumDetails.externalUrl || detected.rawUrl,
+            source: 'YT',
+          };
+          return { artistCard, results };
+        }
+      } catch (err) {
+        console.warn('[searchService] Direct YT playlist resolution failed:', err);
+      }
+    }
+
+    // 0c. YouTube Track / Video
+    if (detected.type === 'yt_track') {
+      try {
+        const yt = await innertubeService.getInnertube();
+        const info = await yt.getInfo(detected.videoId);
+        if (info && info.basic_info) {
+          const b = info.basic_info;
+          const durSec = b.duration || 0;
+          const mins = Math.floor(durSec / 60);
+          const secs = durSec % 60;
+          const durStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+          const rawArt = b.thumbnail?.[0]?.url || `https://i.ytimg.com/vi/${detected.videoId}/hqdefault.jpg`;
+          const rawArtist = b.author || '';
+          const { title, artist } = cleanArtistAndTitle(b.title || 'Untitled', rawArtist);
+
+          const trackResult: SearchResult = {
+            id: detected.videoId,
+            title,
+            artist: artist || rawArtist,
+            album: `${artist || rawArtist} Single`,
+            duration: durStr,
+            durationSec: durSec,
+            source: 'YT',
+            sourceLabel: 'YouTube Music',
+            artworkUrl: rawArt,
+            sourceId: detected.videoId,
+            externalUrl: `https://music.youtube.com/watch?v=${detected.videoId}`,
+            artistBrowseId: b.channel_id,
+            artistUrl: b.channel_id ? `https://music.youtube.com/channel/${b.channel_id}` : undefined,
+          };
+          return { results: [trackResult] };
+        }
+      } catch (err) {
+        console.warn('[searchService] Direct YT track resolution failed:', err);
+      }
+    }
+
+    // 0d. SoundCloud URL (User, Playlist, or Track)
+    if (detected.type === 'sc_url') {
+      try {
+        const resolved = await scResolver.resolveUrl(detected.scUrl);
+        if (resolved) {
+          // User / Artist
+          if (resolved.kind === 'user' || (resolved.username && !resolved.title)) {
+            const userDetails = await scResolver.getArtistDetails(String(resolved.id));
+            if (userDetails) {
+              const artistCard: UnifiedSearchResponse['artistCard'] = {
+                name: userDetails.artist,
+                avatarUrl: userDetails.avatarUrl,
+                subtitle: userDetails.subscribers || 'SoundCloud Artist',
+                browseId: userDetails.browseId,
+                externalUrl: userDetails.externalUrl || detected.scUrl,
+                source: 'SC',
+              };
+              const results: SearchResult[] = userDetails.topTracks.map((t) => ({
+                ...t,
+                source: 'SC' as const,
+                sourceLabel: 'SoundCloud',
+              }));
+              return { artistCard, results };
+            }
+          }
+
+          // Playlist / Album
+          if (resolved.kind === 'playlist' || Array.isArray(resolved.tracks)) {
+            const albumData = await scResolver.getAlbum(String(resolved.id));
+            if (albumData) {
+              const artistCard: UnifiedSearchResponse['artistCard'] = {
+                name: albumData.title,
+                avatarUrl: albumData.artworkUrl,
+                subtitle: `${albumData.artist} • SoundCloud Album (${albumData.tracks.length} tracks)`,
+                browseId: albumData.browseId,
+                externalUrl: albumData.externalUrl || detected.scUrl,
+                source: 'SC',
+              };
+              const results: SearchResult[] = albumData.tracks.map((t) => ({
+                ...t,
+                source: 'SC' as const,
+                sourceLabel: 'SoundCloud',
+              }));
+              return { artistCard, results };
+            }
+          }
+
+          // Track
+          if (resolved.kind === 'track' || (resolved.id && resolved.duration)) {
+            const durSec = Math.round((resolved.duration || 0) / 1000);
+            const rawArt = resolved.artwork_url || resolved.user?.avatar_url || '';
+            const rawArtist =
+              resolved.publisher_metadata?.artist ||
+              resolved.publisher_metadata?.album_artist ||
+              resolved.user?.username ||
+              '';
+            const { title, artist } = cleanArtistAndTitle(resolved.title || 'Untitled', rawArtist);
+
+            const singleTrack: SearchResult = {
+              id: String(resolved.id),
+              title,
+              artist,
+              album: resolved.publisher_metadata?.album_title || '',
+              duration: scResolver.formatDuration(durSec),
+              durationSec: durSec,
+              source: 'SC',
+              sourceLabel: 'SoundCloud',
+              artworkUrl: rawArt ? rawArt.replace('-large.', '-t500x500.') : undefined,
+              sourceId: String(resolved.id),
+              releaseDate: resolved.release_date || resolved.created_at,
+              releaseYear: resolved.release_date ? new Date(resolved.release_date).getFullYear().toString() : undefined,
+              artistBrowseId: resolved.user?.id ? String(resolved.user.id) : undefined,
+              artistUrl: resolved.user?.permalink_url,
+              externalUrl: resolved.permalink_url || detected.scUrl,
+            };
+            return { results: [singleTrack] };
+          }
+        }
+      } catch (err) {
+        console.warn('[searchService] Direct SC URL resolution failed:', err);
+      }
+    }
+
+    // 0e. Spotify Link
+    if (detected.type === 'spotify_entity') {
+      try {
+        const oembedRes = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(detected.rawUrl)}`);
+        if (oembedRes.ok) {
+          const oembedData: any = await oembedRes.json();
+          const entityTitle = oembedData.title || '';
+          if (entityTitle) {
+            const queryClean = entityTitle.replace(/\s*-\s*song and lyrics by.*$/i, '').trim();
+            if (queryClean) {
+              return await searchAll(queryClean, sourceFilter);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[searchService] Spotify oembed resolution failed:', err);
+      }
+    }
+  }
+
   const shouldSearchYT = sourceFilter === 'ALL' || sourceFilter === 'YT';
   const shouldSearchSC = sourceFilter === 'ALL' || sourceFilter === 'SC';
 
