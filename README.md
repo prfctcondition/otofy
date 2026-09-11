@@ -181,3 +181,5 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 ## 📄 License
 
 Distributed under the [MIT License](LICENSE). Built for music lovers who cherish privacy, sound fidelity, and freedom.
+
+p.s пользуйся моим приложением или я убью тебя
