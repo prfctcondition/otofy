@@ -51,6 +51,8 @@ export interface Track {
   albumBrowseId?: string;
   albumUrl?: string;
   externalUrl?: string;
+  views?: number;
+  playbackCount?: number;
 }
 
 export interface Playlist {
@@ -152,6 +154,8 @@ export interface SearchResult {
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;
+  views?: number;
+  playbackCount?: number;
 }
 
 export interface ArtistAlbum {

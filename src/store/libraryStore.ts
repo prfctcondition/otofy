@@ -99,7 +99,7 @@ interface LibraryState {
   savedAlbums: SavedAlbum[];
 
   // Tracklist Sorting
-  tracklistSortBy: 'dateAdded' | 'title' | 'artist' | 'duration';
+  tracklistSortBy: 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity';
   tracklistSortOrder: 'asc' | 'desc';
 
   // Library Sidebar Sorting
@@ -170,7 +170,7 @@ interface LibraryActions {
   recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   clearListeningHistory: () => Promise<void>;
   refreshHistoryTracks: () => Promise<void>;
-  setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration', order?: 'asc' | 'desc') => void;
+  setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity', order?: 'asc' | 'desc') => void;
   setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
@@ -775,7 +775,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   setTracklistSort: (sortBy, order) => {
     const currentSort = get().tracklistSortBy;
     const currentOrder = get().tracklistSortOrder;
-    const nextOrder = order || (currentSort === sortBy ? (currentOrder === 'asc' ? 'desc' : 'asc') : (sortBy === 'dateAdded' ? 'desc' : 'asc'));
+    const nextOrder = order || (currentSort === sortBy ? (currentOrder === 'asc' ? 'desc' : 'asc') : (sortBy === 'dateAdded' || sortBy === 'popularity' ? 'desc' : 'asc'));
     set({ tracklistSortBy: sortBy, tracklistSortOrder: nextOrder });
   },
 
@@ -818,7 +818,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     });
 
     for (const track of tracks) {
-      const dateAdded = track.dateAdded && !isNaN(Date.parse(track.dateAdded)) ? track.dateAdded : new Date().toISOString();
+      const dateAdded = new Date().toISOString();
       await repo.putTrack({ ...track, dateAdded });
       await repo.addTrackToPlaylist(newPlaylist.id, track.id);
     }
@@ -1026,7 +1026,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       }
     }
 
-    const dateAdded = track.dateAdded && !isNaN(Date.parse(track.dateAdded)) ? track.dateAdded : new Date().toISOString();
+    const dateAdded = new Date().toISOString();
     const trackWithDate = { ...track, dateAdded };
 
     // If adding to Liked Songs

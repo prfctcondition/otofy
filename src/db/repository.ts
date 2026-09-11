@@ -129,16 +129,20 @@ export const repo = {
     const tracks = await db.tracks.where('id').anyOf(trackIds).toArray();
     // Maintain order
     const trackMap = new Map(tracks.map(t => [t.id, t]));
-    return trackIds
-      .map(id => trackMap.get(id))
-      .filter((t): t is DbTrack => t !== undefined)
-      .map((t) => {
+    return pts
+      .map((pt) => {
+        const t = trackMap.get(pt.trackId);
+        if (!t) return undefined;
         const track = dbTrackToTrack(t);
         if (playlistId === 'pl-liked') {
           track.isLiked = true;
         }
+        if (pt.addedAt && typeof pt.addedAt === 'number') {
+          track.dateAdded = new Date(pt.addedAt).toISOString();
+        }
         return track;
-      });
+      })
+      .filter((t): t is Track => t !== undefined);
   },
 
   async getPlaylistIdsForTrack(trackId: string): Promise<string[]> {

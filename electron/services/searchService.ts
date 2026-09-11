@@ -1,4 +1,4 @@
-import innertubeService from './innertubeService.js';
+import innertubeService, { parseSubscriberCount } from './innertubeService.js';
 import scResolver from './scResolver.js';
 import { cleanArtistAndTitle } from './trackParser.js';
 import { detectMusicUrl } from './urlDetector.js';
@@ -20,6 +20,8 @@ export interface SearchResult {
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;
+  views?: number;
+  playbackCount?: number;
 }
 
 export interface UnifiedSearchResponse {
@@ -288,9 +290,77 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
     };
   });
 
-    return {
+  const cleanQ = query.trim().toLowerCase();
+
+  // Weighted scoring for each track in search results
+  const scoredResults = cleanedResults.map((track, originalIndex) => {
+    let score = 0;
+    const tTitle = (track.title || '').toLowerCase().trim();
+    const tArtist = (track.artist || '').toLowerCase().trim();
+    const views = track.views || track.playbackCount || 0;
+
+    // Exact title match: massive priority
+    if (tTitle === cleanQ) {
+      score += 1_000_000_000;
+    } else if (tTitle.startsWith(cleanQ)) {
+      score += 500_000_000;
+    } else if (tTitle.includes(cleanQ)) {
+      score += 100_000_000;
+    }
+
+    // Exact word match bonus (e.g. "Ark" as a standalone word)
+    const escapedQ = cleanQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordBoundary = new RegExp(`(^|\\s|[-_\\[(])${escapedQ}($|\\s|[-_\\])])`, 'i');
+    if (wordBoundary.test(tTitle)) {
+      score += 80_000_000;
+    }
+
+    // Artist match
+    if (tArtist === cleanQ) {
+      score += 200_000_000;
+    } else if (tArtist.startsWith(cleanQ)) {
+      score += 50_000_000;
+    } else if (tArtist.includes(cleanQ)) {
+      score += 20_000_000;
+    }
+
+    // Popularity scaling: log scale + raw count bonus
+    if (views > 0) {
+      score += Math.round(Math.log10(views + 1) * 20_000_000);
+      score += Math.min(views, 200_000_000);
+    }
+
+    // Source weighting: slight priority to YT when scores are close
+    if (track.source === 'YT') {
+      score += 5_000_000;
+    }
+
+    // Preserve relative order for identical scores
+    score -= originalIndex * 10;
+
+    return { track, score };
+  });
+
+  scoredResults.sort((a, b) => b.score - a.score);
+  const finalResults = scoredResults.map((s) => s.track);
+
+  // If we have an artistCard, verify whether an overshadowing popular track exists
+  if (artistCard) {
+    const artistSubs = parseSubscriberCount(artistCard.subtitle);
+    const topTrack = finalResults[0];
+    const topTrackViews = topTrack ? (topTrack.views || topTrack.playbackCount || 0) : 0;
+    const topTrackTitle = topTrack ? (topTrack.title || '').toLowerCase().trim() : '';
+    const topTrackMatches = topTrackTitle === cleanQ || topTrackTitle.startsWith(cleanQ);
+
+    // If top track has huge views (> 1M) and artist is obscure (< 25k subs or topTrack has 20x subs)
+    if (topTrackMatches && topTrackViews >= 1_000_000 && (artistSubs < 25_000 || topTrackViews > artistSubs * 20)) {
+      artistCard = undefined;
+    }
+  }
+
+  return {
     artistCard,
-    results: cleanedResults,
+    results: finalResults,
   };
 }
 

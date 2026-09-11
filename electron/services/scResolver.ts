@@ -293,6 +293,8 @@ export async function search(query: string): Promise<SCSearchResult[]> {
       artistBrowseId: item.user?.id ? String(item.user.id) : undefined,
       artistUrl: item.user?.permalink_url || (item.user?.permalink ? `https://soundcloud.com/${item.user.permalink}` : undefined),
       externalUrl: item.permalink_url || undefined,
+      views: typeof item.playback_count === 'number' ? item.playback_count : undefined,
+      playbackCount: typeof item.playback_count === 'number' ? item.playback_count : undefined,
     };
   });
 }

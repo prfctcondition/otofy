@@ -74,6 +74,7 @@ export interface InnertubeTrack {
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;
+  views?: number;
 }
 
 export interface InnertubeAlbum {
@@ -169,6 +170,24 @@ export function parseSubscriberCount(str?: string): number {
   else if (unit === 'm') num *= 1_000_000;
   else if (unit === 'b') num *= 1_000_000_000;
   return Math.round(num);
+}
+
+export function parseViewsToNumber(viewsStr?: string | number): number {
+  if (typeof viewsStr === 'number') return viewsStr;
+  if (!viewsStr || typeof viewsStr !== 'string') return 0;
+  const clean = viewsStr.toLowerCase().replace(/views?/g, '').replace(/,/g, '').trim();
+  const m = clean.match(/^([\d.]+)\s*([kmb])?$/i);
+  if (!m) {
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : Math.round(num);
+  }
+  let val = parseFloat(m[1]);
+  if (isNaN(val)) return 0;
+  const mult = m[2]?.toLowerCase();
+  if (mult === 'k') val *= 1_000;
+  else if (mult === 'm') val *= 1_000_000;
+  else if (mult === 'b') val *= 1_000_000_000;
+  return Math.round(val);
 }
 
 export function scoreArtist(a: any, query: string, topResultBrowseId?: string): number {
@@ -288,6 +307,9 @@ export async function search(query: string): Promise<{
       const thumbs = item.thumbnails || item.thumbnail || [];
       const artworkUrl = extractThumbnailUrl(thumbs);
 
+      const rawViews = item.views?.text || item.views || item.view_count?.text || item.view_count;
+      const views = parseViewsToNumber(rawViews);
+
       const rawYear =
         item.year?.text ||
         item.year ||
@@ -317,19 +339,52 @@ export async function search(query: string): Promise<{
         artistUrl,
         albumBrowseId,
         externalUrl,
+        views: views || undefined,
       });
     }
   };
 
-  // Top Tracks vs Artist Page:
-  // If the query is an artist name, load the verified artist's official top hits first!
   const cleanQ = query.trim().toLowerCase();
+
+  // Inspect raw songs and videos to gauge popularity of tracks matching query
+  const rawSongItems: any[] = (songRes.status === 'fulfilled' && (songRes.value as any)?.contents?.[0]?.contents) || [];
+  const rawVideoItems: any[] = (videoRes.status === 'fulfilled' && (videoRes.value as any)?.contents?.[0]?.contents) || [];
+
+  let maxTrackViews = 0;
+  for (const it of [...rawSongItems, ...rawVideoItems]) {
+    const rawV = it.views?.text || it.views || it.view_count?.text || it.view_count;
+    const vNum = parseViewsToNumber(rawV);
+    const itTitle = (typeof it.title === 'string' ? it.title : it.title?.text || '').toLowerCase().trim();
+    if (itTitle === cleanQ || itTitle.startsWith(cleanQ) || itTitle.includes(cleanQ)) {
+      if (vNum > maxTrackViews) maxTrackViews = vNum;
+    }
+  }
+
+  const artistSubs = parseSubscriberCount(
+    topResultArtist?.subtitle ||
+    bestArtistCandidate?.subscribers ||
+    bestArtistCandidate?.subtitle?.text
+  );
+
+  // If a track matching the query has massive views (> 1M) and the artist has very few subscribers (< 50k or < maxTrackViews / 20):
+  // User is looking for the viral track, NOT the obscure channel!
+  const isViralTrackQuery = maxTrackViews >= 1_000_000 && (artistSubs < 50_000 || maxTrackViews > artistSubs * 20);
+
+  if (isViralTrackQuery && (!topResultArtist || artistSubs < 25_000)) {
+    artistCard = undefined;
+  }
+
+  // Top Tracks vs Artist Page:
+  // Only load artist's official top hits if confirmed topResultArtist OR verified established artist
   const isArtistQuery = Boolean(
+    !isViralTrackQuery &&
     artistCard &&
     artistCard.browseId &&
     (topResultArtist ||
-      artistCard.name.toLowerCase().trim() === cleanQ ||
-      cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, ''))
+      (artistSubs >= 25_000 && (
+        artistCard.name.toLowerCase().trim() === cleanQ ||
+        cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
+      )))
   );
 
   if (isArtistQuery && artistCard?.browseId) {

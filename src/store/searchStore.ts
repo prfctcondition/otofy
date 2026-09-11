@@ -45,7 +45,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
 
     const activeFilter = sourceOverride || get().sourceFilter;
     const activeType = typeOverride || get().contentType;
-    set({ query, isSearching: true });
+    set({ query, isSearching: true, hasSearched: false });
 
     // Handle Playlists Search
     if (activeType === 'playlists') {

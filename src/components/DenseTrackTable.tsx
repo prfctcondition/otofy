@@ -25,6 +25,7 @@ interface DenseTrackTableProps {
   isPlaying: boolean;
   isLoading?: boolean;
   hideTrackNumber?: boolean;
+  isArtistView?: boolean;
   onTrackSelect: (track: Track, queue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
@@ -40,6 +41,7 @@ interface TrackRowProps {
   isPlaying: boolean;
   isBuffering: boolean;
   hideTrackNumber?: boolean;
+  isArtistView?: boolean;
   onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
@@ -50,29 +52,31 @@ interface TrackRowProps {
   onOpenConflictModal: (track: Track) => void;
 }
 
-const formatDisplayDate = (track: Track): string => {
-  // If track has a release date or release year, display official release info
-  if (track.releaseDate || track.releaseYear) {
-    if (track.releaseYear && /^\d{4}$/.test(track.releaseYear.trim())) {
-      return track.releaseYear.trim();
-    }
-    if (track.releaseDate && /^\d{4}$/.test(track.releaseDate.trim())) {
-      return track.releaseDate.trim();
-    }
-    const relTimestamp = Date.parse(track.releaseDate || '');
-    if (!isNaN(relTimestamp)) {
-      const relDate = new Date(relTimestamp);
-      return relDate.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    }
-    if (track.releaseDate) return track.releaseDate;
+const formatUploadedDate = (track: Track): string => {
+  if (track.releaseYear && /^\d{4}$/.test(track.releaseYear.trim())) {
+    return track.releaseYear.trim();
   }
-
-  const dateStr = track.dateAdded;
+  if (track.releaseDate && /^\d{4}$/.test(track.releaseDate.trim())) {
+    return track.releaseDate.trim();
+  }
+  const dateStr = track.releaseDate || track.dateAdded;
   if (!dateStr) return '';
+
+  const timestamp = Date.parse(dateStr);
+  if (!isNaN(timestamp)) {
+    const d = new Date(timestamp);
+    return d.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+  return dateStr;
+};
+
+const formatAddedDate = (track: Track): string => {
+  const dateStr = track.dateAdded;
+  if (!dateStr) return 'Just now';
 
   // Check if string is already formatted relative text like "2 days ago"
   if (
@@ -146,6 +150,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   isPlaying,
   isBuffering,
   hideTrackNumber,
+  isArtistView = false,
   onRowClick,
   onDoubleClick,
   onPlayToggle,
@@ -271,7 +276,7 @@ const TrackRow = React.memo<TrackRowProps>(({
       </div>
 
       <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 w-36 shrink-0 truncate">
-        {formatDisplayDate(track)}
+        {isArtistView ? formatUploadedDate(track) : formatAddedDate(track)}
       </div>
 
       <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 ml-auto whitespace-nowrap">
@@ -400,6 +405,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   isPlaying,
   isLoading = false,
   hideTrackNumber = false,
+  isArtistView = false,
   onTrackSelect,
   onPlayToggle,
   onToggleLike,
@@ -554,7 +560,9 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         </div>
         <div className="flex-1 min-w-0 flex items-center">Title</div>
         <div className="hidden md:flex items-center min-w-0 w-36 lg:w-56 shrink-0">Album</div>
-        <div className="hidden lg:flex items-center min-w-0 w-36 shrink-0">Date Added</div>
+        <div className="hidden lg:flex items-center min-w-0 w-36 shrink-0">
+          {isArtistView ? 'Date Uploaded' : 'Date Added'}
+        </div>
         <div className="flex items-center justify-end pr-8 shrink-0 ml-auto">
           <Clock size={14} />
         </div>
@@ -590,6 +598,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isPlaying={isPlaying}
               isBuffering={isBuffering}
               hideTrackNumber={hideTrackNumber}
+              isArtistView={isArtistView}
               onRowClick={handleRowClick}
               onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}

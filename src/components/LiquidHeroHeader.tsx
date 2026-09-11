@@ -553,6 +553,32 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </button>
             )}
 
+            {/* External Official Link Button (YouTube Music ↗ / SoundCloud ↗) */}
+            {(playlist.type === 'Artist' || playlist.type === 'Album') && (
+              (() => {
+                const targetUrl = playlist.externalUrl || (playlist as any).artistUrl;
+                if (!targetUrl) return null;
+                const isSC = targetUrl.includes('soundcloud.com') || playlist.id?.startsWith('artist-sc-') || playlist.creator?.toLowerCase().includes('soundcloud');
+                const label = isSC ? 'SoundCloud' : 'YouTube Music';
+                return (
+                  <button
+                    onClick={() => {
+                      if ((window as any).electronAPI?.openExternal) {
+                        (window as any).electronAPI.openExternal(targetUrl);
+                      } else {
+                        window.open(targetUrl, '_blank');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer bg-white/70 dark:bg-white/[0.08] hover:bg-white/95 dark:hover:bg-white/[0.14] text-[#0F172A] dark:text-white border border-white/90 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md"
+                    title={`Open ${playlist.title} on ${label}`}
+                  >
+                    <span>{label}</span>
+                    <ExternalLink size={13} strokeWidth={2.2} className="opacity-80" />
+                  </button>
+                );
+              })()
+            )}
+
             {/* Clear History Button (when viewing listening history) */}
             {playlist.id === 'pl-history' && (
               <button
@@ -782,8 +808,12 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 title="Sort tracks"
               >
                 <span>
-                  {tracklistSortBy === 'dateAdded'
-                    ? 'Date added'
+                  {tracklistSortBy === 'popularity'
+                    ? 'Popularity'
+                    : tracklistSortBy === 'dateAdded'
+                    ? playlist.type === 'Artist'
+                      ? 'Date uploaded'
+                      : 'Date added'
                     : tracklistSortBy === 'title'
                     ? 'Title'
                     : tracklistSortBy === 'artist'
@@ -799,7 +829,8 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     Sort tracks by
                   </div>
                   {[
-                    { key: 'dateAdded', label: 'Date added' },
+                    { key: 'popularity', label: 'Popularity' },
+                    { key: 'dateAdded', label: playlist.type === 'Artist' ? 'Date uploaded' : 'Date added' },
                     { key: 'title', label: 'Title (A–Z)' },
                     { key: 'artist', label: 'Artist' },
                     { key: 'duration', label: 'Duration' },

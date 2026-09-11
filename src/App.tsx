@@ -241,6 +241,15 @@ export default function App() {
         cmp = (a.artist || '').localeCompare(b.artist || '');
       } else if (tracklistSortBy === 'duration') {
         cmp = (a.durationSec || 0) - (b.durationSec || 0);
+      } else if (tracklistSortBy === 'popularity') {
+        const popA = a.views !== undefined ? a.views : (a.playbackCount || (a as any).playback_count || 0);
+        const popB = b.views !== undefined ? b.views : (b.playbackCount || (b as any).playback_count || 0);
+        if (popA !== popB) {
+          cmp = popA - popB;
+        } else {
+          // If view counts match or are absent, top songs list position denotes popularity
+          cmp = (b.number || 0) - (a.number || 0);
+        }
       } else {
         // dateAdded
         const timeA = a.dateAdded && !isNaN(Date.parse(a.dateAdded)) ? Date.parse(a.dateAdded) : 0;
@@ -544,6 +553,7 @@ export default function App() {
     const artistViewId = `artist-${cleanName.toLowerCase().replace(/\s+/g, '-')}`;
 
     // Instant optimistic navigation
+    libraryStore.setTracklistSort('popularity', 'desc');
     libraryStore.setCustomPlaylistView(cleanName, [], {
       id: artistViewId,
       type: 'Artist',
@@ -588,6 +598,8 @@ export default function App() {
                 artistUrl: r.artistUrl || details.externalUrl,
                 albumBrowseId: r.albumBrowseId,
                 externalUrl: r.externalUrl,
+                views: (r as any).views,
+                playbackCount: (r as any).playbackCount || (r as any).playback_count,
                 source: (r.source || source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,
@@ -735,7 +747,15 @@ export default function App() {
         gradientFrom: '#4338CA',
         gradientTo: '#6D28D9',
         artworkUrl: detailsResult?.avatarUrl || artistTracks[0]?.artworkUrl,
-        externalUrl: detailsResult?.externalUrl,
+        externalUrl:
+          detailsResult?.externalUrl ||
+          (detailsResult?.browseId || browseId
+            ? (source === 'SC'
+                ? `https://soundcloud.com/${detailsResult?.browseId || browseId}`
+                : `https://music.youtube.com/channel/${detailsResult?.browseId || browseId}`)
+            : (source === 'SC'
+                ? `https://soundcloud.com/search/people?q=${encodeURIComponent(cleanName)}`
+                : `https://music.youtube.com/search?q=${encodeURIComponent(cleanName)}`)),
       });
     } catch (e) {
       console.warn('[App] handleOpenArtistView error:', e);
@@ -878,7 +898,13 @@ export default function App() {
           iconName: 'disc',
           artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
           playlistId: albumData.playlistId || savedAlbum?.playlistId,
-          externalUrl: albumData.externalUrl,
+          externalUrl:
+            albumData.externalUrl ||
+            (cleanBrowseId
+              ? (source === 'SC'
+                  ? `https://soundcloud.com/${cleanBrowseId}`
+                  : `https://music.youtube.com/browse/${cleanBrowseId}`)
+              : undefined),
         });
 
         // If album was already saved or is in savedAlbums, update its cached snapshot!
@@ -963,7 +989,11 @@ export default function App() {
 
       {/* Search Dropdown Overlay */}
       <SearchResultsOverlay
-        isOpen={globalSearch.trim().length > 1 && searchStore.hasSearched}
+        isOpen={
+          globalSearch.trim().length > 1 &&
+          searchStore.hasSearched &&
+          (!searchStore.isSearching || searchStore.results.length > 0 || Boolean(searchStore.artistCard) || searchStore.playlistResults.length > 0)
+        }
         onClose={() => searchStore.clearResults()}
         onOpenArtist={handleOpenArtistView}
       />
@@ -1042,6 +1072,7 @@ export default function App() {
                       isPlaying={isPlaying}
                       isLoading={libraryStore.isLoadingTracks}
                       hideTrackNumber={currentPlaylist.type === 'Artist'}
+                      isArtistView={currentPlaylist.type === 'Artist'}
                       onTrackSelect={handleSelectTrack}
                       onPlayToggle={playerStore.togglePlay}
                       onToggleLike={libraryStore.toggleLike}
@@ -1119,6 +1150,7 @@ export default function App() {
                     isPlaying={isPlaying}
                     isLoading={libraryStore.isLoadingTracks}
                     hideTrackNumber={currentPlaylist.type === 'Artist'}
+                    isArtistView={currentPlaylist.type === 'Artist'}
                     onTrackSelect={handleSelectTrack}
                     onPlayToggle={playerStore.togglePlay}
                     onToggleLike={libraryStore.toggleLike}

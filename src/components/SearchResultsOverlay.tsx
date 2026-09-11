@@ -59,6 +59,17 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
 
   if (!isOpen) return null;
 
+  const currentQuery = useSearchStore.getState().query || '';
+  const isUrlQuery = /^https?:\/\//i.test(currentQuery.trim());
+  const hasEntities =
+    (contentType === 'tracks' && (results.length > 0 || Boolean(artistCard))) ||
+    (contentType === 'playlists' && playlistResults.length > 0);
+
+  // If resolving a URL or still searching without any ready entities, keep container hidden
+  // This completely eliminates the fleeting empty transparent overlay box on paste
+  if (isUrlQuery && !hasEntities) return null;
+  if (isSearching && !hasEntities) return null;
+
   const resultToTrack = (result: SearchResult): Track => {
     return {
       id: `online-${result.source}-${result.sourceId || result.id}`,
@@ -68,7 +79,15 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
       album: result.album || (result.source === 'YT' ? 'YouTube Music' : 'SoundCloud'),
       duration: result.duration,
       durationSec: result.durationSec,
-      dateAdded: 'Today',
+      dateAdded: result.releaseDate && !isNaN(Date.parse(result.releaseDate)) ? new Date(result.releaseDate).toISOString() : new Date().toISOString(),
+      releaseDate: result.releaseDate,
+      releaseYear: result.releaseYear,
+      artistBrowseId: result.artistBrowseId,
+      artistUrl: result.artistUrl,
+      albumBrowseId: result.albumBrowseId,
+      externalUrl: result.externalUrl,
+      views: result.views,
+      playbackCount: result.playbackCount,
       source: result.source,
       sourceLabel: result.sourceLabel,
       sourceId: result.sourceId,
@@ -119,7 +138,12 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
             album: t.album || playlist.title,
             duration: t.duration || '0:00',
             durationSec: t.durationSec || 0,
-            dateAdded: 'Today',
+            dateAdded: t.releaseDate && !isNaN(Date.parse(t.releaseDate)) ? new Date(t.releaseDate).toISOString() : new Date().toISOString(),
+            releaseDate: t.releaseDate,
+            releaseYear: t.releaseYear,
+            artistBrowseId: t.artistBrowseId,
+            albumBrowseId: t.albumBrowseId,
+            externalUrl: t.externalUrl,
             source: playlist.source,
             sourceLabel: playlist.sourceLabel,
             sourceId: t.sourceId || t.id,
