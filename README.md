@@ -178,6 +178,22 @@ The output installer will be generated in `release/Otofy-Windows-installer.exe`.
 
 ---
 
+## 🍵 Support · お気持ち
+
+Otofy is 100% free, open-source, and built on the conviction that music and convenience are fundamental human rights. There are zero subscriptions, audio ads, or trackers.
+
+If Otofy brought harmony to your days, preserved your offline playlists, or simply gave you a peaceful listening experience, a humble cup of green tea is received with quiet gratitude:
+
+<p align="center">
+  <a href="https://ko-fi.com/prfctcondition">
+    <img src="https://img.shields.io/badge/Ko--fi-support%20the%20craft-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
+  </a>
+  <br />
+  <sub><a href="https://ko-fi.com/prfctcondition">ko-fi.com/prfctcondition</a></sub>
+</p>
+
+---
+
 ## 📄 License
 
 Distributed under the [MIT License](LICENSE). Built for music lovers who cherish privacy, sound fidelity, and freedom.
