@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Plus, X, Upload, Trash2 } from 'lucide-react';
+import { Plus, X, Upload, Trash2, ListMusic } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
+import { useToastStore } from '../store/toastStore';
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface CreatePlaylistModalProps {
 const GRADIENTS = [
   { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
-  { from: '#34D399', to: '#0D9488', name: 'Emerald Teal' },
+  { from: '#64748B', to: '#1E293B', name: 'Steel Slate' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
   { from: '#E879F9', to: '#C026D3', name: 'Fuchsia Pink' },
   { from: '#FBBF24', to: '#EAB308', name: 'Amber Yellow' },
@@ -24,6 +25,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
   const [customArtwork, setCustomArtwork] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createPlaylist = useLibraryStore((state) => state.createPlaylist);
+  const addTrackToPlaylist = useLibraryStore((state) => state.addTrackToPlaylist);
+  const initialTracks = useLibraryStore((state) => state.createPlaylistInitialTracks);
+  const closeCreatePlaylistModal = useLibraryStore((state) => state.closeCreatePlaylistModal);
 
   if (!isOpen) return null;
 
@@ -54,16 +58,32 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
     reader.readAsDataURL(file);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!title.trim()) return;
 
-    createPlaylist({
+    const newPl = await createPlaylist({
       title: title.trim(),
       creator: creator.trim() || 'You',
       gradientFrom: GRADIENTS[selectedGradient].from,
       gradientTo: GRADIENTS[selectedGradient].to,
       artworkUrl: customArtwork || undefined,
     });
+
+    if (initialTracks && initialTracks.length > 0) {
+      let added = 0;
+      for (const track of initialTracks) {
+        const ok = await addTrackToPlaylist(newPl.id, track);
+        if (ok !== false) added++;
+      }
+      useToastStore
+        .getState()
+        .success(
+          'Playlist Created',
+          `Created "${newPl.title}" with ${added} ${added === 1 ? 'song' : 'songs'} from queue.`
+        );
+    } else {
+      useToastStore.getState().success('Playlist Created', `Created playlist "${newPl.title}".`);
+    }
 
     handleClose();
   };
@@ -76,22 +96,27 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    closeCreatePlaylistModal();
     onClose();
   };
 
   const currentGrad = GRADIENTS[selectedGradient];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-md flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white/95 dark:bg-black backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-md flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl text-white shadow-md">
-              <Plus size={22} />
+            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
+              {initialTracks?.length ? <ListMusic size={22} /> : <Plus size={22} />}
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Create Playlist</h2>
-              <p className="text-xs text-[#64748B] dark:text-white/60">Personalize your music collection</p>
+              <p className="text-xs text-[#64748B] dark:text-white/60">
+                {initialTracks?.length
+                  ? `Add ${initialTracks.length} ${initialTracks.length === 1 ? 'track' : 'tracks'} from queue to new playlist`
+                  : 'Personalize your music collection'}
+              </p>
             </div>
           </div>
           <button
@@ -224,7 +249,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
             disabled={!title.trim()}
             className="w-full py-3.5 mt-4 px-4 bg-[#0F172A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Create Playlist
+            {initialTracks?.length
+              ? `Create & Add ${initialTracks.length} ${initialTracks.length === 1 ? 'Track' : 'Tracks'}`
+              : 'Create Playlist'}
           </button>
         </div>
       </div>

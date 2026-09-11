@@ -200,7 +200,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                         <span
                           className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                             diffSec <= 10
-                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                              ? 'bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white'
                               : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
                           }`}
                         >

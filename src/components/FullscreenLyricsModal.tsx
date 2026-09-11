@@ -102,8 +102,9 @@ export const FullscreenLyricsModal: React.FC = () => {
     }
   }, [currentTime, lyricsData, activeLineIndex]);
 
-  // Smooth scroll active line into view (centered)
+  // Smooth scroll active line into view (centered), muted when window is hidden or blurred to save GPU
   useEffect(() => {
+    if (document.hidden || !document.hasFocus()) return;
     if (activeLineRef.current && scrollContainerRef.current) {
       activeLineRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -199,19 +200,19 @@ export const FullscreenLyricsModal: React.FC = () => {
       id="fullscreen-lyrics-overlay"
       className="fixed inset-0 z-50 flex flex-col bg-[#090D16] text-white select-none animate-in fade-in duration-200 overflow-hidden"
     >
-      {/* Dynamic Ambient Fluid Lights Background */}
+      {/* Dynamic Ambient Fluid Lights Background (GPU optimized with radial gradients, no expensive blur filters) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div
-          className="absolute -top-40 -left-20 w-[700px] h-[700px] rounded-full opacity-40 blur-[130px] transition-all duration-700 pointer-events-none"
-          style={{ background: bgFrom }}
+          className="absolute -top-40 -left-20 w-[700px] h-[700px] rounded-full opacity-40 transition-all duration-700 pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${bgFrom} 0%, transparent 70%)` }}
         />
         <div
-          className="absolute -bottom-40 -right-20 w-[800px] h-[800px] rounded-full opacity-35 blur-[150px] transition-all duration-700 pointer-events-none"
-          style={{ background: bgTo }}
+          className="absolute -bottom-40 -right-20 w-[800px] h-[800px] rounded-full opacity-35 transition-all duration-700 pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${bgTo} 0%, transparent 70%)` }}
         />
         <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-[160px] pointer-events-none"
-          style={{ background: bgFrom }}
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-20 pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${bgFrom} 0%, transparent 70%)` }}
         />
       </div>
 
@@ -243,7 +244,7 @@ export const FullscreenLyricsModal: React.FC = () => {
             <p className="text-xs sm:text-sm text-white/60 truncate flex items-center gap-2 mt-0.5">
               <span>{activeTrack?.artist || 'Unknown Artist'}</span>
               {lyricsData?.syncedLyrics && (
-                <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-xs">
+                <span className="inline-flex items-center gap-1 text-slate-300 font-semibold text-xs">
                   <Sparkles size={12} /> Synced Lyrics
                 </span>
               )}
@@ -336,9 +337,10 @@ export const FullscreenLyricsModal: React.FC = () => {
                   key={idx}
                   ref={isActive ? activeLineRef : null}
                   onClick={() => seek(line.time)}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '0 48px' }}
                   className={`cursor-pointer transition-all duration-300 rounded-2xl px-4 py-2 origin-left select-text ${
                     isActive
-                      ? 'text-white font-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight scale-[1.03] drop-shadow-[0_4px_24px_rgba(255,255,255,0.4)]'
+                      ? 'text-white font-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight scale-[1.03] text-shadow-sm'
                       : isPast
                       ? 'text-white/40 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight hover:scale-[1.01]'
                       : 'text-white/35 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight hover:scale-[1.01]'

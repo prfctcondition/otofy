@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { ArtistLinks } from './ArtistLinks';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, parseDurationToSeconds } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useEqStore } from '../store/eqStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
@@ -129,7 +129,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
 
   const safeDuration = Number.isFinite(duration) && duration > 0
     ? duration
-    : (activeTrack.durationSec || 0);
+    : (activeTrack.durationSec || (activeTrack.duration ? parseDurationToSeconds(activeTrack.duration) : 0) || 0);
 
   const activePercent = isSeeking && seekValue !== null
     ? seekValue
@@ -263,7 +263,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             <button
               id="player-download-btn"
               onClick={() => openDownloadedFile(activeTrack)}
-              className="p-1.5 rounded-full text-emerald-500 hover:text-emerald-400 transition-all active:scale-125 shrink-0"
+              className="p-1.5 rounded-full text-[#0F172A] dark:text-white hover:opacity-80 transition-all active:scale-125 shrink-0"
               title="Downloaded (Click to show in folder)"
             >
               <Check size={18} strokeWidth={2.5} />

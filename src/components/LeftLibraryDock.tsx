@@ -19,6 +19,7 @@ import { useNetworkStore } from '../store/networkStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
+import { fuzzyMatch } from '../utils/fuzzySearch';
 
 interface LeftLibraryDockProps {
   playlists: Playlist[];
@@ -220,13 +221,13 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
       });
     }
 
-    // Search query filter
-    const query = searchFilter.trim().toLowerCase();
+    // Search query filter with typo-tolerant fuzzy matching
+    const query = searchFilter.trim();
     const filtered = query
       ? items.filter(
           (item) =>
-            item.title.toLowerCase().includes(query) ||
-            item.subtitle.toLowerCase().includes(query)
+            fuzzyMatch(query, item.title) ||
+            fuzzyMatch(query, item.subtitle)
         )
       : items;
 
@@ -434,7 +435,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         }`}
                       >
                         <span>Recents</span>
-                        {librarySortBy === 'recents' && <Check size={13} className="text-emerald-500" />}
+                        {librarySortBy === 'recents' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                       <button
                         onClick={() => {
@@ -448,7 +449,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         }`}
                       >
                         <span>Recently Added</span>
-                        {librarySortBy === 'recentlyAdded' && <Check size={13} className="text-emerald-500" />}
+                        {librarySortBy === 'recentlyAdded' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                       <button
                         onClick={() => {
@@ -462,7 +463,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         }`}
                       >
                         <span>Alphabetical</span>
-                        {librarySortBy === 'alphabetical' && <Check size={13} className="text-emerald-500" />}
+                        {librarySortBy === 'alphabetical' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                     </div>
                   )}
@@ -617,7 +618,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`art-${art.id}`}
                   onClick={() => {
                     onSelectArtist?.(art.name, art.source);
-                    recordEntityOpened(art.name, 'artist').catch(() => {});
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed
@@ -682,7 +682,6 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   key={`alb-${alb.id}`}
                   onClick={() => {
                     onSelectAlbum?.(alb.id, alb.title, alb.artist, alb.source);
-                    recordEntityOpened(alb.id, 'album').catch(() => {});
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed

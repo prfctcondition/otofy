@@ -7,11 +7,28 @@ interface Deck {
   gain: GainNode | null;
 }
 
-class AudioEngine {
-  private ctx: AudioContext | null = null;
+const STORAGE_KEY_VOLUME = 'otofy_saved_volume';
+
+function getInitialSavedVolume(): number {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_VOLUME);
+      if (saved !== null) {
+        const val = parseFloat(saved);
+        if (Number.isFinite(val) && val >= 0 && val <= 1) {
+          return val;
+        }
+      }
+    } catch {}
+  }
+  return 0.5; // Safe default volume (50%), strictly not 1.0
+}
+
+export class AudioEngine {
   private deckA: Deck;
   private deckB: Deck;
   private activeDeckId: 'A' | 'B' = 'A';
+  private ctx: AudioContext | null = null;
 
   private masterGainNode: GainNode | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -19,7 +36,7 @@ class AudioEngine {
   private eqFilters: BiquadFilterNode[] = [];
   private isInitialized = false;
 
-  private currentVolume = 1.0;
+  private currentVolume = getInitialSavedVolume();
   private isMuted = false;
   private currentDeviceId = 'default';
 
@@ -44,6 +61,12 @@ class AudioEngine {
   private configureAudioElement(el: HTMLAudioElement): void {
     el.crossOrigin = 'anonymous';
     el.preload = 'auto';
+    if (typeof document !== 'undefined') {
+      el.style.display = 'none';
+      if (!el.isConnected && document.body) {
+        document.body.appendChild(el);
+      }
+    }
     if (this.currentDeviceId && this.currentDeviceId !== 'default' && 'setSinkId' in el) {
       (el as any).setSinkId(this.currentDeviceId).catch(() => {});
     }
@@ -77,9 +100,14 @@ class AudioEngine {
       await ctx.resume();
     }
 
-    // 1. Initialize Master Gain (controls player volume independently of crossfade)
+    if (typeof document !== 'undefined' && document.body) {
+      if (!this.deckA.audio.isConnected) document.body.appendChild(this.deckA.audio);
+      if (!this.deckB.audio.isConnected) document.body.appendChild(this.deckB.audio);
+    }
+
+    // 1. Initialize Master Gain (controls player volume independently of crossfade with logarithmic curve)
     this.masterGainNode = ctx.createGain();
-    this.masterGainNode.gain.value = this.isMuted ? 0 : this.currentVolume;
+    this.masterGainNode.gain.value = this.isMuted ? 0 : Math.pow(this.currentVolume, 2.5);
 
     // 2. Initialize Analyser
     this.analyserNode = ctx.createAnalyser();
@@ -200,15 +228,26 @@ class AudioEngine {
   setVolume(volume: number): void {
     const clamped = Math.max(0, Math.min(1, volume));
     this.currentVolume = clamped;
+    const actualGain = Math.pow(clamped, 2.5);
     if (this.masterGainNode && this.ctx) {
-      this.masterGainNode.gain.setTargetAtTime(this.isMuted ? 0 : clamped, this.ctx.currentTime, 0.015);
+      this.masterGainNode.gain.setTargetAtTime(this.isMuted ? 0 : actualGain, this.ctx.currentTime, 0.015);
     }
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(STORAGE_KEY_VOLUME, String(clamped));
+      } catch {}
+    }
+  }
+
+  get volume(): number {
+    return this.currentVolume;
   }
 
   setMuted(muted: boolean): void {
     this.isMuted = muted;
+    const actualGain = Math.pow(this.currentVolume, 2.5);
     if (this.masterGainNode && this.ctx) {
-      this.masterGainNode.gain.setTargetAtTime(muted ? 0 : this.currentVolume, this.ctx.currentTime, 0.015);
+      this.masterGainNode.gain.setTargetAtTime(muted ? 0 : actualGain, this.ctx.currentTime, 0.015);
     }
   }
 
@@ -429,35 +468,70 @@ class AudioEngine {
   }): void {
     if (!('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: metadata.title,
-      artist: metadata.artist,
-      album: metadata.album,
-      artwork: metadata.artworkUrl
-        ? [{ src: metadata.artworkUrl, sizes: '512x512', type: 'image/jpeg' }]
-        : [],
-    });
+    try {
+      const artworks: MediaImage[] = [];
+      if (metadata.artworkUrl) {
+        artworks.push(
+          { src: metadata.artworkUrl, sizes: '96x96', type: 'image/jpeg' },
+          { src: metadata.artworkUrl, sizes: '128x128', type: 'image/jpeg' },
+          { src: metadata.artworkUrl, sizes: '256x256', type: 'image/jpeg' },
+          { src: metadata.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
+        );
+      }
 
-    if (handlers.onPlay) navigator.mediaSession.setActionHandler('play', handlers.onPlay);
-    if (handlers.onPause) navigator.mediaSession.setActionHandler('pause', handlers.onPause);
-    if (handlers.onNext) navigator.mediaSession.setActionHandler('nexttrack', handlers.onNext);
-    if (handlers.onPrev) navigator.mediaSession.setActionHandler('previoustrack', handlers.onPrev);
-    if (handlers.onSeek) {
-      navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (details.seekTime != null) handlers.onSeek!(details.seekTime);
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: metadata.title || 'Unknown Track',
+        artist: metadata.artist || 'Unknown Artist',
+        album: metadata.album || 'Otofy',
+        artwork: artworks,
       });
+
+      if (handlers.onPlay) navigator.mediaSession.setActionHandler('play', handlers.onPlay);
+      if (handlers.onPause) navigator.mediaSession.setActionHandler('pause', handlers.onPause);
+      if (handlers.onNext) navigator.mediaSession.setActionHandler('nexttrack', handlers.onNext);
+      if (handlers.onPrev) navigator.mediaSession.setActionHandler('previoustrack', handlers.onPrev);
+      if (handlers.onSeek) {
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (details.seekTime != null && Number.isFinite(details.seekTime)) {
+            handlers.onSeek!(details.seekTime);
+          }
+        });
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+          const skip = details.seekOffset || 10;
+          handlers.onSeek!(Math.max(0, this.currentTime - skip));
+        });
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+          const skip = details.seekOffset || 10;
+          handlers.onSeek!(Math.min(this.duration || Infinity, this.currentTime + skip));
+        });
+      }
+      navigator.mediaSession.setActionHandler('stop', () => {
+        if (handlers.onPause) handlers.onPause();
+      });
+    } catch (err) {
+      console.warn('[AudioEngine] setupMediaSession failed:', err);
     }
   }
 
   updateMediaSessionPosition(position: number, duration: number): void {
     if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
       try {
-        navigator.mediaSession.setPositionState({
-          duration: duration || 0,
-          playbackRate: 1,
-          position: Math.min(position, duration || 0),
-        });
+        if (Number.isFinite(duration) && duration > 0 && Number.isFinite(position) && position >= 0) {
+          navigator.mediaSession.setPositionState({
+            duration: duration,
+            playbackRate: 1,
+            position: Math.min(position, duration),
+          });
+        }
       } catch { /* ignore invalid state */ }
+    }
+  }
+
+  setPlaybackState(state: 'none' | 'paused' | 'playing'): void {
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.playbackState = state;
+      } catch {}
     }
   }
 

@@ -113,6 +113,7 @@ interface LibraryState {
   isShareModalOpen: boolean;
   isImportModalOpen: boolean;
   isCreatePlaylistModalOpen: boolean;
+  createPlaylistInitialTracks: Track[] | null;
   isSyncModalOpen: boolean;
   isLyricsModalOpen: boolean;
   isQueueOpen: boolean;
@@ -164,6 +165,8 @@ interface LibraryActions {
   isAlbumSaved: (id: string, title?: string, artist?: string) => boolean;
   recordEntityPlayed: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
+  clearListeningHistory: () => Promise<void>;
+  refreshHistoryTracks: () => Promise<void>;
   setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration', order?: 'asc' | 'desc') => void;
   setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
@@ -188,6 +191,8 @@ interface LibraryActions {
   toggleShareModal: () => void;
   toggleImportModal: () => void;
   toggleCreatePlaylistModal: () => void;
+  openCreatePlaylistModal: (initialTracks?: Track[]) => void;
+  closeCreatePlaylistModal: () => void;
   toggleSyncModal: () => void;
   toggleLyricsModal: () => void;
   setIsLyricsModalOpen: (val: boolean) => void;
@@ -237,6 +242,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   isShareModalOpen: false,
   isImportModalOpen: false,
   isCreatePlaylistModalOpen: false,
+  createPlaylistInitialTracks: null,
   isSyncModalOpen: false,
   isLyricsModalOpen: true,
   isQueueOpen: false,
@@ -423,6 +429,25 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         gradientTo: '#0284C7',
         description: 'Songs cached during your current session for offline playback.',
       };
+    } else if (id === 'pl-history') {
+      try {
+        tracks = await repo.getHistoryTracks();
+      } catch {
+        tracks = [];
+      }
+      pl = {
+        id: 'pl-history',
+        title: 'Listening History',
+        type: 'Playlist',
+        creator: 'You',
+        songCount: tracks.length,
+        duration: `${tracks.length} tracks`,
+        isPinned: false,
+        iconName: 'history',
+        gradientFrom: '#334155',
+        gradientTo: '#0F172A',
+        description: 'Your last 50 played tracks',
+      };
     } else {
       try {
         tracks = await repo.getPlaylistTracks(id);
@@ -449,10 +474,6 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       currentArtistDetails: null,
       ...historyUpdate,
     });
-
-    if (id !== 'pl-downloads' && id !== 'pl-cached') {
-      get().recordEntityOpened(id, 'playlist').catch(() => {});
-    }
   },
 
   setCustomPlaylistView: (title: string, tracks: Track[], options?: Partial<Playlist>) => {
@@ -698,8 +719,48 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
   },
 
-  recordEntityOpened: async (id, type) => {
-    return get().recordEntityPlayed(id, type);
+  recordEntityOpened: async () => {
+    // No-op: Recents order updates strictly when playback is started from an entity, not on browse/open.
+  },
+
+  clearListeningHistory: async () => {
+    await repo.clearHistory();
+    if (get().selectedPlaylistId === 'pl-history') {
+      const currentPl = get().viewingPlaylist;
+      set({
+        currentPlaylistTracks: [],
+        viewingPlaylist: currentPl
+          ? {
+              ...currentPl,
+              songCount: 0,
+              duration: '0 tracks',
+              description: 'Your last 50 played tracks',
+            }
+          : null,
+      });
+    }
+  },
+
+  refreshHistoryTracks: async () => {
+    try {
+      const tracks = await repo.getHistoryTracks();
+      if (get().selectedPlaylistId === 'pl-history') {
+        const currentPl = get().viewingPlaylist;
+        set({
+          currentPlaylistTracks: tracks,
+          viewingPlaylist: currentPl
+            ? {
+                ...currentPl,
+                songCount: tracks.length,
+                duration: `${tracks.length} tracks`,
+                description: 'Your last 50 played tracks',
+              }
+            : null,
+        });
+      }
+    } catch (e) {
+      console.warn('[LibraryStore] refreshHistoryTracks error:', e);
+    }
   },
 
   setTracklistSort: (sortBy, order) => {
@@ -1280,7 +1341,15 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   toggleEqModal: () => set((s) => ({ isEqModalOpen: !s.isEqModalOpen })),
   toggleShareModal: () => set((s) => ({ isShareModalOpen: !s.isShareModalOpen })),
   toggleImportModal: () => set((s) => ({ isImportModalOpen: !s.isImportModalOpen })),
-  toggleCreatePlaylistModal: () => set((s) => ({ isCreatePlaylistModalOpen: !s.isCreatePlaylistModalOpen })),
+  toggleCreatePlaylistModal: () =>
+    set((s) => ({
+      isCreatePlaylistModalOpen: !s.isCreatePlaylistModalOpen,
+      createPlaylistInitialTracks: s.isCreatePlaylistModalOpen ? null : s.createPlaylistInitialTracks,
+    })),
+  openCreatePlaylistModal: (initialTracks?: Track[]) =>
+    set({ isCreatePlaylistModalOpen: true, createPlaylistInitialTracks: initialTracks || null }),
+  closeCreatePlaylistModal: () =>
+    set({ isCreatePlaylistModalOpen: false, createPlaylistInitialTracks: null }),
   toggleSyncModal: () => set((s) => ({ isSyncModalOpen: !s.isSyncModalOpen })),
   toggleLyricsModal: () =>
     set((s) => {

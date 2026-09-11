@@ -118,6 +118,9 @@ export const repo = {
 
   // Tracks
   async getPlaylistTracks(playlistId: string): Promise<Track[]> {
+    if (playlistId === 'pl-history') {
+      return await this.getHistoryTracks();
+    }
     const pts = await db.playlistTracks
       .where('playlistId')
       .equals(playlistId)
@@ -470,6 +473,80 @@ export const repo = {
     delete (updated as any).alternatives;
     await db.tracks.put(updated);
     return dbTrackToTrack(updated);
+  },
+
+  // Listening History (Max 50 items, strictly unique by trackId)
+  async recordTrackHistory(track: Track): Promise<void> {
+    if (!track?.id) return;
+    try {
+      await this.putTrack(track);
+      const now = Date.now();
+      await db.tracks.update(track.id, {
+        lastPlayedAt: now,
+      });
+
+      // Upsert / Deduplicate: remove any existing entry for this trackId so each track exists exactly once
+      await db.history.where('trackId').equals(track.id).delete();
+
+      // Insert new history log at current timestamp
+      await db.history.add({
+        trackId: track.id,
+        playedAt: now,
+      });
+
+      // Keep strictly max 50 history entries
+      const count = await db.history.count();
+      if (count > 50) {
+        const excess = count - 50;
+        const oldest = await db.history.orderBy('playedAt').limit(excess).primaryKeys();
+        if (oldest.length > 0) {
+          await db.history.bulkDelete(oldest as number[]);
+        }
+      }
+    } catch (err) {
+      console.warn('[Repository] recordTrackHistory failed:', err);
+    }
+  },
+
+  async getHistoryTracks(): Promise<Track[]> {
+    try {
+      const historyEntries = await db.history.orderBy('playedAt').reverse().limit(50).toArray();
+      const seenIds = new Set<string>();
+      const deduplicatedEntries: typeof historyEntries = [];
+      for (const entry of historyEntries) {
+        if (!seenIds.has(entry.trackId)) {
+          seenIds.add(entry.trackId);
+          deduplicatedEntries.push(entry);
+        }
+      }
+
+      const uniqueIds = Array.from(seenIds);
+      const dbTracks = await db.tracks.where('id').anyOf(uniqueIds).toArray();
+      const trackMap = new Map<string, Track>();
+      for (const t of dbTracks) {
+        trackMap.set(t.id, dbTrackToTrack(t));
+      }
+
+      const results: Track[] = [];
+      for (const entry of deduplicatedEntries) {
+        const track = trackMap.get(entry.trackId);
+        if (track) {
+          results.push(track);
+        }
+      }
+      return results;
+    } catch (err) {
+      console.warn('[Repository] getHistoryTracks failed:', err);
+      return [];
+    }
+  },
+
+  async clearHistory(): Promise<void> {
+    try {
+      await db.history.clear();
+    } catch (err) {
+      console.warn('[Repository] clearHistory failed:', err);
+    }
   },
 };
 

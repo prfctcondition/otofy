@@ -104,6 +104,64 @@ export const toPlayableStreamUrl = (url: string): string => {
 };
 
 let consecutiveErrorsCount = 0;
+let hasLoggedCurrentTrackHistory = false;
+let currentTrackHistoryId: string | null = null;
+let activeTrackPlayDuration = 0;
+let lastTimeUpdateTimestamp = 0;
+let lastPositionSync = 0;
+let lastDiscordSync = 0;
+
+const resetTrackHistoryState = (newTrackId?: string | null) => {
+  hasLoggedCurrentTrackHistory = false;
+  currentTrackHistoryId = newTrackId || null;
+  activeTrackPlayDuration = 0;
+  lastTimeUpdateTimestamp = Date.now();
+};
+
+const commitTrackToHistory = async (track: Track | null | undefined) => {
+  if (!track || !track.id) return;
+  if (hasLoggedCurrentTrackHistory && currentTrackHistoryId === track.id) return;
+  hasLoggedCurrentTrackHistory = true;
+  currentTrackHistoryId = track.id;
+  try {
+    await repo.recordTrackHistory(track);
+    if (useLibraryStore.getState().selectedPlaylistId === 'pl-history') {
+      await useLibraryStore.getState().refreshHistoryTracks();
+    }
+  } catch (err) {
+    console.warn('[PlayerStore] commitTrackToHistory failed:', err);
+  }
+};
+
+const syncDiscordPresence = (
+  track: Track | null | undefined,
+  isPlaying: boolean,
+  currentSec: number,
+  durationSec: number
+) => {
+  if (typeof window !== 'undefined' && window.electronAPI?.updateDiscordPresence) {
+    if (!track || !isPlaying) {
+      window.electronAPI.updateDiscordPresence({ isPlaying: false }).catch(() => {});
+    } else {
+      const dur =
+        (Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0) ||
+        track.durationSec ||
+        (track.duration ? parseDurationToSeconds(track.duration) : 0) ||
+        (usePlayerStore.getState().duration > 0 ? usePlayerStore.getState().duration : 0) ||
+        0;
+
+      window.electronAPI.updateDiscordPresence({
+        title: track.title,
+        artist: track.artist,
+        source: track.source,
+        durationSec: dur,
+        currentSec,
+        isPlaying: true,
+        artworkUrl: track.artworkUrl || track.thumbnail,
+      }).catch(() => {});
+    }
+  }
+};
 
 const notifyBotChallengeOrRepeatedErrors = async () => {
   let isGoogleConnected = false;
@@ -297,15 +355,68 @@ const attemptStreamFallback = async (
   return false;
 };
 
+const STORAGE_KEY_VOLUME = 'otofy_saved_volume';
+const STORAGE_KEY_LAST_TRACK = 'otofy_last_active_track';
+
+export const getInitialSavedVolume = (): number => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_VOLUME);
+      if (saved !== null) {
+        const val = parseFloat(saved);
+        if (Number.isFinite(val) && val >= 0 && val <= 1) {
+          return val;
+        }
+      }
+    } catch {}
+  }
+  return 0.5; // Safe default (50%), strictly not 1.0
+};
+
+export const getInitialLastActiveTrack = (): Track | null => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_LAST_TRACK);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && parsed.id && parsed.title) {
+          return parsed as Track;
+        }
+      }
+    } catch {}
+  }
+  return null;
+};
+
+const persistLastActiveTrack = (track: Track | null) => {
+  if (!track || typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.setItem(STORAGE_KEY_LAST_TRACK, JSON.stringify(track));
+  } catch {}
+};
+
+const persistSavedVolume = (volume: number) => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.setItem(STORAGE_KEY_VOLUME, String(volume));
+  } catch {}
+};
+
+const initialSavedTrack = getInitialLastActiveTrack();
+const initialSavedVolume = getInitialSavedVolume();
+const initialTrackDuration = initialSavedTrack
+  ? initialSavedTrack.durationSec || parseDurationToSeconds(initialSavedTrack.duration) || 0
+  : 0;
+
 export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) => ({
-  activeTrack: null,
-  queue: [],
-  queueIndex: -1,
+  activeTrack: initialSavedTrack,
+  queue: initialSavedTrack ? [initialSavedTrack] : [],
+  queueIndex: initialSavedTrack ? 0 : -1,
   isPlaying: false,
   currentTime: 0,
-  duration: 0,
-  volume: 0.78,
-  isMuted: false,
+  duration: initialTrackDuration,
+  volume: initialSavedVolume,
+  isMuted: initialSavedVolume === 0,
   isShuffle: false,
   repeatMode: 'off',
   isSeeking: false,
@@ -331,6 +442,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
   setActiveTrackOnly: (track: Track) => {
     const fallbackDur = track.durationSec || parseDurationToSeconds(track.duration) || 0;
+    persistLastActiveTrack(track);
     set({
       activeTrack: track,
       duration: fallbackDur,
@@ -344,6 +456,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     try {
       audioEngine.pause();
     } catch {}
+
+    persistLastActiveTrack(track);
 
     const state = get();
     const newQueue = queue || state.queue;
@@ -475,12 +589,19 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
     }
 
-    // Update media session
+    // Reset listening history tracking for new track
+    resetTrackHistoryState(track.id);
+    lastPositionSync = 0;
+
+    // Immediately record track to history on playback start
+    commitTrackToHistory(track);
+
+    // Update media session & SMTC
     audioEngine.setupMediaSession(
       {
         title: track.title,
         artist: track.artist,
-        album: track.album,
+        album: track.album || 'Otofy',
         artworkUrl: track.artworkUrl,
       },
       {
@@ -491,6 +612,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         onSeek: (time) => get().seek(time),
       }
     );
+    audioEngine.setPlaybackState('playing');
+
+    const finalDur = track.durationSec || parseDurationToSeconds(track.duration) || get().duration || 0;
+    syncDiscordPresence(track, true, 0, finalDur);
   },
 
   togglePlay: async () => {
@@ -500,13 +625,16 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     try {
       if (audioEngine.element.src) {
         await audioEngine.togglePlay();
-        set({ isPlaying: !isPlaying });
+        const nextPlaying = !isPlaying;
+        set({ isPlaying: nextPlaying });
+        audioEngine.setPlaybackState(nextPlaying ? 'playing' : 'paused');
       } else {
         // First play for the active track
         await get().playTrack(activeTrack);
       }
     } catch (err: any) {
       set({ isPlaying: false, isBuffering: false });
+      audioEngine.setPlaybackState('paused');
       useToastStore.getState().error(
         'Playback Error',
         err?.message || 'Browser blocked autoplay or stream is unavailable.'
@@ -755,11 +883,16 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     if (!Number.isFinite(time) || time < 0) return;
     audioEngine.seek(time);
     set({ currentTime: time });
+    lastPositionSync = time;
+    audioEngine.updateMediaSessionPosition(time, get().duration);
+    syncDiscordPresence(get().activeTrack, get().isPlaying, time, get().duration);
   },
 
   setVolume: (volume: number) => {
     const clamped = Math.max(0, Math.min(1, volume));
+    audioEngine.setMuted(false);
     audioEngine.setVolume(clamped);
+    persistSavedVolume(clamped);
     set({ volume: clamped, isMuted: clamped === 0 });
   },
 
@@ -767,10 +900,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const { isMuted, volume } = get();
     if (isMuted) {
       const targetVol = volume > 0.05 ? volume : 0.5;
+      audioEngine.setMuted(false);
       audioEngine.setVolume(targetVol);
+      persistSavedVolume(targetVol);
       set({ isMuted: false, volume: targetVol });
     } else {
-      audioEngine.setVolume(0);
+      audioEngine.setMuted(true);
       set({ isMuted: true });
     }
   },
@@ -844,6 +979,20 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         }
       }
 
+      const active = get().activeTrack;
+
+      // Sync SMTC position throttled (~1s interval)
+      if (Math.abs(current - lastPositionSync) >= 1) {
+        lastPositionSync = current;
+        audioEngine.updateMediaSessionPosition(current, dur);
+      }
+
+      // Sync Discord Presence throttled (~5s interval)
+      if (Math.abs(current - lastDiscordSync) >= 5 && get().isPlaying) {
+        lastDiscordSync = current;
+        syncDiscordPresence(active, true, current, dur);
+      }
+
       // Crossfade Trigger Logic
       const settings = useSettingsStore.getState();
       const crossfadeEnabled = settings.crossfadeEnabled;
@@ -893,10 +1042,16 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
             resolveStreamUrl(nextTrack)
               .then(async ({ url }) => {
                 if (url) {
+                  const prevTrack = get().activeTrack;
+                  if (prevTrack) {
+                    commitTrackToHistory(prevTrack);
+                  }
+
                   await audioEngine.crossfadeTo(url, crossfadeDuration);
+                  persistLastActiveTrack(nextTrack);
+                  const validNextDur = nextTrack.durationSec || parseDurationToSeconds(nextTrack.duration) || 0;
                   set((s) => {
                     const exists = s.cachedTracks.some((t) => t.id === nextTrack.id);
-                    const validNextDur = nextTrack.durationSec || parseDurationToSeconds(nextTrack.duration) || 0;
                     return {
                       activeTrack: nextTrack,
                       queueIndex: nextIdx as number,
@@ -909,6 +1064,34 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
                         : [...s.cachedTracks, { ...nextTrack, streamUrl: url }],
                     };
                   });
+
+                  // Reset history tracking for new track
+                  resetTrackHistoryState(nextTrack.id);
+                  commitTrackToHistory(nextTrack);
+                  lastPositionSync = 0;
+                  lastDiscordSync = 0;
+
+                  // Update Media Session & SMTC
+                  audioEngine.setupMediaSession(
+                    {
+                      title: nextTrack.title,
+                      artist: nextTrack.artist,
+                      album: nextTrack.album || 'Otofy',
+                      artworkUrl: nextTrack.artworkUrl,
+                    },
+                    {
+                      onPlay: () => get().togglePlay(),
+                      onPause: () => get().togglePlay(),
+                      onNext: () => get().nextTrack(),
+                      onPrev: () => get().prevTrack(),
+                      onSeek: (time) => get().seek(time),
+                    }
+                  );
+                  audioEngine.setPlaybackState('playing');
+
+                  // Sync Discord Presence for next track immediately
+                  syncDiscordPresence(nextTrack, true, 0, validNextDur);
+
                   setTimeout(() => {
                     set({ isCrossfading: false });
                   }, crossfadeDuration * 1000);
@@ -945,6 +1128,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (target === audioEngine.activeAudioElement) {
         if (Number.isFinite(target.currentTime)) {
           set({ currentTime: target.currentTime });
+          lastDiscordSync = target.currentTime;
+          syncDiscordPresence(get().activeTrack, get().isPlaying, target.currentTime, get().duration);
         }
       }
     };
@@ -956,9 +1141,18 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const { repeatMode, isCrossfading } = get();
       if (isCrossfading) return; // Handled by crossfade transition
 
+      const active = get().activeTrack;
+      if (active) {
+        commitTrackToHistory(active);
+      }
+
       if (repeatMode === 'one') {
+        resetTrackHistoryState(active?.id);
         audioEngine.seek(0);
         audioEngine.play();
+        commitTrackToHistory(active);
+        lastDiscordSync = 0;
+        syncDiscordPresence(get().activeTrack, true, 0, get().duration);
       } else {
         get().nextTrack();
       }
@@ -969,6 +1163,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       if (target === audioEngine.activeAudioElement) {
         consecutiveErrorsCount = 0;
         set({ isPlaying: true, isBuffering: false });
+        audioEngine.setPlaybackState('playing');
+        lastDiscordSync = target.currentTime;
+        syncDiscordPresence(get().activeTrack, true, target.currentTime, get().duration);
+        const active = get().activeTrack;
+        if (active) {
+          commitTrackToHistory(active);
+        }
       }
     };
 
@@ -976,6 +1177,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const target = e.target as HTMLAudioElement;
       if (target === audioEngine.activeAudioElement) {
         set({ isPlaying: false });
+        audioEngine.setPlaybackState('paused');
+        syncDiscordPresence(get().activeTrack, false, target.currentTime, get().duration);
       }
     };
 
@@ -1108,3 +1311,37 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     };
   },
 }));
+
+// Cold-start preparation: if last active track was restored, setup Media Session and pre-load stream in AudioEngine
+if (typeof window !== 'undefined' && initialSavedTrack) {
+  setTimeout(async () => {
+    try {
+      // 1. Setup Media Session metadata in paused state for Windows SMTC
+      audioEngine.setupMediaSession(
+        {
+          title: initialSavedTrack.title,
+          artist: initialSavedTrack.artist,
+          album: initialSavedTrack.album || 'Otofy',
+          artworkUrl: initialSavedTrack.artworkUrl,
+        },
+        {
+          onPlay: () => usePlayerStore.getState().togglePlay(),
+          onPause: () => usePlayerStore.getState().togglePlay(),
+          onNext: () => usePlayerStore.getState().nextTrack(),
+          onPrev: () => usePlayerStore.getState().prevTrack(),
+          onSeek: (time) => usePlayerStore.getState().seek(time),
+        }
+      );
+      audioEngine.setPlaybackState('paused');
+      audioEngine.setVolume(initialSavedVolume);
+
+      // 2. Pre-resolve stream URL in background so clicking Play is instantaneous
+      const { url } = await resolveStreamUrl(initialSavedTrack);
+      if (url && !usePlayerStore.getState().isPlaying) {
+        await audioEngine.loadTrack(url);
+      }
+    } catch (err) {
+      console.warn('[PlayerStore] Cold start preparation failed:', err);
+    }
+  }, 100);
+}

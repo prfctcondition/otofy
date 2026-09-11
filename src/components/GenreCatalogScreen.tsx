@@ -105,8 +105,8 @@ export const GENRE_CATALOG: GenreDef[] = [
     tagline: 'Endless horizons, generative soundscapes & deep focus',
     description: 'Infinite sonic horizons, ethereal space drones, binaural focus frequencies, and generative meditative soundscapes.',
     icon: Waves,
-    gradient: 'from-teal-500 via-emerald-600 to-cyan-800',
-    cardGradient: 'from-teal-700 to-emerald-950',
+    gradient: 'from-teal-600 via-cyan-700 to-slate-900',
+    cardGradient: 'from-teal-800 to-slate-950',
     accentColor: '#14B8A6',
     subgenres: ['Space Ambient', 'Drone Flow', 'Sleep Soundscapes', 'Binaural Focus'],
     searchQueries: ['ambient space focus music', 'drone ambient soundscapes', 'brian eno style ambient'],
@@ -118,9 +118,9 @@ export const GENRE_CATALOG: GenreDef[] = [
     tagline: 'Jangle guitars, sincere vibes & garage attitude',
     description: 'Authentic guitar chords, bedroom pop melodies, melancholic shoegaze textures, and raw indie spirit.',
     icon: Guitar,
-    gradient: 'from-emerald-600 via-green-600 to-teal-800',
-    cardGradient: 'from-emerald-700 to-teal-950',
-    accentColor: '#10B981',
+    gradient: 'from-slate-700 via-zinc-800 to-stone-900',
+    cardGradient: 'from-slate-800 to-zinc-950',
+    accentColor: '#64748B',
     subgenres: ['Indie Pop', 'Shoegaze', 'Midwest Emo', 'Post-Punk'],
     searchQueries: ['indie rock essentials', 'shoegaze dream pop', 'modern alternative indie rock'],
   },
@@ -605,7 +605,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 >
                   {isSaved ? (
                     <>
-                      <Check size={16} className="text-emerald-300" />
+                      <Check size={16} className="text-white" />
                       Saved
                     </>
                   ) : (

@@ -24,7 +24,7 @@ export const BatchDownloadBanner: React.FC = () => {
                 <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" />
               )
             ) : (
-              <Check size={14} className="text-emerald-500" />
+              <Check size={14} className="text-[#0F172A] dark:text-white" />
             )}
           </div>
           <div className="min-w-0">
@@ -68,9 +68,7 @@ export const BatchDownloadBanner: React.FC = () => {
           className={`h-full transition-all duration-300 rounded-full ${
             batchState.isPaused
               ? 'bg-amber-500'
-              : batchState.active
-              ? 'bg-[#0F172A] dark:bg-white'
-              : 'bg-emerald-500'
+              : 'bg-[#0F172A] dark:bg-white'
           }`}
           style={{ width: `${percent}%` }}
         />
@@ -82,7 +80,7 @@ export const BatchDownloadBanner: React.FC = () => {
           {batchState.isPaused ? (
             <button
               onClick={resumeAll}
-              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[#0F172A] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Play size={12} fill="currentColor" />
               <span>Resume All</span>

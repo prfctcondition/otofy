@@ -3,7 +3,7 @@ export type SourceType = 'YT' | 'SC' | 'FLAC' | 'Master' | 'LOCAL';
 export type IconType =
   | 'disc' | 'music' | 'waves' | 'headphones' | 'radio'
   | 'mic' | 'zap' | 'sparkles' | 'flame' | 'heart'
-  | 'user' | 'sliders' | 'download';
+  | 'user' | 'sliders' | 'download' | 'history';
 
 export interface TrackAlternative {
   id: string;
@@ -97,11 +97,11 @@ export const isSystemPlaylist = (
 ): boolean => {
   if (!playlist) return false;
   const id = playlist.id;
-  if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached') return true;
-  if (id.startsWith('pl-downloads') || id.startsWith('pl-cached') || id.startsWith('pl-liked')) return true;
+  if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history') return true;
+  if (id.startsWith('pl-downloads') || id.startsWith('pl-cached') || id.startsWith('pl-liked') || id.startsWith('pl-history')) return true;
   if (playlist.creator === 'System') return true;
   const title = playlist.title?.trim().toLowerCase();
-  if (title === 'downloads' || title === 'liked songs' || title === 'cached songs') return true;
+  if (title === 'downloads' || title === 'liked songs' || title === 'cached songs' || title === 'listening history' || title === 'history') return true;
   return false;
 };
 
@@ -279,6 +279,8 @@ declare global {
     electronAPI?: {
       resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[], durationSec?: number) => Promise<StreamInfo>;
       searchMusic: (query: string, source?: SearchSourceFilter) => Promise<UnifiedSearchResponse | SearchResult[]>;
+      updateDiscordPresence?: (payload: any) => Promise<boolean>;
+      clearDiscordPresence?: () => Promise<boolean>;
       searchPlaylists?: (query: string, source?: SearchSourceFilter) => Promise<SearchPlaylistResult[]>;
       getPlaylistTracks?: (payload: { id: string; source: 'YT' | 'SC' }) => Promise<{
         title: string;
@@ -287,7 +289,7 @@ declare global {
         artworkUrl?: string;
         tracks: any[];
       }>;
-      getArtistDetails?: (artistName: string, source?: 'YT' | 'SC') => Promise<ArtistDetails>;
+      getArtistDetails?: (artistName: string, source?: 'YT' | 'SC', browseId?: string) => Promise<ArtistDetails>;
       getAlbum?: (browseId: string, source?: 'YT' | 'SC') => Promise<AlbumDetails>;
       getLyrics?: (videoId: string) => Promise<string | undefined>;
       getGenreTracks?: (query: string) => Promise<Track[]>;

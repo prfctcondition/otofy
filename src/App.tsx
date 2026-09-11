@@ -313,7 +313,12 @@ export default function App() {
     searchStore.clearResults();
     libraryStore.setSelectedFilter('All');
 
-    if (playlistId && playlists.some((p) => p.id === playlistId)) {
+    if (playlistId === 'pl-history' || title.toLowerCase() === 'history') {
+      await libraryStore.selectPlaylist('pl-history');
+      return;
+    }
+
+    if (playlistId && (playlistId.startsWith('pl-') || playlists.some((p) => p.id === playlistId))) {
       await libraryStore.selectPlaylist(playlistId);
       return;
     }
@@ -375,6 +380,27 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Global mouse button navigation: Mouse 4 (Back) & Mouse 5 (Forward)
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      // e.button === 3 -> Mouse 4 (Back)
+      if (e.button === 3) {
+        e.preventDefault();
+        e.stopPropagation();
+        libraryStore.navigateBack();
+      }
+      // e.button === 4 -> Mouse 5 (Forward)
+      else if (e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+        libraryStore.navigateForward();
+      }
+    };
+
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, [libraryStore.navigateBack, libraryStore.navigateForward]);
+
   const handleOpenStation = async (station: StationItem) => {
     libraryStore.setSelectedFilter('All');
     // Instant optimistic navigation
@@ -382,8 +408,8 @@ export default function App() {
       creator: 'Otofy',
       description: station.artistsSummary,
       iconName: 'radio',
-      gradientFrom: '#047857',
-      gradientTo: '#064E3B',
+      gradientFrom: '#1E293B',
+      gradientTo: '#0F172A',
     });
     libraryStore.setIsLoadingTracks(true);
     try {
@@ -392,8 +418,8 @@ export default function App() {
         creator: 'Otofy',
         description: station.artistsSummary,
         iconName: 'radio',
-        gradientFrom: '#047857',
-        gradientTo: '#064E3B',
+        gradientFrom: '#1E293B',
+        gradientTo: '#0F172A',
       });
     } catch (e) {
       console.warn('[App] Open station error:', e);
@@ -411,8 +437,8 @@ export default function App() {
           creator: 'Otofy',
           description: station.artistsSummary,
           iconName: 'radio',
-          gradientFrom: '#047857',
-          gradientTo: '#064E3B',
+          gradientFrom: '#1E293B',
+          gradientTo: '#0F172A',
         });
         setActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
         await playerStore.playTrack(stationTracks[0], stationTracks);
@@ -491,7 +517,7 @@ export default function App() {
     }
   };
 
-  const handleOpenArtistView = async (artistName: string, source?: 'YT' | 'SC') => {
+  const handleOpenArtistView = async (artistName: string, source?: 'YT' | 'SC', browseId?: string) => {
     if (!artistName || artistName.trim().length === 0) return;
     const cleanName = artistName.trim();
     const artistViewId = `artist-${cleanName.toLowerCase().replace(/\s+/g, '-')}`;
@@ -514,7 +540,7 @@ export default function App() {
       // 1. Fetch Official Artist Channel details (Top Songs + Albums) via Innertube / SoundCloud
       if (window.electronAPI?.getArtistDetails) {
         try {
-          const details = await window.electronAPI.getArtistDetails(cleanName, source);
+          const details = await window.electronAPI.getArtistDetails(cleanName, source, browseId);
           if (details) {
             if (!details.avatarUrl && details.topTracks && details.topTracks.length > 0) {
               details.avatarUrl = details.topTracks[0].artworkUrl;
@@ -557,7 +583,7 @@ export default function App() {
       } else {
         // Web API fallback for development outside Electron
         try {
-          const res = await fetch(`/api/music/artist-details?artistName=${encodeURIComponent(cleanName)}&source=${source || 'YT'}`);
+          const res = await fetch(`/api/music/artist-details?artistName=${encodeURIComponent(cleanName)}&source=${source || 'YT'}${browseId ? `&browseId=${encodeURIComponent(browseId)}` : ''}`);
           if (res.ok) {
             const details = await res.json();
             if (details) {
@@ -963,6 +989,7 @@ export default function App() {
                       activeTrackId={activeTrack?.id || ''}
                       isPlaying={isPlaying}
                       isLoading={libraryStore.isLoadingTracks}
+                      hideTrackNumber={currentPlaylist.type === 'Artist'}
                       onTrackSelect={handleSelectTrack}
                       onPlayToggle={playerStore.togglePlay}
                       onToggleLike={libraryStore.toggleLike}
@@ -1039,6 +1066,7 @@ export default function App() {
                     activeTrackId={activeTrack?.id || ''}
                     isPlaying={isPlaying}
                     isLoading={libraryStore.isLoadingTracks}
+                    hideTrackNumber={currentPlaylist.type === 'Artist'}
                     onTrackSelect={handleSelectTrack}
                     onPlayToggle={playerStore.togglePlay}
                     onToggleLike={libraryStore.toggleLike}
@@ -1094,7 +1122,7 @@ export default function App() {
       )}
       {isImportModalOpen && <ImportPlaylistModal isOpen={isImportModalOpen} onClose={libraryStore.toggleImportModal} />}
       {isCreatePlaylistModalOpen && (
-        <CreatePlaylistModal isOpen={isCreatePlaylistModalOpen} onClose={libraryStore.toggleCreatePlaylistModal} />
+        <CreatePlaylistModal isOpen={isCreatePlaylistModalOpen} onClose={libraryStore.closeCreatePlaylistModal} />
       )}
       {editingPlaylist && (
         <EditPlaylistModal

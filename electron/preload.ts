@@ -5,8 +5,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('music:resolve-stream', { trackId, source, title, artist, excludeIds, durationSec }),
   searchMusic: (query: string, source?: 'YT' | 'SC' | 'ALL') =>
     ipcRenderer.invoke('music:search', { query, source }),
-  getArtistDetails: (artistName: string, source?: 'YT' | 'SC') =>
-    ipcRenderer.invoke('music:get-artist-details', { artistName, source }),
+  updateDiscordPresence: (payload: any) =>
+    ipcRenderer.invoke('discord:update-presence', payload),
+  clearDiscordPresence: () =>
+    ipcRenderer.invoke('discord:clear-presence'),
+  getArtistDetails: (artistName: string, source?: 'YT' | 'SC', browseId?: string) =>
+    ipcRenderer.invoke('music:get-artist-details', { artistName, source, browseId }),
   getAlbum: (browseId: string, source?: 'YT' | 'SC') =>
     ipcRenderer.invoke('music:get-album', { browseId, source }),
   getLyrics: (videoId: string) =>

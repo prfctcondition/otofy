@@ -8,7 +8,7 @@ import type { SearchResult, SearchPlaylistResult, Track } from '../types';
 interface SearchResultsOverlayProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenArtist?: (artistName: string, source?: 'YT' | 'SC') => void;
+  onOpenArtist?: (artistName: string, source?: 'YT' | 'SC', browseId?: string) => void;
 }
 
 export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
@@ -96,10 +96,10 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
     }, 1800);
   };
 
-  const handleArtistClick = (artistName: string, e: React.MouseEvent, source?: 'YT' | 'SC') => {
+  const handleArtistClick = (artistName: string, e: React.MouseEvent, source?: 'YT' | 'SC', browseId?: string) => {
     e.stopPropagation();
     if (onOpenArtist) {
-      onOpenArtist(artistName, source);
+      onOpenArtist(artistName, source, browseId);
       onClose();
     }
   };
@@ -319,7 +319,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
           {artistCard && (
             <div
               className="mb-2.5 p-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 flex items-center justify-between gap-3 hover:bg-black/[0.08] dark:hover:bg-white/[0.12] transition-all cursor-pointer group shadow-xs"
-              onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT')}
+              onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT', artistCard.browseId)}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-black/80 dark:bg-white/20 border-2 border-white/90 shadow-md">
@@ -352,7 +352,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
               </div>
 
               <button
-                onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT')}
+                onClick={(e) => handleArtistClick(artistCard.name, e, artistCard.source || 'YT', artistCard.browseId)}
                 className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/20 hover:bg-white dark:hover:bg-white/30 text-[#0F172A] dark:text-white shadow-xs border border-black/10 dark:border-white/20 flex-shrink-0 transition-all"
               >
                 <span>View Discography</span>
@@ -413,7 +413,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                   onClick={(e) => handleAdd(result, e)}
                   className={`p-2 rounded-full transition-all cursor-pointer ${
                     addedIds[result.id]
-                      ? 'bg-emerald-500 text-white shadow-sm'
+                      ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-sm'
                       : 'hover:bg-white/80 dark:hover:bg-white/15 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white'
                   }`}
                   title={addedIds[result.id] ? 'Added to playlist!' : 'Add to current playlist'}

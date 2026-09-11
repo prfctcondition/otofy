@@ -62,8 +62,9 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
     }
   }, [currentTime, lyricsData, activeLineIndex]);
 
-  // Smooth scroll to active line
+  // Smooth scroll to active line (muted when hidden/blurred)
   useEffect(() => {
+    if (document.hidden || !document.hasFocus()) return;
     if (activeLineRef.current && scrollContainerRef.current) {
       activeLineRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -192,6 +193,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                     key={idx}
                     ref={isActive ? activeLineRef : null}
                     onClick={() => seek(line.time)}
+                    style={{ contentVisibility: 'auto', containIntrinsicSize: '0 48px' }}
                     className={`cursor-pointer transition-all duration-200 rounded-xl px-4 py-2 ${
                       isActive
                         ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#0F172A] dark:border-white text-[#0F172A] dark:text-white font-black text-xl scale-[1.01] shadow-xs'

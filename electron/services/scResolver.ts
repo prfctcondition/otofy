@@ -218,7 +218,36 @@ export async function search(query: string): Promise<SCSearchResult[]> {
     return true;
   });
 
-  return validCollection.map((item: any) => {
+  // Score and rank tracks: prioritize verified creators, high followers, high playbacks, and exact matches
+  const cleanQ = query.trim().toLowerCase();
+  const sortedCollection = [...validCollection].sort((a: any, b: any) => {
+    const scoreTrack = (item: any) => {
+      let score = 0;
+      const uName = (item.user?.username || '').toLowerCase();
+      const title = (item.title || '').toLowerCase();
+      const followers = typeof item.user?.followers_count === 'number' ? item.user.followers_count : 0;
+      const playbacks = typeof item.playback_count === 'number' ? item.playback_count : 0;
+      const likes = typeof item.likes_count === 'number' ? item.likes_count : 0;
+
+      if (item.user?.verified) score += 1_000_000;
+      if (uName === cleanQ) score += 500_000;
+      else if (uName.startsWith(cleanQ)) score += 100_000;
+      else if (uName.includes(cleanQ)) score += 30_000;
+
+      if (title === cleanQ) score += 100_000;
+      else if (title.startsWith(cleanQ)) score += 40_000;
+      else if (title.includes(cleanQ)) score += 20_000;
+
+      score += Math.min(followers / 10, 500_000);
+      score += Math.min(playbacks / 1000, 300_000);
+      score += Math.min(likes / 100, 200_000);
+
+      return score;
+    };
+    return scoreTrack(b) - scoreTrack(a);
+  });
+
+  return sortedCollection.map((item: any) => {
     const durationSec = Math.round((item.duration || 0) / 1000);
     const rawArtwork: string = item.artwork_url || item.user?.avatar_url || '';
     const artworkUrl = rawArtwork ? rawArtwork.replace('-large.', '-t500x500.') : undefined;
@@ -280,31 +309,74 @@ export async function getArtistDetails(artistNameOrId: string) {
     } catch {}
   }
 
+  // Search users and score profiles by popularity, verified badge, followers, and catalog size
   if (!user) {
     try {
       const uSearch = await fetchSC('https://api-v2.soundcloud.com/search/users', {
         q: artistNameOrId,
-        limit: 1,
+        limit: 15,
       });
       if (uSearch.ok) {
         const uData = await uSearch.json();
-        user = uData.collection?.[0];
+        const collection = (uData.collection || []) as any[];
+        if (collection.length > 0) {
+          const cleanQ = artistNameOrId.trim().toLowerCase();
+          const scored = collection
+            .map((u: any) => {
+              const uname = (u.username || '').trim().toLowerCase();
+              const permalink = (u.permalink || '').trim().toLowerCase();
+              let score = 0;
+              if (uname === cleanQ || permalink === cleanQ) score += 2_000_000;
+              else if (uname.startsWith(cleanQ) || permalink.startsWith(cleanQ)) score += 200_000;
+              else if (uname.includes(cleanQ) || permalink.includes(cleanQ)) score += 20_000;
+
+              if (u.verified) score += 1_000_000;
+              const followers = typeof u.followers_count === 'number' ? u.followers_count : 0;
+              score += Math.min(followers, 10_000_000);
+              const tracks = typeof u.track_count === 'number' ? u.track_count : 0;
+              score += Math.min(tracks * 100, 100_000);
+              return { u, score };
+            })
+            .sort((a: { u: any; score: number }, b: { u: any; score: number }) => b.score - a.score);
+
+          if (scored[0]) {
+            user = scored[0].u;
+          }
+        }
       }
     } catch {}
   }
 
-  // Fallback: search tracks to extract user profile
+  // Fallback: search tracks to extract best user profile
   if (!user) {
     try {
       const tSearch = await fetchSC('https://api-v2.soundcloud.com/search/tracks', {
         q: artistNameOrId,
-        limit: 5,
+        limit: 15,
       });
       if (tSearch.ok) {
         const tData = await tSearch.json();
-        const candidate = tData.collection?.find((t: any) => t.user?.id);
-        if (candidate) {
-          user = candidate.user;
+        const candidates = (tData.collection || [])
+          .map((t: any) => t.user)
+          .filter((u: any) => Boolean(u && u.id));
+        if (candidates.length > 0) {
+          const cleanQ = artistNameOrId.trim().toLowerCase();
+          const scored = candidates
+            .map((u: any) => {
+              const uname = (u.username || '').trim().toLowerCase();
+              let score = 0;
+              if (uname === cleanQ) score += 500_000;
+              else if (uname.includes(cleanQ)) score += 50_000;
+              if (u.verified) score += 100_000;
+              const followers = typeof u.followers_count === 'number' ? u.followers_count : 0;
+              score += Math.min(followers, 1_000_000);
+              return { u, score };
+            })
+            .sort((a: { u: any; score: number }, b: { u: any; score: number }) => b.score - a.score);
+
+          if (scored[0]) {
+            user = scored[0].u;
+          }
         }
       }
     } catch {}
@@ -579,29 +651,37 @@ export async function getGenreTracks(genre: string): Promise<SCSearchResult[]> {
     return true;
   });
 
-  return valid.map((item: any) => {
-    const durSec = Math.round((item.duration || 0) / 1000);
-    const rawArtwork: string = item.artwork_url || item.user?.avatar_url || '';
-    const artworkUrl = rawArtwork ? rawArtwork.replace('-large.', '-t500x500.') : undefined;
+  const stopWords = ['type beat', 'free beat', 'instrumental prod', '1 hour', 'full album', 'megamix', 'continuous mix', 'hour loop', '10 hours'];
 
-    const rawArtist =
-      item.publisher_metadata?.artist ||
-      item.publisher_metadata?.album_artist ||
-      item.user?.username;
-    const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+  return valid
+    .map((item: any) => {
+      const durSec = Math.round((item.duration || 0) / 1000);
+      const rawArtwork: string = item.artwork_url || item.user?.avatar_url || '';
+      const artworkUrl = rawArtwork ? rawArtwork.replace('-large.', '-t500x500.') : undefined;
 
-    return {
-      id: String(item.id),
-      title,
-      artist,
-      album: item.publisher_metadata?.album_title || genre,
-      duration: formatDuration(durSec),
-      durationSec: durSec,
-      source: 'SC' as const,
-      artworkUrl,
-      sourceId: String(item.id),
-    };
-  });
+      const rawArtist =
+        item.publisher_metadata?.artist ||
+        item.publisher_metadata?.album_artist ||
+        item.user?.username;
+      const { title, artist } = cleanArtistAndTitle(item.title || 'Untitled', rawArtist);
+
+      return {
+        id: String(item.id),
+        title,
+        artist,
+        album: item.publisher_metadata?.album_title || genre,
+        duration: formatDuration(durSec),
+        durationSec: durSec,
+        source: 'SC' as const,
+        artworkUrl,
+        sourceId: String(item.id),
+      };
+    })
+    .filter((track) => {
+      if (track.durationSec < 30 || track.durationSec > 600) return false;
+      const text = `${track.title} ${track.artist}`.toLowerCase();
+      return !stopWords.some((sw) => text.includes(sw));
+    });
 }
 
 export async function getRelatedTracks(trackId: string): Promise<SCSearchResult[]> {

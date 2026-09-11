@@ -14,6 +14,7 @@ import {
   Headphones,
   Waves,
   Zap,
+  History,
 } from 'lucide-react';
 import {
   QUICK_ACCESS_ITEMS,
@@ -88,8 +89,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         return <Waves size={20} className="text-orange-200" />;
       case 'flame':
         return <Flame size={20} className="text-pink-200 fill-pink-200" />;
+      case 'history':
+        return <History size={20} className="text-slate-200" />;
       case 'radio':
-        return <Radio size={20} className="text-emerald-200" />;
+        return <Radio size={20} className="text-slate-200" />;
       case 'disc':
         return <Disc size={20} className="text-purple-200" />;
       case 'music':

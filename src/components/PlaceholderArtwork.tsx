@@ -13,6 +13,7 @@ import {
   User,
   Sliders,
   Download,
+  History,
 } from 'lucide-react';
 import { IconType } from '../types';
 
@@ -126,6 +127,8 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
         return <Sliders {...props} />;
       case 'download':
         return <Download {...props} />;
+      case 'history':
+        return <History {...props} />;
       default:
         return <Music {...props} />;
     }

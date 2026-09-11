@@ -247,10 +247,10 @@ export const GENRE_PRESETS: GenrePreset[] = [
     title: 'Daily Mix 5',
     mixNumber: 5,
     subtitle: 'Brian Eno, Stars of the Lid, Hammock, Tim Hecker and more.',
-    badgeColor: '#84CC16',
+    badgeColor: '#0284C7',
     badgeTextColor: '#0F172A',
     cardVariant: 'mix',
-    bgGradient: 'from-emerald-950 via-teal-900 to-slate-900',
+    bgGradient: 'from-slate-950 via-teal-950 to-slate-900',
     searchQueries: ['ambient deep sleep meditation music', 'ambient spatial relaxation'],
     fallbackTracks: [
       {
@@ -429,6 +429,33 @@ export async function fetchGenreTracks(query: string): Promise<Track[]> {
   return [];
 }
 
+export const CURATION_STOP_WORDS = [
+  'type beat',
+  'free beat',
+  'instrumental prod',
+  '1 hour',
+  'full album',
+  'megamix',
+  'continuous mix',
+  'hour loop',
+  '10 hours',
+];
+
+export function isCuratedTrackValid(track: { title?: string; artist?: string; durationSec?: number }): boolean {
+  if (track.durationSec !== undefined && track.durationSec > 0) {
+    if (track.durationSec < 30 || track.durationSec > 600) {
+      return false;
+    }
+  }
+  const fullText = `${track.title || ''} ${track.artist || ''}`.toLowerCase();
+  for (const sw of CURATION_STOP_WORDS) {
+    if (fullText.includes(sw)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export async function fetchGenreTracksBatch(queries: string[]): Promise<Track[]> {
   const allTracks: Track[] = [];
   const seenIds = new Set<string>();
@@ -439,6 +466,7 @@ export async function fetchGenreTracksBatch(queries: string[]): Promise<Track[]>
     try {
       const batch = await fetchGenreTracks(q);
       for (const t of batch) {
+        if (!isCuratedTrackValid(t)) continue;
         const key = `${t.artist.toLowerCase()} - ${t.title.toLowerCase()}`;
         if (!seenIds.has(t.sourceId) && !seenTitles.has(key)) {
           seenIds.add(t.sourceId);
@@ -527,11 +555,52 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
   storedMixesCache = null;
   const mixes: DailyMixConfig[] = [];
 
+  // Extract user's favorite artists from likes & history to personalize curation
+  let topUserArtists: string[] = [];
+  try {
+    const [likedTracks, historyTracks] = await Promise.all([
+      repo.getLikedTracks().catch(() => []),
+      repo.getHistoryTracks().catch(() => []),
+    ]);
+    const artistScores = new Map<string, number>();
+    for (const t of likedTracks) {
+      if (t.artist) {
+        const clean = t.artist.split(',')[0].split('&')[0].trim();
+        if (clean.length > 1) {
+          artistScores.set(clean, (artistScores.get(clean) || 0) + 3);
+        }
+      }
+    }
+    for (const t of historyTracks) {
+      if (t.artist) {
+        const clean = t.artist.split(',')[0].split('&')[0].trim();
+        if (clean.length > 1) {
+          artistScores.set(clean, (artistScores.get(clean) || 0) + 1);
+        }
+      }
+    }
+    topUserArtists = Array.from(artistScores.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map((entry) => entry[0])
+      .slice(0, 10);
+  } catch (e) {
+    console.warn('[DailyMix] Personalization scoring error:', e);
+  }
+
   for (let i = 0; i < GENRE_PRESETS.length; i++) {
     const preset = GENRE_PRESETS[i];
     const mixId = `mix-${preset.mixNumber}`;
     const dailyQuery = getDailyQueryForMix(preset.mixNumber) || preset.genre;
-    const queriesToFetch = [dailyQuery, ...(preset.searchQueries || [])];
+
+    // Weave personalized artist queries into the search batch
+    const userArtist = topUserArtists[i % Math.max(1, topUserArtists.length)];
+    const personalizedQuery = userArtist ? `${userArtist} radio` : null;
+
+    const queriesToFetch = [
+      ...(personalizedQuery ? [personalizedQuery] : []),
+      dailyQuery,
+      ...(preset.searchQueries || []),
+    ];
 
     let mixTracks = await fetchGenreTracksBatch(queriesToFetch);
 

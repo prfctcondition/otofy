@@ -75,12 +75,19 @@ export interface DbSetting {
   value: string;
 }
 
+export interface DbHistoryItem {
+  id?: number;
+  trackId: string;
+  playedAt: number;
+}
+
 export class ZenMusicDB extends Dexie {
   tracks!: Table<DbTrack, string>;
   playlists!: Table<DbPlaylist, string>;
   playlistTracks!: Table<DbPlaylistTrack, number>;
   dailyMixes!: Table<DbDailyMix, string>;
   settings!: Table<DbSetting, string>;
+  history!: Table<DbHistoryItem, number>;
 
   constructor() {
     super('ZenMusicDB');
@@ -90,6 +97,9 @@ export class ZenMusicDB extends Dexie {
       playlistTracks: '++id, playlistId, trackId, position',
       dailyMixes: 'id, genre, lastGeneratedAt',
       settings: 'key',
+    });
+    this.version(2).stores({
+      history: '++id, trackId, playedAt',
     });
   }
 }

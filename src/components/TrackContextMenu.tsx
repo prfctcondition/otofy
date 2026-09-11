@@ -305,7 +305,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
+      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-black backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
     >
       {/* Track / Selection Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
@@ -420,7 +420,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           <div
             className={`absolute top-0 ${
               coords.left + 256 + 220 > window.innerWidth - 10 ? 'right-full -mr-1' : 'left-full -ml-1'
-            } w-52 py-1.5 rounded-2xl bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] max-h-56 overflow-y-auto z-50`}
+            } w-52 py-1.5 rounded-2xl bg-white/95 dark:bg-black backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] max-h-56 overflow-y-auto z-50`}
           >
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-white/50">
               Playlists
@@ -435,7 +435,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                   <span className="truncate">Liked Songs</span>
                 </div>
                 {containingPlaylistIds.has('pl-liked') && (
-                  <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <Check size={14} className="text-[#0F172A] dark:text-white shrink-0" />
                 )}
               </button>
             )}
@@ -454,7 +454,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                   >
                     <span className="truncate pr-2">{pl.title}</span>
                     {isTrackInPl && (
-                      <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <Check size={14} className="text-[#0F172A] dark:text-white shrink-0" />
                     )}
                   </button>
                 );
@@ -500,7 +500,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               openDownloadedFile(track);
               onClose();
             }}
-            className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-emerald-600 dark:text-emerald-400 cursor-pointer"
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#0F172A] dark:text-white font-medium cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
               <Check size={15} />
@@ -589,7 +589,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               useDownloadStore.getState().resumeTrack(track.id);
               onClose();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-emerald-500 transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-[#0F172A] dark:text-white font-medium transition-colors text-left cursor-pointer"
           >
             <Play size={14} fill="currentColor" />
             <span>Resume download</span>
@@ -647,8 +647,8 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         >
           {copied ? (
             <>
-              <Check size={15} className="text-emerald-600 dark:text-emerald-400" />
-              <span className="text-emerald-600 dark:text-emerald-400">Copied to clipboard!</span>
+              <Check size={15} className="text-[#0F172A] dark:text-white" />
+              <span className="text-[#0F172A] dark:text-white font-bold">Copied to clipboard!</span>
             </>
           ) : (
             <>

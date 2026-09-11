@@ -12,7 +12,7 @@ interface EditPlaylistModalProps {
 const GRADIENTS = [
   { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
-  { from: '#34D399', to: '#0D9488', name: 'Emerald Teal' },
+  { from: '#64748B', to: '#1E293B', name: 'Steel Slate' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
   { from: '#E879F9', to: '#C026D3', name: 'Fuchsia Pink' },
   { from: '#FBBF24', to: '#EAB308', name: 'Amber Yellow' },

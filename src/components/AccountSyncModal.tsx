@@ -244,13 +244,13 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         {/* Info Card */}
         <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 mb-5 flex items-start gap-3.5 backdrop-blur-md">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
+          <div className="p-2.5 rounded-xl bg-slate-900/10 dark:bg-white/10 text-[#0F172A] dark:text-white border border-slate-900/20 dark:border-white/20 shrink-0 mt-0.5">
             <ShieldCheck size={20} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">Account Free by Default</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white rounded-full border border-slate-300 dark:border-white/20">
                 Optional
               </span>
             </div>
@@ -278,7 +278,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         {/* Status Banners */}
         {!isSyncing && statusMessage && (
-          <div className="mb-4 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl text-xs font-medium">
+          <div className="mb-4 flex items-center gap-2 text-[#0F172A] dark:text-white bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 p-3 rounded-xl text-xs font-medium">
             <CheckCircle2 size={16} className="shrink-0" />
             <span>{statusMessage}</span>
           </div>
@@ -309,7 +309,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               </div>
 
               {ytConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>
@@ -371,7 +371,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               </div>
 
               {scConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>

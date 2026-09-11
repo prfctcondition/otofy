@@ -89,6 +89,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
   }, [currentTime, lyricsData, activeLineIndex]);
 
   useEffect(() => {
+    if (document.hidden || !document.hasFocus()) return;
     if (activeLineRef.current && scrollContainerRef.current) {
       activeLineRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -281,6 +282,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                   key={idx}
                   ref={isActive ? activeLineRef : null}
                   onClick={() => seek(line.time)}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '0 36px' }}
                   className={`cursor-pointer transition-all duration-200 rounded-xl px-3 py-1.5 ${
                     isActive
                       ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#0F172A] dark:border-white text-[#0F172A] dark:text-white font-extrabold text-base scale-[1.01] shadow-2xs'

@@ -24,6 +24,7 @@ interface DenseTrackTableProps {
   activeTrackId: string;
   isPlaying: boolean;
   isLoading?: boolean;
+  hideTrackNumber?: boolean;
   onTrackSelect: (track: Track, queue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
@@ -38,6 +39,7 @@ interface TrackRowProps {
   isSelected: boolean;
   isPlaying: boolean;
   isBuffering: boolean;
+  hideTrackNumber?: boolean;
   onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
@@ -90,6 +92,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   isSelected,
   isPlaying,
   isBuffering,
+  hideTrackNumber,
   onRowClick,
   onDoubleClick,
   onPlayToggle,
@@ -107,28 +110,23 @@ const TrackRow = React.memo<TrackRowProps>(({
   return (
     <div
       id={`track-row-${track.id}`}
+      onClick={(e) => onRowClick(e, track, index)}
+      onDoubleClick={() => onDoubleClick(track)}
+      onContextMenu={(e) => onOpenContextMenu(e, track)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={(e) => onRowClick(e, track, index)}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        onDoubleClick(track);
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onOpenContextMenu(e, track);
-      }}
-      className={`group relative flex items-center flex-nowrap gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all duration-150 select-none ${
-        isCurrent && isSelected
-          ? 'bg-slate-200/90 dark:bg-white/[0.12] border-2 border-[#0F172A]/40 dark:border-white/50 text-[#0F172A] dark:text-white shadow-xs'
-          : isCurrent
-          ? 'border border-[#0F172A]/20 dark:border-white/25 hover:bg-white/50 dark:hover:bg-white/[0.06] text-[#0F172A] dark:text-white shadow-xs'
-          : isSelected
-          ? 'bg-slate-200/90 dark:bg-white/[0.12] border border-slate-300/80 dark:border-white/20 text-[#0F172A] dark:text-white shadow-xs'
-          : 'border border-transparent hover:bg-white/50 dark:hover:bg-white/[0.06] hover:border hover:border-white/80 dark:hover:border-white/10 text-[#334155] dark:text-white/80'
+      className={`group flex items-center flex-nowrap gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative cursor-pointer border ${
+        isSelected
+          ? 'bg-black/[0.08] dark:bg-white/[0.14] border-black/20 dark:border-white/20 shadow-xs'
+          : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+      } ${
+        isCurrent
+          ? 'text-[#0F172A] dark:text-white font-semibold'
+          : 'text-[#334155] dark:text-white/80'
       }`}
     >
-      <div className="w-8 shrink-0 flex items-center justify-center text-sm font-medium">
+      {/* 1. Track Number / Play Button Column */}
+      <div className="w-8 shrink-0 flex items-center justify-center">
         {isHovered ? (
           <button
             onClick={(e) => {
@@ -139,12 +137,10 @@ const TrackRow = React.memo<TrackRowProps>(({
                 onDoubleClick(track);
               }
             }}
-            className="text-[#0F172A] dark:text-white hover:text-black dark:hover:text-white active:scale-90 transition-all p-1"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[#0F172A] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
             title={isCurrent && isPlaying ? 'Pause' : 'Play'}
           >
-            {isCurrent && isBuffering ? (
-              <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" />
-            ) : isCurrent && isPlaying ? (
+            {isCurrent && isPlaying ? (
               <Pause size={14} fill="currentColor" />
             ) : (
               <Play size={14} fill="currentColor" />
@@ -159,13 +155,15 @@ const TrackRow = React.memo<TrackRowProps>(({
             <span className="w-0.5 bg-[#0F172A]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
           </div>
         ) : (
-          <span
-            className={`text-xs ${
-              isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
-            }`}
-          >
-            {track.number || index + 1}
-          </span>
+          !hideTrackNumber && (
+            <span
+              className={`text-xs ${
+                isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
+              }`}
+            >
+              {index + 1}
+            </span>
+          )
         )}
       </div>
 
@@ -286,7 +284,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().resumeTrack(track.id);
             }}
-            className="p-1 rounded-full text-amber-500 hover:text-emerald-500 transition-colors cursor-pointer shrink-0"
+            className="p-1 rounded-full text-amber-500 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer shrink-0"
             title="Download paused (Click to resume)"
           >
             <Pause size={15} />
@@ -297,7 +295,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               openDownloadedFile(track);
             }}
-            className="p-1 rounded-full text-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer shrink-0"
+            className="p-1 rounded-full text-[#0F172A] dark:text-white hover:opacity-80 transition-colors cursor-pointer shrink-0"
             title="Downloaded (Click to show in folder)"
           >
             <Check size={15} strokeWidth={2.5} />
@@ -347,6 +345,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   activeTrackId,
   isPlaying,
   isLoading = false,
+  hideTrackNumber = false,
   onTrackSelect,
   onPlayToggle,
   onToggleLike,
@@ -496,7 +495,9 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       className="w-full px-6 py-2 select-none"
     >
       <div className="flex items-center flex-nowrap gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
-        <div className="w-8 shrink-0 flex items-center justify-center">#</div>
+        <div className="w-8 shrink-0 flex items-center justify-center">
+          {hideTrackNumber ? '' : '#'}
+        </div>
         <div className="flex-1 min-w-0 flex items-center">Title</div>
         <div className="hidden md:flex items-center min-w-0 w-36 lg:w-56 shrink-0">Album</div>
         <div className="hidden lg:flex items-center min-w-0 w-28 shrink-0">Date Added</div>
@@ -534,6 +535,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isSelected={selectedTrackIds.has(track.id)}
               isPlaying={isPlaying}
               isBuffering={isBuffering}
+              hideTrackNumber={hideTrackNumber}
               onRowClick={handleRowClick}
               onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}

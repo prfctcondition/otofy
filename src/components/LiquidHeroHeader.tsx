@@ -319,10 +319,10 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </span>
               {(playlist.isSynced || playlist.id.startsWith('pl-yt-') || playlist.id.startsWith('pl-sc-')) && (
                 <span
-                  className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                  className="text-[10px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-white bg-slate-900/10 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-slate-900/20 dark:border-white/20 flex items-center gap-1.5 shadow-xs"
                   title={playlist.syncSource === 'youtube' ? 'Synced with YouTube Music' : playlist.syncSource === 'soundcloud' ? 'Synced with SoundCloud' : 'Synced Playlist'}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A] dark:bg-white animate-pulse" />
                   {playlist.syncSource === 'youtube'
                     ? 'Synced • YouTube Music'
                     : playlist.syncSource === 'soundcloud'
@@ -339,11 +339,15 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
             {/* Giant Bold Title */}
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#0F172A] dark:text-white leading-tight mb-2 drop-shadow-xs">
-              {playlist.title}
+              {playlist.id === 'pl-history' ? 'Listening History' : playlist.title}
             </h1>
 
             {/* Playlist Description or Clickable Artists Subtitle */}
-            {playlist.description ? (
+            {playlist.id === 'pl-history' ? (
+              <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
+                Your last 50 played tracks
+              </p>
+            ) : playlist.description ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
                 {playlist.description}
               </p>
@@ -526,6 +530,22 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </button>
             )}
 
+            {/* Clear History Button (when viewing listening history) */}
+            {playlist.id === 'pl-history' && (
+              <button
+                id="hero-clear-history-btn"
+                onClick={async () => {
+                  await useLibraryStore.getState().clearListeningHistory?.();
+                  useToastStore.getState().success('History Cleared', 'Listening history has been cleared.');
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer bg-white/85 dark:bg-white/[0.08] hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 text-[#0F172A] dark:text-white border border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md"
+                title="Clear all listening history"
+              >
+                <Trash2 size={16} strokeWidth={2.5} />
+                <span>Clear History</span>
+              </button>
+            )}
+
             {/* Download Button */}
             <button
               id="hero-download-button"
@@ -537,7 +557,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               disabled={isBatchDownloading || allDownloaded || tracks.length === 0}
               className={`p-2.5 rounded-full transition-colors cursor-pointer disabled:cursor-not-allowed ${
                 allDownloaded
-                  ? 'text-emerald-500 hover:bg-emerald-500/10'
+                  ? 'text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                   : isBatchDownloading
                   ? 'text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                   : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10'
@@ -589,7 +609,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       {playlist.type === 'Artist' ? (
                         isArtistFollowed ? (
                           <>
-                            <Check size={15} className="text-emerald-600" />
+                            <Check size={15} className="text-[#0F172A] dark:text-white" />
                             <span>Unfollow artist</span>
                           </>
                         ) : (
@@ -601,7 +621,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       ) : playlist.type === 'Album' ? (
                         isAlbumSaved ? (
                           <>
-                            <Check size={15} className="text-emerald-600" />
+                            <Check size={15} className="text-[#0F172A] dark:text-white" />
                             <span>Remove from My Albums</span>
                           </>
                         ) : (
@@ -612,7 +632,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                         )
                       ) : isSavedInLibrary ? (
                         <>
-                          <Check size={15} className="text-emerald-600" />
+                          <Check size={15} className="text-[#0F172A] dark:text-white" />
                           <span>Remove from Your Library</span>
                         </>
                       ) : (
@@ -668,6 +688,22 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                       >
                         <Download size={15} className="text-[#64748B] dark:text-white/70" />
                         <span>Download all tracks (MP3 320kbps)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {playlist.id === 'pl-history' && (
+                    <div className="border-t border-slate-100 dark:border-white/10 my-1 pt-1">
+                      <button
+                        onClick={async () => {
+                          setIsOptionsMenuOpen(false);
+                          await useLibraryStore.getState().clearListeningHistory?.();
+                          useToastStore.getState().success('History Cleared', 'Listening history has been cleared.');
+                        }}
+                        className="w-full px-3.5 py-2 text-left text-xs font-semibold text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={15} className="text-red-500" />
+                        <span>Clear Listening History</span>
                       </button>
                     </div>
                   )}
@@ -755,13 +791,13 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                         }}
                         className={`w-full px-3.5 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                           isActive
-                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                            ? 'text-[#0F172A] dark:text-white bg-black/[0.04] dark:bg-white/[0.08] font-bold'
                             : 'text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'
                         }`}
                       >
                         <span>{opt.label}</span>
                         {isActive && (
-                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                          <div className="flex items-center gap-1.5 text-[#0F172A] dark:text-white">
                             {tracklistSortOrder === 'asc' ? (
                               <ArrowUp size={13} strokeWidth={2.5} />
                             ) : (

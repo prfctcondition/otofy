@@ -200,7 +200,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
             <div>
               <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">10-Band Equalizer</h2>
               <p className="text-xs text-[#64748B] dark:text-white/70 flex items-center gap-1.5 mt-0.5">
-                <Activity size={12} className="text-emerald-500 animate-pulse" />
+                <Activity size={12} className="text-[#0F172A] dark:text-white animate-pulse" />
                 Web Audio Parametric Engine (-12dB to +12dB)
               </p>
             </div>

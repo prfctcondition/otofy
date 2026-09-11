@@ -14,6 +14,7 @@ import spotifyService from './services/spotifyService.js';
 import authService from './services/authService.js';
 import cloudSyncService from './services/cloudSyncService.js';
 import updateService from './services/updateService.js';
+import discordRpc from './services/discordRpcService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,6 +75,12 @@ const downloadQueue = new DownloadQueueManager(getDefaultDownloadsPath());
 if (initialConfig.hardwareAcceleration === false) {
   app.disableHardwareAcceleration();
 }
+
+// Prevent black screen during Discord/OBS window streaming
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+
+// Enable native Windows System Media Transport Controls (SMTC) & hardware media keys
+app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling');
 
 // Register custom protocol for local audio streaming with Range support & Web Audio API graph
 protocol.registerSchemesAsPrivileged([
@@ -176,7 +183,9 @@ function createWindow() {
     },
     titleBarStyle: 'hidden',
     frame: false,
-    backgroundColor: '#000000',
+    transparent: false,
+    paintWhenInitiallyHidden: false,
+    backgroundColor: '#0F172A',
   });
 
   mainWindow.on('maximize', () => {
@@ -271,6 +280,16 @@ ipcMain.handle('music:search-playlists', async (_event, { query, source }: { que
   return await searchService.searchPlaylists(query, source);
 });
 
+ipcMain.handle('discord:update-presence', async (_event, payload: any) => {
+  discordRpc.updatePresence(payload);
+  return true;
+});
+
+ipcMain.handle('discord:clear-presence', async () => {
+  discordRpc.clearPresence();
+  return true;
+});
+
 ipcMain.handle('music:get-playlist-tracks', async (_event, { id, source }: { id: string; source: 'YT' | 'SC' }) => {
   if (source === 'SC') {
     return await scResolver.getAlbum(id);
@@ -278,8 +297,9 @@ ipcMain.handle('music:get-playlist-tracks', async (_event, { id, source }: { id:
   return await innertubeService.getPlaylistTracks(id);
 });
 
-ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }: { artistName: string; source?: 'YT' | 'SC' }) => {
-  const cacheKey = `artist:${artistName.toLowerCase().trim()}:${source || 'ALL'}`;
+ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, browseId }: { artistName: string; source?: 'YT' | 'SC'; browseId?: string }) => {
+  const target = (browseId || artistName || '').trim();
+  const cacheKey = `artist:${target.toLowerCase()}:${source || 'ALL'}`;
   const cached = getIpcCache(cacheKey);
   if (cached) return cached;
 
@@ -289,7 +309,7 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source }
     return res;
   }
   try {
-    const ytDetails = await innertubeService.getArtist(artistName);
+    const ytDetails = await innertubeService.getArtist(target);
     if (ytDetails && (ytDetails.topTracks.length > 0 || ytDetails.albums.length > 0)) {
       if (!ytDetails.avatarUrl || ytDetails.albums.length === 0) {
         try {
@@ -1193,6 +1213,7 @@ app.on('before-quit', () => {
 });
 
 app.on('will-quit', () => {
+  discordRpc.destroy();
   globalShortcut.unregisterAll();
 });
 

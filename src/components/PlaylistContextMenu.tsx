@@ -182,8 +182,8 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
       >
         {copied ? (
           <>
-            <Check size={15} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-emerald-600 dark:text-emerald-400">Code copied!</span>
+            <Check size={15} className="text-[#0F172A] dark:text-white" />
+            <span className="text-[#0F172A] dark:text-white font-bold">Code copied!</span>
           </>
         ) : (
           <>

@@ -133,8 +133,8 @@ export const SettingsScreen: React.FC = () => {
         setUpdateInfo({
           hasUpdate: false,
           canAutoInstall: false,
-          currentVersion: '1.0.2 (Web)',
-          latestVersion: '1.0.2',
+          currentVersion: '1.0.3 (Web)',
+          latestVersion: '1.0.3',
           releaseNotes: 'Running in browser preview mode.',
         });
       }
@@ -583,7 +583,7 @@ export const SettingsScreen: React.FC = () => {
               <h2 className="text-base font-bold">App Updates</h2>
             </div>
             <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
-              v1.0.2
+              v1.0.3
             </span>
           </div>
 
@@ -673,8 +673,8 @@ export const SettingsScreen: React.FC = () => {
 
             {/* Up to date message */}
             {updateInfo && !updateInfo.hasUpdate && !updateInfo.error && (
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300 text-xs font-medium animate-in fade-in">
-                <CheckCircle2 size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 flex items-center gap-2.5 text-[#0F172A] dark:text-white text-xs font-medium animate-in fade-in">
+                <CheckCircle2 size={16} className="shrink-0 text-[#0F172A] dark:text-white" />
                 <span>Otofy is up to date ({updateInfo.currentVersion}).</span>
               </div>
             )}

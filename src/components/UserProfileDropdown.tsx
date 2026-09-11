@@ -83,7 +83,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             {userName || 'Local User'}
           </p>
           <div className="flex items-center gap-1 mt-0.5">
-            <ShieldCheck size={11} className="text-emerald-500 shrink-0" />
+            <ShieldCheck size={11} className="text-[#0F172A] dark:text-white shrink-0" />
             <span className="text-[10px] text-[#64748B] dark:text-white/60 font-medium truncate">
               Otofy Desktop
             </span>
