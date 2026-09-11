@@ -135,8 +135,8 @@ export const SettingsScreen: React.FC = () => {
         setUpdateInfo({
           hasUpdate: false,
           canAutoInstall: false,
-          currentVersion: '1.0.3 (Web)',
-          latestVersion: '1.0.3',
+          currentVersion: '1.0.4 (Web)',
+          latestVersion: '1.0.4',
           releaseNotes: 'Running in browser preview mode.',
         });
       }
@@ -585,7 +585,7 @@ export const SettingsScreen: React.FC = () => {
               <h2 className="text-base font-bold">App Updates</h2>
             </div>
             <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
-              v1.0.3
+              v1.0.4
             </span>
           </div>
 
