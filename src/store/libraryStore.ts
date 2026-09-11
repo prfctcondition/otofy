@@ -168,6 +168,7 @@ interface LibraryActions {
   isAlbumSaved: (id: string, title?: string, artist?: string) => boolean;
   recordEntityPlayed: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
   recordEntityOpened: (id: string, type: 'playlist' | 'artist' | 'album') => Promise<void>;
+  updateTracksPopularity: (popularityMap: Record<string, number>) => Promise<void>;
   clearListeningHistory: () => Promise<void>;
   refreshHistoryTracks: () => Promise<void>;
   setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity', order?: 'asc' | 'desc') => void;
@@ -1226,6 +1227,35 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
   },
 
+  updateTracksPopularity: async (popularityMap: Record<string, number>) => {
+    const currentTracks = get().currentPlaylistTracks;
+    if (currentTracks.length === 0 || Object.keys(popularityMap).length === 0) return;
+
+    let hasChanges = false;
+    const nextTracks = currentTracks.map((t) => {
+      const vid = t.sourceId || t.id;
+      const pop = popularityMap[t.id] || (vid ? popularityMap[vid] : undefined);
+      if (typeof pop === 'number' && pop > 0 && pop !== t.views) {
+        hasChanges = true;
+        return {
+          ...t,
+          views: pop,
+          playbackCount: pop,
+        };
+      }
+      return t;
+    });
+
+    if (hasChanges) {
+      set({ currentPlaylistTracks: nextTracks });
+      for (const t of nextTracks) {
+        if (popularityMap[t.id] || (t.sourceId && popularityMap[t.sourceId])) {
+          await repo.putTrack(t);
+        }
+      }
+    }
+  },
+
   setCurrentView: (view) => {
     const state = get();
     if (state.currentView === view && (view === 'home' || view === 'catalog')) return;
@@ -1419,11 +1449,24 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       const refreshedPlaylists = await repo.getPlaylists();
       set({ playlists: refreshedPlaylists });
 
+      const viewing = get().viewingPlaylist;
       const currentSelectedId = get().selectedPlaylistId;
-      if (currentSelectedId) {
+      // Only refresh currentPlaylistTracks if we are actively viewing a local/synced playlist that actually exists in refreshedPlaylists!
+      // NEVER wipe out artist pages, album views, radio/mixes, or custom views!
+      if (
+        viewing &&
+        viewing.type === 'Playlist' &&
+        currentSelectedId &&
+        !currentSelectedId.startsWith('artist-') &&
+        !currentSelectedId.startsWith('album-') &&
+        !currentSelectedId.startsWith('mix-') &&
+        !currentSelectedId.startsWith('radio-') &&
+        !currentSelectedId.startsWith('view-') &&
+        refreshedPlaylists.some((p) => p.id === currentSelectedId)
+      ) {
         const activeTracks = await repo.getPlaylistTracks(currentSelectedId);
-        const activePl = refreshedPlaylists.find((p) => p.id === currentSelectedId) || get().viewingPlaylist;
-        if (activePl) {
+        if (activeTracks.length > 0 || anyUpdated) {
+          const activePl = refreshedPlaylists.find((p) => p.id === currentSelectedId) || viewing;
           set({
             viewingPlaylist: { ...activePl, songCount: activeTracks.length },
             currentPlaylistTracks: activeTracks,

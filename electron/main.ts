@@ -372,6 +372,26 @@ ipcMain.handle('music:get-lyrics', async (_event, { videoId }: { videoId: string
   return lyrics;
 });
 
+ipcMain.handle(
+  'music:analyze-tracks-popularity',
+  async (_event, tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) => {
+    if (!Array.isArray(tracks) || tracks.length === 0) return {};
+    const ytTracks = tracks.filter((t) => (t.source || 'YT') === 'YT');
+    const scTracks = tracks.filter((t) => t.source === 'SC');
+
+    const [ytRes, scRes] = await Promise.allSettled([
+      ytTracks.length > 0 ? innertubeService.getTracksPopularity(ytTracks) : Promise.resolve({}),
+      scTracks.length > 0 ? scResolver.getTracksPopularity(scTracks) : Promise.resolve({}),
+    ]);
+
+    const result: Record<string, number> = {
+      ...(ytRes.status === 'fulfilled' ? ytRes.value : {}),
+      ...(scRes.status === 'fulfilled' ? scRes.value : {}),
+    };
+    return result;
+  }
+);
+
 ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: string }) => {
   const cacheKey = `genre:${query.toLowerCase().trim()}`;
   const cached = getIpcCache(cacheKey);

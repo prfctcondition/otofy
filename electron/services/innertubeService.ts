@@ -175,8 +175,15 @@ export function parseSubscriberCount(str?: string): number {
 export function parseViewsToNumber(viewsStr?: string | number): number {
   if (typeof viewsStr === 'number') return viewsStr;
   if (!viewsStr || typeof viewsStr !== 'string') return 0;
-  const clean = viewsStr.toLowerCase().replace(/views?/g, '').replace(/,/g, '').trim();
-  const m = clean.match(/^([\d.]+)\s*([kmb])?$/i);
+  let clean = viewsStr.toLowerCase();
+  clean = clean
+    .replace(/\b(million|млн)\b/gi, 'm')
+    .replace(/\b(billion|млрд)\b/gi, 'b')
+    .replace(/\b(thousand|тыс)\b/gi, 'k')
+    .replace(/(views?|plays?|streams?|прослушиван\w*|просмотр\w*)/gi, '')
+    .replace(/,/g, '')
+    .trim();
+  const m = clean.match(/^([\d.]+)\s*([kmb])?/i);
   if (!m) {
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : Math.round(num);
@@ -1834,6 +1841,26 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
 
     const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(rawTitle || 'Untitled', rawArtist || 'Unknown Artist');
 
+    const rawViews =
+      item.views?.text ||
+      item.views ||
+      item.view_count?.text ||
+      item.view_count ||
+      (item.flex_columns || []).find((fc: any) => /plays|views|streams/i.test(fc?.title?.text || ''))?.title?.text;
+    const views = parseViewsToNumber(rawViews);
+
+    const rawYear =
+      item.year?.text ||
+      item.year ||
+      item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
+      item.published?.text;
+    const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+    const releaseDate = rawYear ? String(rawYear) : undefined;
+    const primaryArtistBrowseId = item.artists?.[0]?.id || undefined;
+    const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
+    const albumBrowseId = item.album?.id || undefined;
+    const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
+
     tracks.push({
       id: vId,
       title: tTitle,
@@ -1845,6 +1872,13 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
       sourceLabel: 'YouTube Music',
       artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail) || plThumb,
       sourceId: vId,
+      releaseDate,
+      releaseYear,
+      artistBrowseId: primaryArtistBrowseId,
+      artistUrl,
+      albumBrowseId,
+      externalUrl,
+      views: views || undefined,
     });
   }
 
@@ -1856,12 +1890,42 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
   };
 }
 
+export async function getTracksPopularity(
+  tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>
+): Promise<Record<string, number>> {
+  const yt = await getInnertube();
+  const result: Record<string, number> = {};
+  const ytTracks = tracks.filter((t) => (t.source || 'YT') === 'YT');
+
+  const batchSize = 10;
+  for (let i = 0; i < ytTracks.length; i += batchSize) {
+    const chunk = ytTracks.slice(i, i + batchSize);
+    await Promise.allSettled(
+      chunk.map(async (t) => {
+        const vId = t.sourceId || t.id;
+        if (!vId || !/^[a-zA-Z0-9_-]{11}$/.test(vId)) return;
+        try {
+          const info = await yt.getBasicInfo(vId);
+          const vc = info?.basic_info?.view_count;
+          if (typeof vc === 'number' && vc > 0) {
+            result[t.id] = vc;
+            result[vId] = vc;
+          }
+        } catch {}
+      })
+    );
+  }
+
+  return result;
+}
+
 export default {
   getInnertube,
   resetInnertubeInstance,
   search,
   searchPlaylists,
   getPlaylistTracks,
+  getTracksPopularity,
   getArtist,
   getAlbum,
   getGenreTracks,

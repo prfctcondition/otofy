@@ -322,6 +322,7 @@ declare global {
       getArtistDetails?: (artistName: string, source?: 'YT' | 'SC', browseId?: string) => Promise<ArtistDetails>;
       getAlbum?: (browseId: string, source?: 'YT' | 'SC') => Promise<AlbumDetails>;
       getLyrics?: (videoId: string) => Promise<string | undefined>;
+      analyzeTracksPopularity?: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) => Promise<Record<string, number>>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
       getRelatedTracks?: (
         trackId: string,

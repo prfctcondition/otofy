@@ -42,6 +42,7 @@ interface TrackRowProps {
   isBuffering: boolean;
   hideTrackNumber?: boolean;
   isArtistView?: boolean;
+  tracklistSortBy?: string;
   onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
@@ -51,6 +52,28 @@ interface TrackRowProps {
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
   onOpenConflictModal: (track: Track) => void;
 }
+
+const formatPopularity = (track: Track, isArtistView?: boolean): string => {
+  const views =
+    (typeof track.views === 'number' && track.views > 0 ? track.views : undefined) ??
+    (typeof track.playbackCount === 'number' && track.playbackCount > 0 ? track.playbackCount : undefined) ??
+    (typeof (track as any).playback_count === 'number' && (track as any).playback_count > 0 ? (track as any).playback_count : undefined);
+
+  if (views !== undefined) {
+    if (views >= 1_000_000_000) {
+      return `${(views / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B plays`;
+    }
+    if (views >= 1_000_000) {
+      return `${(views / 1_000_000).toFixed(1).replace(/\.0$/, '')}M plays`;
+    }
+    if (views >= 1_000) {
+      return `${(views / 1_000).toFixed(1).replace(/\.0$/, '')}K plays`;
+    }
+    return `${views.toLocaleString()} plays`;
+  }
+
+  return isArtistView ? (formatUploadedDate(track) || '—') : formatAddedDate(track);
+};
 
 const formatUploadedDate = (track: Track): string => {
   if (track.releaseYear && /^\d{4}$/.test(track.releaseYear.trim())) {
@@ -151,6 +174,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   isBuffering,
   hideTrackNumber,
   isArtistView = false,
+  tracklistSortBy,
   onRowClick,
   onDoubleClick,
   onPlayToggle,
@@ -276,7 +300,11 @@ const TrackRow = React.memo<TrackRowProps>(({
       </div>
 
       <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 truncate">
-        {isArtistView ? (formatUploadedDate(track) || '—') : formatAddedDate(track)}
+        {tracklistSortBy === 'popularity'
+          ? formatPopularity(track, isArtistView)
+          : isArtistView
+          ? (formatUploadedDate(track) || '—')
+          : formatAddedDate(track)}
       </div>
 
       <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 whitespace-nowrap">
@@ -413,6 +441,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   onSelectAlbum,
 }) => {
   const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
+  const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
   const checkStatus = useDownloadStore((s) => s.checkStatus);
 
@@ -561,7 +590,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         <div className="min-w-0 flex items-center">Title</div>
         <div className="hidden md:flex items-center min-w-0">Album</div>
         <div className="hidden lg:flex items-center min-w-0">
-          {isArtistView ? 'Date Uploaded' : 'Date Added'}
+          {tracklistSortBy === 'popularity'
+            ? 'Popularity'
+            : isArtistView
+            ? 'Date Uploaded'
+            : 'Date Added'}
         </div>
         <div className="flex items-center justify-end pr-1 text-right">
           <span className="w-9 flex justify-end mr-6" title="Duration">
@@ -601,6 +634,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isBuffering={isBuffering}
               hideTrackNumber={hideTrackNumber}
               isArtistView={isArtistView}
+              tracklistSortBy={tracklistSortBy}
               onRowClick={handleRowClick}
               onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}

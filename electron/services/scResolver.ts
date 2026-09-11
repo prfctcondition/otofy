@@ -871,4 +871,27 @@ export async function resolveUrl(scUrl: string): Promise<any | null> {
   }
 }
 
-export default { resolve, resolveBySearch, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC, resolveUrl };
+export async function getTracksPopularity(
+  tracks: Array<{ id: string; sourceId?: string }>
+): Promise<Record<string, number>> {
+  const result: Record<string, number> = {};
+  await Promise.allSettled(
+    tracks.map(async (t) => {
+      const sId = t.sourceId || t.id;
+      if (!sId) return;
+      try {
+        const res = await fetchSC(`https://api-v2.soundcloud.com/tracks/${encodeURIComponent(sId)}`);
+        if (res.ok) {
+          const data: any = await res.json();
+          if (typeof data.playback_count === 'number' && data.playback_count > 0) {
+            result[t.id] = data.playback_count;
+            result[sId] = data.playback_count;
+          }
+        }
+      } catch {}
+    })
+  );
+  return result;
+}
+
+export default { resolve, resolveBySearch, search, searchPlaylists, getArtistDetails, getAlbum, getGenreTracks, getRelatedTracks, getClientId, formatDuration, fetchSC, resolveUrl, getTracksPopularity };

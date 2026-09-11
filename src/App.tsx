@@ -242,8 +242,19 @@ export default function App() {
       } else if (tracklistSortBy === 'duration') {
         cmp = (a.durationSec || 0) - (b.durationSec || 0);
       } else if (tracklistSortBy === 'popularity') {
-        const popA = a.views !== undefined ? a.views : (a.playbackCount || (a as any).playback_count || 0);
-        const popB = b.views !== undefined ? b.views : (b.playbackCount || (b as any).playback_count || 0);
+        const getPop = (t: Track): number => {
+          if (typeof t.views === 'number' && t.views > 0) return t.views;
+          if (typeof t.playbackCount === 'number' && t.playbackCount > 0) return t.playbackCount;
+          if (typeof (t as any).playback_count === 'number' && (t as any).playback_count > 0) return (t as any).playback_count;
+          // For artist official discography tracks without explicit view count, use position rank
+          if (t.id.startsWith('artist-') && typeof t.number === 'number' && t.number > 0) {
+            return Math.max(1, 1000000 - t.number * 1000);
+          }
+          return 0;
+        };
+
+        const popA = getPop(a);
+        const popB = getPop(b);
         if (popA !== popB) {
           cmp = popA - popB;
         } else {
@@ -264,6 +275,41 @@ export default function App() {
     });
     return list;
   }, [filteredTracks, tracklistSortBy, tracklistSortOrder]);
+
+  // Conduct popularity analysis on current tracks (playlist or artist page)
+  useEffect(() => {
+    if (!currentPlaylistTracks || currentPlaylistTracks.length === 0) return;
+    if (!window.electronAPI?.analyzeTracksPopularity) return;
+
+    // Find tracks in active view that lack view count (limit to first 30 to stay swift)
+    const missing = currentPlaylistTracks
+      .filter((t) => !t.views || t.views === 0)
+      .slice(0, 30)
+      .map((t) => ({
+        id: t.id,
+        sourceId: t.sourceId,
+        source: t.source === 'SC' ? ('SC' as const) : ('YT' as const),
+      }));
+
+    if (missing.length === 0) return;
+
+    let isCancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const popMap = await window.electronAPI!.analyzeTracksPopularity!(missing);
+        if (!isCancelled && popMap && Object.keys(popMap).length > 0) {
+          libraryStore.updateTracksPopularity(popMap);
+        }
+      } catch (err) {
+        console.warn('[App] analyzeTracksPopularity error:', err);
+      }
+    }, 400);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [currentPlaylist.id, currentPlaylistTracks.length]);
 
   const isCurrentPlaylistActive = useMemo(() => {
     if (!activeTrack || sortedTracks.length === 0) return false;

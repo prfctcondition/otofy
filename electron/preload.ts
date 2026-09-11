@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('music:get-album', { browseId, source }),
   getLyrics: (videoId: string) =>
     ipcRenderer.invoke('music:get-lyrics', { videoId }),
+  analyzeTracksPopularity: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) =>
+    ipcRenderer.invoke('music:analyze-tracks-popularity', tracks),
   getGenreTracks: (query: string) =>
     ipcRenderer.invoke('music:get-genre-tracks', { query }),
   getRelatedTracks: (trackId: string, source: 'YT' | 'SC', artist?: string, title?: string) =>
