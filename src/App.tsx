@@ -35,6 +35,7 @@ import { AccountSyncModal } from './components/AccountSyncModal';
 import { LyricsModal } from './components/LyricsModal';
 import { LyricsPanel } from './components/LyricsPanel';
 import { FullscreenLyricsModal } from './components/FullscreenLyricsModal';
+import { UpdateAvailableModal } from './components/UpdateAvailableModal';
 import { SearchResultsOverlay } from './components/SearchResultsOverlay';
 import { BatchDownloadBanner } from './components/BatchDownloadBanner';
 import { ToastContainer } from './components/ToastContainer';
@@ -155,7 +156,23 @@ export default function App() {
     const cleanupAudio = playerStore.initAudioListeners();
     const cleanupDl = useDownloadStore.getState().initListeners();
     const cleanupNet = useNetworkStore.getState().initNetworkListeners();
+
+    // Silent background check for updates on startup (modal is strictly shown only if hasUpdate is true)
+    const updateTimer = setTimeout(async () => {
+      try {
+        if (window.electronAPI?.checkForUpdates) {
+          const res = await window.electronAPI.checkForUpdates();
+          if (res && res.hasUpdate) {
+            useLibraryStore.getState().openUpdateModal(res);
+          }
+        }
+      } catch {
+        // Silent: no notifications or errors on cold start
+      }
+    }, 3000);
+
     return () => {
+      clearTimeout(updateTimer);
       cleanupAudio?.();
       cleanupDl?.();
       cleanupNet?.();
@@ -1136,6 +1153,13 @@ export default function App() {
         <LyricsModal isOpen={isLyricsModalOpen} onClose={libraryStore.toggleLyricsModal} />
       )}
       {isFullscreenLyrics && <FullscreenLyricsModal />}
+      {libraryStore.isUpdateModalOpen && libraryStore.updateInfo && (
+        <UpdateAvailableModal
+          isOpen={libraryStore.isUpdateModalOpen}
+          updateInfo={libraryStore.updateInfo}
+          onClose={libraryStore.closeUpdateModal}
+        />
+      )}
 
       {/* Batch Download Floating Banner */}
       <BatchDownloadBanner />

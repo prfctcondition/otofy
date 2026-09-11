@@ -6,6 +6,7 @@ import {
   type ArtistDetails,
   type FollowedArtist,
   type SavedAlbum,
+  type UpdateCheckResult,
 } from '../types';
 import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
@@ -118,6 +119,8 @@ interface LibraryState {
   isLyricsModalOpen: boolean;
   isQueueOpen: boolean;
   isFullscreenLyrics: boolean;
+  isUpdateModalOpen: boolean;
+  updateInfo: UpdateCheckResult | null;
 }
 
 interface LibraryActions {
@@ -199,6 +202,8 @@ interface LibraryActions {
   toggleQueue: () => void;
   toggleFullscreenLyrics: () => void;
   setFullscreenLyrics: (val: boolean) => void;
+  openUpdateModal: (info: UpdateCheckResult) => void;
+  closeUpdateModal: () => void;
 }
 
 export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get) => ({
@@ -247,6 +252,10 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   isLyricsModalOpen: true,
   isQueueOpen: false,
   isFullscreenLyrics: false,
+  isUpdateModalOpen: false,
+  updateInfo: null,
+  openUpdateModal: (info) => set({ isUpdateModalOpen: true, updateInfo: info }),
+  closeUpdateModal: () => set({ isUpdateModalOpen: false }),
 
   loadLibrary: async () => {
     try {

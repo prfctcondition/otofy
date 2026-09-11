@@ -126,7 +126,9 @@ export const SettingsScreen: React.FC = () => {
       if (window.electronAPI?.checkForUpdates) {
         const res = await window.electronAPI.checkForUpdates();
         setUpdateInfo(res);
-        if (!res.hasUpdate) {
+        if (res.hasUpdate) {
+          useLibraryStore.getState().openUpdateModal(res);
+        } else {
           useToastStore.getState().success('Up to Date', `You are running the latest version of Otofy (${res.currentVersion}).`);
         }
       } else {

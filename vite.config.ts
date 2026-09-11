@@ -320,9 +320,36 @@ function musicApiPlugin(): Plugin {
   };
 }
 
+function htmlEntryPlugin(): Plugin {
+  return {
+    name: 'vite-plugin-html-entry',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url === '/' || req.url === '/index.html') {
+          req.url = '/src/index.html';
+        }
+        next();
+      });
+    },
+    closeBundle() {
+      const nestedHtml = path.resolve(__dirname, 'dist', 'src', 'index.html');
+      const targetHtml = path.resolve(__dirname, 'dist', 'index.html');
+      if (fs.existsSync(nestedHtml)) {
+        let content = fs.readFileSync(nestedHtml, 'utf8');
+        content = content.replace(/\.\.\/assets\//g, './assets/').replace(/\.\.\/icon\.png/g, './icon.png');
+        fs.writeFileSync(targetHtml, content, 'utf8');
+        try {
+          fs.unlinkSync(nestedHtml);
+          fs.rmdirSync(path.resolve(__dirname, 'dist', 'src'));
+        } catch {}
+      }
+    },
+  };
+}
+
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), aistudioMediaPlugin(), musicApiPlugin()],
+    plugins: [react(), tailwindcss(), htmlEntryPlugin(), aistudioMediaPlugin(), musicApiPlugin()],
     base: './',
     resolve: {
       alias: {
@@ -336,6 +363,9 @@ export default defineConfig(() => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      rollupOptions: {
+        input: path.resolve(__dirname, 'src', 'index.html'),
+      },
     },
   };
 });
