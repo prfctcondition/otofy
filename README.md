@@ -57,7 +57,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 - **One-Click Playlist Downloads**: Save entire albums or 200+ track playlists directly to your hard drive with a single click.
 - **Integrated FFmpeg Transcoding Engine**: Bundled high-performance audio engine converts streams into pristine audio files with zero external software needed.
 - **Full ID3 Tag & Cover Art Embedding**: Downloaded tracks automatically include embedded high-resolution (500x500) artwork, artist, title, album, and track indices.
-- **Smart Concurrency Queue**: Background download manager throttles parallel workers (up to 3 simultaneous streams) with live progress tracking, per-track pause/resume/cancel, and batch controls to keep your PC smooth.
+- **Smart Concurrency Queue**: Background download manager throttles parallel workers (up to 4 simultaneous streams) with live progress tracking, per-track pause/resume/cancel, and batch controls to keep your PC smooth.
 - **True Offline Mode**: Switch to your downloads library and enjoy full playback without any internet connection.
 
 ### ▸ 03. Universal Multi-Platform Importer & Link-Free Sharing
@@ -85,7 +85,7 @@ It delivers the fluidity and elegance of a flagship music service while placing 
 - **Real-Time Soundstage**: Fine-tune your frequency curve from -12dB to +12dB with centered precision sliders and zero playback latency.
 
 ### ▸ 07. Dual-Deck Audio Engine & Infinite Autoplay
-- **Seamless Crossfading (0–12s)**: Powered by an A/B dual-deck audio pipeline, smoothly blending tracks together like a live radio DJ.
+- **Seamless Crossfading (0–10s)**: Powered by an A/B dual-deck audio pipeline, smoothly blending tracks together like a live radio DJ.
 - **Infinite Radio Mode**: When your queue ends, Otofy automatically analyzes the acoustic profile of your last track and generates an endless queue of matching songs.
 
 ### ▸ 08. Interactive Synchronized Lyrics (Karaoke & Cinema View)
