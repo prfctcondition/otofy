@@ -197,6 +197,36 @@ export const repo = {
     await db.tracks.put(dt);
   },
 
+  async putTracks(tracks: Track[]): Promise<void> {
+    if (!tracks || tracks.length === 0) return;
+    const dbTracks: DbTrack[] = tracks.map((track) => ({
+      id: track.id,
+      number: track.number,
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      duration: track.duration,
+      durationSec: track.durationSec,
+      dateAdded: track.dateAdded,
+      source: track.source,
+      sourceLabel: track.sourceLabel,
+      iconName: track.iconName,
+      gradientFrom: track.gradientFrom,
+      gradientTo: track.gradientTo,
+      artworkUrl: track.artworkUrl || track.thumbnail,
+      thumbnail: track.thumbnail || track.artworkUrl,
+      streamUrl: track.streamUrl,
+      isLiked: track.isLiked ?? false,
+      sourceId: track.sourceId,
+      playbackCount: (track as any).playbackCount ?? 0,
+      unresolved: track.unresolved,
+      needsMatch: track.needsMatch,
+      alternatives: track.alternatives,
+      originalSpotifyPreview: track.originalSpotifyPreview,
+    }));
+    await db.tracks.bulkPut(dbTracks);
+  },
+
   async resolveTrack(oldTrackId: string, chosenAlternative: import('../types').TrackAlternative): Promise<Track | null> {
     const track = await db.tracks.get(oldTrackId);
     if (!track) return null;
@@ -330,6 +360,24 @@ export const repo = {
       songCount: pos,
       updatedAt: Date.now(),
       ...(removedTrackIds !== undefined ? { removedTrackIds } : {}),
+    });
+  },
+
+  async reorderPlaylistTracks(playlistId: string, orderedTrackIds: string[]): Promise<void> {
+    const pts = await db.playlistTracks.where('playlistId').equals(playlistId).toArray();
+    const ptMap = new Map(pts.map((p) => [p.trackId, p]));
+
+    await db.transaction('rw', [db.playlistTracks, db.playlists], async () => {
+      for (let i = 0; i < orderedTrackIds.length; i++) {
+        const trackId = orderedTrackIds[i];
+        const pt = ptMap.get(trackId);
+        if (pt && typeof pt.id === 'number') {
+          await db.playlistTracks.update(pt.id, { position: i });
+        }
+      }
+      await db.playlists.update(playlistId, {
+        updatedAt: Date.now(),
+      });
     });
   },
 

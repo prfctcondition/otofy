@@ -37,6 +37,8 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
           <span
             className={artistClassName}
             title={`View ${art}`}
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onSelectArtist?.(art, source, idx === 0 ? browseId : undefined);

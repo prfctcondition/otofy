@@ -362,6 +362,15 @@ ipcMain.handle('music:get-album', async (_event, { browseId, source }: { browseI
   return fallback;
 });
 
+ipcMain.handle('music:get-artist-full-tracks', async (_event, { channelId, artistName }: { channelId: string; artistName?: string }) => {
+  try {
+    return await innertubeService.getArtistFullTracks(channelId, artistName);
+  } catch (err) {
+    console.error('[IPC music:get-artist-full-tracks] error:', err);
+    return [];
+  }
+});
+
 ipcMain.handle('music:get-lyrics', async (_event, { videoId }: { videoId: string }) => {
   const cacheKey = `lyrics:${videoId}`;
   const cached = getIpcCache(cacheKey);
@@ -391,6 +400,14 @@ ipcMain.handle(
     return result;
   }
 );
+
+ipcMain.handle('app:open-external', async (_event, url: string) => {
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    await shell.openExternal(url);
+    return true;
+  }
+  return false;
+});
 
 ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: string }) => {
   const cacheKey = `genre:${query.toLowerCase().trim()}`;
@@ -797,6 +814,10 @@ ipcMain.handle(
 );
 
 // GitHub Release Updater IPC Channels
+ipcMain.handle('app:get-version', () => {
+  return app.getVersion();
+});
+
 ipcMain.handle('updater:check-for-updates', async () => {
   return await updateService.checkForUpdates();
 });

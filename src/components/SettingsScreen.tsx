@@ -43,6 +43,9 @@ export const SettingsScreen: React.FC = () => {
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
+  const [appVersion, setAppVersion] = useState<string>(
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.7'
+  );
 
   // Fetch cache size and audio output devices
   useEffect(() => {
@@ -72,6 +75,13 @@ export const SettingsScreen: React.FC = () => {
       }).catch(() => setCacheSize('0 MB'));
     } else {
       setCacheSize('0 MB (Browser)');
+    }
+
+    // 3. App version via Electron IPC
+    if (window.electronAPI?.getAppVersion) {
+      window.electronAPI.getAppVersion().then((ver) => {
+        if (ver) setAppVersion(ver);
+      }).catch(() => {});
     }
   }, []);
 
@@ -135,8 +145,8 @@ export const SettingsScreen: React.FC = () => {
         setUpdateInfo({
           hasUpdate: false,
           canAutoInstall: false,
-          currentVersion: '1.0.4 (Web)',
-          latestVersion: '1.0.4',
+          currentVersion: `${appVersion} (Web)`,
+          latestVersion: appVersion,
           releaseNotes: 'Running in browser preview mode.',
         });
       }
@@ -585,7 +595,7 @@ export const SettingsScreen: React.FC = () => {
               <h2 className="text-base font-bold">App Updates</h2>
             </div>
             <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
-              v1.0.4
+              v{appVersion}
             </span>
           </div>
 

@@ -24,7 +24,7 @@ import {
   ArrowDown,
   ExternalLink,
 } from 'lucide-react';
-import { Playlist, Track, isSystemPlaylist } from '../types';
+import { Playlist, Track, isSystemPlaylist, isUserPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { splitArtists } from '../utils/trackUtils';
 import { useLibraryStore } from '../store/libraryStore';
@@ -88,6 +88,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
   const tracklistSortOrder = useLibraryStore((s) => s.tracklistSortOrder);
   const setTracklistSort = useLibraryStore((s) => s.setTracklistSort);
+  const currentArtistDetails = useLibraryStore((s) => s.currentArtistDetails);
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed(playlist.title || ''));
   const albumArtist = playlist.creator?.split('•')[0]?.trim() || playlist.creator;
   const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved(playlist.id, playlist.title, albumArtist));
@@ -210,7 +211,9 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   // Duration & song count stats
   const { formattedDuration, totalSongCount } = useMemo(() => {
     const trackList = tracks && tracks.length > 0 ? tracks : [];
-    const count = trackList.length || playlist.songCount || 0;
+    const count = (playlist.type === 'Artist' && playlist.songCount && playlist.songCount > trackList.length)
+      ? playlist.songCount
+      : (trackList.length || playlist.songCount || 0);
     const totalSec = trackList.reduce((sum, t) => sum + (t.durationSec || 0), 0);
     if (totalSec > 0) {
       const hrs = Math.floor(totalSec / 3600);
@@ -393,7 +396,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                   <span className="text-[#64748B] dark:text-white/70"> and more</span>
                 )}
               </p>
-            ) : playlist.creator ? (
+            ) : playlist.creator && playlist.type !== 'Artist' ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
                 {playlist.creator}
               </p>
@@ -556,7 +559,19 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* External Official Link Button (YouTube Music ↗ / SoundCloud ↗) */}
             {(playlist.type === 'Artist' || playlist.type === 'Album') && (
               (() => {
-                const targetUrl = playlist.externalUrl || (playlist as any).artistUrl;
+                let targetUrl = playlist.externalUrl || (playlist as any).artistUrl;
+                if (!targetUrl && playlist.type === 'Artist') {
+                  const channelId = currentArtistDetails?.channelId || currentArtistDetails?.browseId;
+                  if (channelId && channelId.startsWith('UC')) {
+                    targetUrl = `https://music.youtube.com/channel/${channelId}`;
+                  }
+                }
+                if (!targetUrl && playlist.type === 'Album') {
+                  const bId = playlist.id?.replace(/^album[-_]/i, '');
+                  if (bId && (bId.startsWith('MPREb_') || bId.startsWith('OLAK'))) {
+                    targetUrl = `https://music.youtube.com/browse/${bId}`;
+                  }
+                }
                 // Strictly refuse to render external button if no direct canonical link is present or if it's a search query
                 if (!targetUrl || targetUrl.includes('/search?') || targetUrl.includes('/search/')) {
                   return null;
@@ -728,6 +743,57 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     <span>Share playlist</span>
                   </button>
 
+                  {/* Open Official Artist Channel / Official Album */}
+                  {(() => {
+                    let externalLinkUrl = playlist.externalUrl || (playlist as any).artistUrl;
+                    if (!externalLinkUrl && playlist.type === 'Artist') {
+                      const channelId = currentArtistDetails?.channelId || currentArtistDetails?.browseId;
+                      if (channelId && channelId.startsWith('UC')) {
+                        externalLinkUrl = `https://music.youtube.com/channel/${channelId}`;
+                      }
+                    }
+                    if (!externalLinkUrl && playlist.type === 'Album') {
+                      const bId = playlist.id?.replace(/^album[-_]/i, '');
+                      if (bId && (bId.startsWith('MPREb_') || bId.startsWith('OLAK'))) {
+                        externalLinkUrl = `https://music.youtube.com/browse/${bId}`;
+                      }
+                    }
+                    if (!externalLinkUrl || externalLinkUrl.includes('/search?') || externalLinkUrl.includes('/search/')) {
+                      return null;
+                    }
+                    const isSC =
+                      externalLinkUrl.includes('soundcloud.com') ||
+                      playlist.id?.startsWith('artist-sc-') ||
+                      playlist.creator?.toLowerCase().includes('soundcloud');
+                    const platformName = isSC ? 'SoundCloud' : 'YouTube Music';
+                    const menuLabel =
+                      playlist.type === 'Artist'
+                        ? `Open channel on ${platformName}`
+                        : playlist.type === 'Album'
+                        ? `Open album on ${platformName}`
+                        : `Open on ${platformName}`;
+
+                    return (
+                      <button
+                        onClick={() => {
+                          setIsOptionsMenuOpen(false);
+                          if ((window as any).electronAPI?.openExternal) {
+                            (window as any).electronAPI.openExternal(externalLinkUrl);
+                          } else {
+                            window.open(externalLinkUrl, '_blank');
+                          }
+                        }}
+                        className="w-full px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ExternalLink size={15} className="text-[#64748B] dark:text-white/70" />
+                          <span>{menuLabel}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 dark:text-white/40">↗</span>
+                      </button>
+                    );
+                  })()}
+
                   {tracks.length > 0 && (
                     <div className="border-t border-slate-100 dark:border-white/10 my-1 pt-1">
                       <button
@@ -811,11 +877,15 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 title="Sort tracks"
               >
                 <span>
-                  {tracklistSortBy === 'popularity'
+                  {tracklistSortBy === 'custom'
+                    ? playlist.type === 'Album'
+                      ? 'Album order'
+                      : 'Custom order'
+                    : tracklistSortBy === 'popularity'
                     ? 'Popularity'
                     : tracklistSortBy === 'dateAdded'
-                    ? playlist.type === 'Artist'
-                      ? 'Date uploaded'
+                    ? playlist.type === 'Artist' || playlist.type === 'Album'
+                      ? 'Year'
                       : 'Date added'
                     : tracklistSortBy === 'title'
                     ? 'Title'
@@ -823,7 +893,9 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     ? 'Artist'
                     : 'Duration'}
                 </span>
-                {tracklistSortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
+                {tracklistSortBy !== 'custom' && (
+                  tracklistSortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
+                )}
               </button>
 
               {isSortMenuOpen && (
@@ -832,8 +904,10 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                     Sort tracks by
                   </div>
                   {[
+                    ...(isUserPlaylist(playlist) ? [{ key: 'custom', label: 'Custom order' }] : []),
+                    ...(playlist.type === 'Album' ? [{ key: 'custom', label: 'Album order' }] : []),
                     { key: 'popularity', label: 'Popularity' },
-                    { key: 'dateAdded', label: playlist.type === 'Artist' ? 'Date uploaded' : 'Date added' },
+                    { key: 'dateAdded', label: playlist.type === 'Artist' || playlist.type === 'Album' ? 'Year' : 'Date added' },
                     { key: 'title', label: 'Title (A–Z)' },
                     { key: 'artist', label: 'Artist' },
                     { key: 'duration', label: 'Duration' },
@@ -855,10 +929,12 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                         <span>{opt.label}</span>
                         {isActive && (
                           <div className="flex items-center gap-1.5 text-[#0F172A] dark:text-white">
-                            {tracklistSortOrder === 'asc' ? (
-                              <ArrowUp size={13} strokeWidth={2.5} />
-                            ) : (
-                              <ArrowDown size={13} strokeWidth={2.5} />
+                            {opt.key !== 'custom' && (
+                              tracklistSortOrder === 'asc' ? (
+                                <ArrowUp size={13} strokeWidth={2.5} />
+                              ) : (
+                                <ArrowDown size={13} strokeWidth={2.5} />
+                              )
                             )}
                             <Check size={14} strokeWidth={2.5} />
                           </div>

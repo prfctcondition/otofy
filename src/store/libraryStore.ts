@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   isSystemPlaylist,
+  isUserPlaylist,
   type Track,
   type Playlist,
   type ArtistDetails,
@@ -99,7 +100,7 @@ interface LibraryState {
   savedAlbums: SavedAlbum[];
 
   // Tracklist Sorting
-  tracklistSortBy: 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity';
+  tracklistSortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity';
   tracklistSortOrder: 'asc' | 'desc';
 
   // Library Sidebar Sorting
@@ -171,7 +172,8 @@ interface LibraryActions {
   updateTracksPopularity: (popularityMap: Record<string, number>) => Promise<void>;
   clearListeningHistory: () => Promise<void>;
   refreshHistoryTracks: () => Promise<void>;
-  setTracklistSort: (sortBy: 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity', order?: 'asc' | 'desc') => void;
+  setTracklistSort: (sortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity', order?: 'asc' | 'desc') => void;
+  reorderCurrentPlaylistTracks: (sourceId: string, targetId: string, position?: 'above' | 'below') => Promise<void>;
   setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
@@ -229,8 +231,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   setIsLoadingTracks: (isLoadingTracks) => set({ isLoadingTracks }),
 
   // Tracklist & Library sorting
-  tracklistSortBy: 'dateAdded',
-  tracklistSortOrder: 'desc',
+  tracklistSortBy: 'custom',
+  tracklistSortOrder: 'asc',
   librarySortBy: 'recents',
 
   history: [
@@ -467,6 +469,18 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     }
 
     const state = get();
+    const isUserPl = isUserPlaylist(pl);
+    const isAlbum = pl?.type === 'Album';
+    const isArtist = pl?.type === 'Artist';
+    const nextSortBy = isUserPl || isAlbum
+      ? 'custom'
+      : isArtist
+      ? 'popularity'
+      : state.tracklistSortBy === 'custom'
+      ? (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history' ? 'dateAdded' : 'popularity')
+      : state.tracklistSortBy;
+    const nextSortOrder = isUserPl || isAlbum ? 'asc' : state.tracklistSortOrder;
+
     const snapshot: NavigationSnapshot = {
       currentView: 'playlist',
       selectedPlaylistId: id,
@@ -482,6 +496,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       currentPlaylistTracks: tracks,
       currentView: 'playlist',
       currentArtistDetails: null,
+      tracklistSortBy: nextSortBy,
+      tracklistSortOrder: nextSortOrder,
       ...historyUpdate,
     });
   },
@@ -503,6 +519,18 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     };
 
     const state = get();
+    const isUserPl = isUserPlaylist(customPlaylist);
+    const isAlbum = customPlaylist.type === 'Album';
+    const isArtist = customPlaylist.type === 'Artist';
+    const nextSortBy = isUserPl || isAlbum
+      ? 'custom'
+      : isArtist
+      ? 'popularity'
+      : state.tracklistSortBy === 'custom'
+      ? 'dateAdded'
+      : state.tracklistSortBy;
+    const nextSortOrder = isUserPl || isAlbum ? 'asc' : state.tracklistSortOrder;
+
     const currentArtistDetails = options?.type === 'Artist' ? state.currentArtistDetails : null;
     const snapshot: NavigationSnapshot = {
       currentView: 'playlist',
@@ -520,6 +548,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       currentPlaylistTracks: tracks,
       currentView: 'playlist',
       currentArtistDetails,
+      tracklistSortBy: nextSortBy,
+      tracklistSortOrder: nextSortOrder,
       ...historyUpdate,
     });
   },
@@ -776,8 +806,41 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   setTracklistSort: (sortBy, order) => {
     const currentSort = get().tracklistSortBy;
     const currentOrder = get().tracklistSortOrder;
-    const nextOrder = order || (currentSort === sortBy ? (currentOrder === 'asc' ? 'desc' : 'asc') : (sortBy === 'dateAdded' || sortBy === 'popularity' ? 'desc' : 'asc'));
+    const nextOrder =
+      sortBy === 'custom'
+        ? 'asc'
+        : order || (currentSort === sortBy ? (currentOrder === 'asc' ? 'desc' : 'asc') : (sortBy === 'dateAdded' || sortBy === 'popularity' ? 'desc' : 'asc'));
     set({ tracklistSortBy: sortBy, tracklistSortOrder: nextOrder });
+  },
+
+  reorderCurrentPlaylistTracks: async (sourceId: string, targetId: string, position: 'above' | 'below' = 'above') => {
+    const currentTracks = get().currentPlaylistTracks;
+    const selectedPlaylistId = get().selectedPlaylistId;
+    if (!selectedPlaylistId || !sourceId || !targetId || sourceId === targetId) return;
+
+    const viewing = get().viewingPlaylist || get().playlists.find((p) => p.id === selectedPlaylistId);
+    if (!isUserPlaylist(viewing)) return;
+
+    const sourceIndex = currentTracks.findIndex((t) => t.id === sourceId);
+    const targetIndex = currentTracks.findIndex((t) => t.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const nextTracks = [...currentTracks];
+    const [movedTrack] = nextTracks.splice(sourceIndex, 1);
+    let newTargetIndex = nextTracks.findIndex((t) => t.id === targetId);
+    if (position === 'below') {
+      newTargetIndex += 1;
+    }
+    nextTracks.splice(newTargetIndex, 0, movedTrack);
+
+    set({ currentPlaylistTracks: nextTracks });
+
+    try {
+      const orderedIds = nextTracks.map((t) => t.id);
+      await repo.reorderPlaylistTracks(selectedPlaylistId, orderedIds);
+    } catch (err) {
+      console.error('[Library] Failed to persist track reorder:', err);
+    }
   },
 
   setLibrarySortBy: (sortBy) => {
@@ -841,6 +904,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       viewingPlaylist: newPlaylist,
       currentPlaylistTracks: tracks,
       currentView: 'playlist',
+      tracklistSortBy: 'custom',
+      tracklistSortOrder: 'asc',
       ...historyUpdate,
     });
     return newPlaylist;
@@ -1322,6 +1387,16 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     if (historyIndex > 0) {
       const nextIdx = historyIndex - 1;
       const target = history[nextIdx];
+      const isAlbum = target.viewingPlaylist?.type === 'Album' || target.selectedPlaylistId?.startsWith('album-');
+      const isArtist = target.viewingPlaylist?.type === 'Artist' || target.selectedPlaylistId?.startsWith('artist-');
+      const isUserPl = isUserPlaylist(target.viewingPlaylist);
+      const nextSortBy = isUserPl || isAlbum
+        ? 'custom'
+        : get().tracklistSortBy === 'custom'
+        ? (isArtist ? 'popularity' : 'dateAdded')
+        : get().tracklistSortBy;
+      const nextSortOrder = isUserPl || isAlbum ? 'asc' : get().tracklistSortOrder;
+
       set({
         historyIndex: nextIdx,
         currentView: target.currentView,
@@ -1329,6 +1404,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         viewingPlaylist: target.viewingPlaylist,
         currentPlaylistTracks: target.currentPlaylistTracks,
         currentArtistDetails: target.currentArtistDetails,
+        tracklistSortBy: nextSortBy,
+        tracklistSortOrder: nextSortOrder,
       });
     }
   },
@@ -1338,6 +1415,16 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     if (historyIndex < history.length - 1) {
       const nextIdx = historyIndex + 1;
       const target = history[nextIdx];
+      const isAlbum = target.viewingPlaylist?.type === 'Album' || target.selectedPlaylistId?.startsWith('album-');
+      const isArtist = target.viewingPlaylist?.type === 'Artist' || target.selectedPlaylistId?.startsWith('artist-');
+      const isUserPl = isUserPlaylist(target.viewingPlaylist);
+      const nextSortBy = isUserPl || isAlbum
+        ? 'custom'
+        : get().tracklistSortBy === 'custom'
+        ? (isArtist ? 'popularity' : 'dateAdded')
+        : get().tracklistSortBy;
+      const nextSortOrder = isUserPl || isAlbum ? 'asc' : get().tracklistSortOrder;
+
       set({
         historyIndex: nextIdx,
         currentView: target.currentView,
@@ -1345,6 +1432,8 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         viewingPlaylist: target.viewingPlaylist,
         currentPlaylistTracks: target.currentPlaylistTracks,
         currentArtistDetails: target.currentArtistDetails,
+        tracklistSortBy: nextSortBy,
+        tracklistSortOrder: nextSortOrder,
       });
     }
   },

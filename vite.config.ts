@@ -219,6 +219,24 @@ function musicApiPlugin(): Plugin {
           }
         }
 
+        if (req.url && req.url.startsWith('/api/music/artist-full-tracks')) {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const channelId = urlObj.searchParams.get('channelId') || '';
+          const artistName = urlObj.searchParams.get('artistName') || '';
+          try {
+            const itModule = await import('./dist-electron/services/innertubeService.js');
+            const getTracksFn = itModule.getArtistFullTracks || itModule.default?.getArtistFullTracks;
+            const fullTracks = await getTracksFn(channelId, artistName);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(fullTracks || []));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
         if (req.url && req.url.startsWith('/api/music/album')) {
           const urlObj = new URL(req.url, 'http://localhost');
           const browseId = urlObj.searchParams.get('browseId') || '';
@@ -348,7 +366,11 @@ function htmlEntryPlugin(): Plugin {
 }
 
 export default defineConfig(() => {
+  const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(packageJson.version),
+    },
     plugins: [react(), tailwindcss(), htmlEntryPlugin(), aistudioMediaPlugin(), musicApiPlugin()],
     base: './',
     resolve: {

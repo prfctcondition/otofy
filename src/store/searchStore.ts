@@ -27,6 +27,8 @@ interface SearchActions {
   clearResults: () => void;
 }
 
+let latestSearchRequestId = 0;
+
 export const useSearchStore = create<SearchState & SearchActions>()((set, get) => ({
   query: '',
   contentType: 'tracks',
@@ -38,6 +40,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
   hasSearched: false,
 
   search: async (query, sourceOverride, typeOverride) => {
+    const reqId = ++latestSearchRequestId;
     if (!query.trim()) {
       set({ results: [], playlistResults: [], artistCard: undefined, isSearching: false, hasSearched: false });
       return;
@@ -96,6 +99,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
       // 1. If Electron IPC is available
       if (window.electronAPI?.searchMusic) {
         const resp = await window.electronAPI.searchMusic(query, activeFilter);
+        if (reqId !== latestSearchRequestId) return;
         if (resp && typeof resp === 'object' && 'results' in resp) {
           const results = (resp.results || []).map((r: any) => {
             const { title, artist } = cleanArtistAndTitle(r.title, r.artist);

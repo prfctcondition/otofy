@@ -11,12 +11,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('discord:clear-presence'),
   getArtistDetails: (artistName: string, source?: 'YT' | 'SC', browseId?: string) =>
     ipcRenderer.invoke('music:get-artist-details', { artistName, source, browseId }),
+  getArtistFullTracks: (channelId: string, artistName?: string) =>
+    ipcRenderer.invoke('music:get-artist-full-tracks', { channelId, artistName }),
   getAlbum: (browseId: string, source?: 'YT' | 'SC') =>
     ipcRenderer.invoke('music:get-album', { browseId, source }),
   getLyrics: (videoId: string) =>
     ipcRenderer.invoke('music:get-lyrics', { videoId }),
   analyzeTracksPopularity: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) =>
     ipcRenderer.invoke('music:analyze-tracks-popularity', tracks),
+  openExternal: (url: string) =>
+    ipcRenderer.invoke('app:open-external', url),
   getGenreTracks: (query: string) =>
     ipcRenderer.invoke('music:get-genre-tracks', { query }),
   getRelatedTracks: (trackId: string, source: 'YT' | 'SC', artist?: string, title?: string) =>
@@ -80,6 +84,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('auth:session-updated', handler);
     return () => ipcRenderer.removeListener('auth:session-updated', handler);
   },
+  getAppVersion: () =>
+    ipcRenderer.invoke('app:get-version'),
   checkForUpdates: () =>
     ipcRenderer.invoke('updater:check-for-updates'),
   downloadAndInstallUpdate: () =>

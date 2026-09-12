@@ -9,8 +9,10 @@ import {
   Download,
   Check,
   HelpCircle,
+  GripVertical,
+  ChevronDown,
 } from 'lucide-react';
-import { Track } from '../types';
+import { Track, Playlist, isUserPlaylist } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 import { ArtistLinks } from './ArtistLinks';
 import { TrackConflictModal } from './TrackConflictModal';
@@ -26,6 +28,11 @@ interface DenseTrackTableProps {
   isLoading?: boolean;
   hideTrackNumber?: boolean;
   isArtistView?: boolean;
+  isAlbumView?: boolean;
+  playlist?: Playlist;
+  hasMoreTracks?: boolean;
+  isLoadingMoreTracks?: boolean;
+  onLoadMoreTracks?: () => void;
   onTrackSelect: (track: Track, queue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
@@ -42,7 +49,12 @@ interface TrackRowProps {
   isBuffering: boolean;
   hideTrackNumber?: boolean;
   isArtistView?: boolean;
+  isAlbumView?: boolean;
   tracklistSortBy?: string;
+  isReorderable?: boolean;
+  isDragged?: boolean;
+  isDragOver?: boolean;
+  dropPosition?: 'above' | 'below' | null;
   onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
@@ -51,9 +63,14 @@ interface TrackRowProps {
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
   onOpenConflictModal: (track: Track) => void;
+  onDragStart?: (e: React.DragEvent, track: Track) => void;
+  onDragOver?: (e: React.DragEvent, track: Track) => void;
+  onDragLeave?: (e: React.DragEvent, track: Track) => void;
+  onDrop?: (e: React.DragEvent, track: Track) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
-const formatPopularity = (track: Track, isArtistView?: boolean): string => {
+const formatPopularity = (track: Track): string => {
   const views =
     (typeof track.views === 'number' && track.views > 0 ? track.views : undefined) ??
     (typeof track.playbackCount === 'number' && track.playbackCount > 0 ? track.playbackCount : undefined) ??
@@ -72,29 +89,61 @@ const formatPopularity = (track: Track, isArtistView?: boolean): string => {
     return `${views.toLocaleString()} plays`;
   }
 
-  return isArtistView ? (formatUploadedDate(track) || '—') : formatAddedDate(track);
+  return '—';
 };
 
 const formatUploadedDate = (track: Track): string => {
-  if (track.releaseYear && /^\d{4}$/.test(track.releaseYear.trim())) {
-    return track.releaseYear.trim();
+  // 1. Direct releaseYear check (e.g. "2024", "2018")
+  if (track.releaseYear) {
+    const match = String(track.releaseYear).match(/\b(19|20)\d{2}\b/);
+    if (match) return match[0];
   }
-  if (track.releaseDate && /^\d{4}$/.test(track.releaseDate.trim())) {
-    return track.releaseDate.trim();
-  }
-  const dateStr = track.releaseDate || track.dateAdded;
-  if (!dateStr) return '';
 
-  const timestamp = Date.parse(dateStr);
-  if (!isNaN(timestamp)) {
-    const d = new Date(timestamp);
-    return d.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  // 2. Direct year property if present on object
+  if ((track as any).year) {
+    const match = String((track as any).year).match(/\b(19|20)\d{2}\b/);
+    if (match) return match[0];
   }
-  return dateStr;
+
+  // 3. Check releaseDate (e.g. "2024", "2024-05-18", "May 18, 2024", "18 мая 2024 г.")
+  if (track.releaseDate) {
+    const match = String(track.releaseDate).match(/\b(19|20)\d{2}\b/);
+    if (match) return match[0];
+    const timestamp = Date.parse(track.releaseDate);
+    if (!isNaN(timestamp)) {
+      const yr = new Date(timestamp).getFullYear();
+      if (yr >= 1900 && yr <= 2100) return String(yr);
+    }
+  }
+
+  // 4. Check dateAdded (if ISO timestamp or date with 4-digit year)
+  if (track.dateAdded) {
+    const match = String(track.dateAdded).match(/\b(19|20)\d{2}\b/);
+    if (match) return match[0];
+    const timestamp = Date.parse(track.dateAdded);
+    if (!isNaN(timestamp)) {
+      const yr = new Date(timestamp).getFullYear();
+      if (yr >= 1900 && yr <= 2100) return String(yr);
+    }
+  }
+
+  // 5. Check relative date strings (e.g. "3 years ago", "3 года назад")
+  const relStr = track.releaseDate || track.dateAdded || (track as any).published;
+  if (relStr) {
+    const relMatch = String(relStr).match(/(\d+)\s*(?:years?|yr|лет|года?)\s*(?:ago|назад)?/i);
+    if (relMatch) {
+      const yearsAgo = parseInt(relMatch[1], 10);
+      if (!isNaN(yearsAgo) && yearsAgo > 0 && yearsAgo < 100) {
+        return String(new Date().getFullYear() - yearsAgo);
+      }
+    }
+    const daysOrMonths = String(relStr).match(/(?:days?|months?|weeks?|hours?|дней|месяц|недел|дня)\s*(?:ago|назад)?/i);
+    if (daysOrMonths) {
+      return String(new Date().getFullYear());
+    }
+  }
+
+  return '—';
 };
 
 const formatAddedDate = (track: Track): string => {
@@ -174,7 +223,12 @@ const TrackRow = React.memo<TrackRowProps>(({
   isBuffering,
   hideTrackNumber,
   isArtistView = false,
+  isAlbumView = false,
   tracklistSortBy,
+  isReorderable = false,
+  isDragged = false,
+  isDragOver = false,
+  dropPosition = null,
   onRowClick,
   onDoubleClick,
   onPlayToggle,
@@ -183,6 +237,11 @@ const TrackRow = React.memo<TrackRowProps>(({
   onSelectAlbum,
   onOpenContextMenu,
   onOpenConflictModal,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
@@ -192,15 +251,35 @@ const TrackRow = React.memo<TrackRowProps>(({
   return (
     <div
       id={`track-row-${track.id}`}
+      draggable={isReorderable}
+      onDragStart={(e) => onDragStart?.(e, track)}
+      onDragOver={(e) => onDragOver?.(e, track)}
+      onDragLeave={(e) => onDragLeave?.(e, track)}
+      onDrop={(e) => onDrop?.(e, track)}
+      onDragEnd={(e) => onDragEnd?.(e)}
       onClick={(e) => onRowClick(e, track, index)}
       onDoubleClick={() => onDoubleClick(track)}
       onContextMenu={(e) => onOpenContextMenu(e, track)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative cursor-pointer border ${
+      className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative border select-none ${
+        isReorderable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+      } ${
+        isDragged ? 'opacity-40 scale-[0.99] border-dashed border-[#0F172A]/40 bg-[#0F172A]/5 dark:border-white/40 dark:bg-white/5' : ''
+      } ${
+        isDragOver && dropPosition === 'above'
+          ? 'before:content-[""] before:absolute before:top-[-2px] before:left-2 before:right-2 before:h-[3px] before:bg-[#0F172A] dark:before:bg-white before:rounded-full before:z-30 before:shadow-[0_0_8px_rgba(15,23,42,0.4)] dark:before:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
+          : ''
+      } ${
+        isDragOver && dropPosition === 'below'
+          ? 'after:content-[""] after:absolute after:bottom-[-2px] after:left-2 after:right-2 after:h-[3px] after:bg-[#0F172A] dark:after:bg-white after:rounded-full after:z-30 after:shadow-[0_0_8px_rgba(15,23,42,0.4)] dark:after:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
+          : ''
+      } ${
         isSelected
           ? 'bg-black/[0.08] dark:bg-white/[0.14] border-black/20 dark:border-white/20 shadow-xs'
-          : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+          : !isDragged
+          ? 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+          : ''
       } ${
         isCurrent
           ? 'text-[#0F172A] dark:text-white font-semibold'
@@ -211,6 +290,8 @@ const TrackRow = React.memo<TrackRowProps>(({
       <div className="w-9 shrink-0 flex items-center justify-center">
         {isHovered ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               if (isCurrent) {
@@ -238,13 +319,22 @@ const TrackRow = React.memo<TrackRowProps>(({
           </div>
         ) : (
           !hideTrackNumber && (
-            <span
-              className={`text-xs ${
-                isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
-              }`}
-            >
-              {index + 1}
-            </span>
+            <div className="flex items-center justify-center gap-0.5">
+              {isReorderable && (
+                <GripVertical
+                  size={12}
+                  className="text-[#94A3B8] dark:text-white/40 group-hover:text-[#0F172A] dark:group-hover:text-white transition-colors shrink-0 -ml-1 mr-0.5"
+                  title="Drag to reorder"
+                />
+              )}
+              <span
+                className={`text-xs ${
+                  isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
+                }`}
+              >
+                {index + 1}
+              </span>
+            </div>
           )
         )}
       </div>
@@ -283,6 +373,8 @@ const TrackRow = React.memo<TrackRowProps>(({
 
       <div className="hidden md:flex items-center gap-2 min-w-0">
         <span
+          draggable={false}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             if (track.album && onSelectAlbum) {
@@ -301,14 +393,16 @@ const TrackRow = React.memo<TrackRowProps>(({
 
       <div className="hidden lg:flex items-center text-xs text-[#64748B] dark:text-white/70 min-w-0 truncate">
         {tracklistSortBy === 'popularity'
-          ? formatPopularity(track, isArtistView)
-          : isArtistView
+          ? formatPopularity(track)
+          : (isArtistView || isAlbumView)
           ? (formatUploadedDate(track) || '—')
           : formatAddedDate(track)}
       </div>
 
       <div className="flex items-center justify-end gap-1.5 pr-1 shrink-0 whitespace-nowrap">
         <button
+          draggable={false}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             onToggleLike(track.id, track);
@@ -331,6 +425,8 @@ const TrackRow = React.memo<TrackRowProps>(({
         {/* Unresolved match review button OR Background download button */}
         {track.unresolved || track.needsMatch ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onOpenConflictModal(track);
@@ -343,6 +439,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         ) : dlStatus.status === 'downloading' ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
@@ -356,6 +454,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         ) : dlStatus.status === 'queued' ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
@@ -367,6 +467,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         ) : dlStatus.status === 'paused' ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               useDownloadStore.getState().resumeTrack(track.id);
@@ -378,6 +480,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         ) : dlStatus.status === 'completed' ? (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               openDownloadedFile(track);
@@ -389,6 +493,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           </button>
         ) : (
           <button
+            draggable={false}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               startDownload(track);
@@ -411,6 +517,8 @@ const TrackRow = React.memo<TrackRowProps>(({
         </span>
 
         <button
+          draggable={false}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             onOpenContextMenu(e, track);
@@ -434,6 +542,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   isLoading = false,
   hideTrackNumber = false,
   isArtistView = false,
+  isAlbumView = false,
+  playlist,
+  hasMoreTracks = false,
+  isLoadingMoreTracks = false,
+  onLoadMoreTracks,
   onTrackSelect,
   onPlayToggle,
   onToggleLike,
@@ -441,10 +554,31 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   onSelectAlbum,
 }) => {
   const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
+  const viewingPlaylist = useLibraryStore((s) => s.viewingPlaylist);
+  const playlists = useLibraryStore((s) => s.playlists);
   const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
+  const reorderCurrentPlaylistTracks = useLibraryStore((s) => s.reorderCurrentPlaylistTracks);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
   const checkStatus = useDownloadStore((s) => s.checkStatus);
 
+  const activePlaylist = playlist || viewingPlaylist || playlists.find((p) => p.id === selectedPlaylistId);
+  const isAlbum = Boolean(
+    isAlbumView ||
+    playlist?.type === 'Album' ||
+    viewingPlaylist?.type === 'Album' ||
+    activePlaylist?.type === 'Album'
+  );
+  const isArtist = Boolean(
+    isArtistView ||
+    playlist?.type === 'Artist' ||
+    viewingPlaylist?.type === 'Artist' ||
+    activePlaylist?.type === 'Artist'
+  );
+  const isReorderable = Boolean(isUserPlaylist(activePlaylist) && tracklistSortBy === 'custom' && !isLoading);
+
+  const [draggedTrackId, setDraggedTrackId] = useState<string | null>(null);
+  const [dragOverTrackId, setDragOverTrackId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null);
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [conflictTrack, setConflictTrack] = useState<Track | null>(null);
@@ -548,6 +682,64 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, track: Track) => {
+    if (!isReorderable) return;
+    setDraggedTrackId(track.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', track.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, track: Track) => {
+    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
+
+    if (dragOverTrackId !== track.id || dropPosition !== pos) {
+      setDragOverTrackId(track.id);
+      setDropPosition(pos);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, track: Track) => {
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      if (dragOverTrackId === track.id) {
+        setDragOverTrackId(null);
+        setDropPosition(null);
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, track: Track) => {
+    e.preventDefault();
+    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) {
+      setDraggedTrackId(null);
+      setDragOverTrackId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
+
+    reorderCurrentPlaylistTracks(draggedTrackId, track.id, pos);
+
+    setDraggedTrackId(null);
+    setDragOverTrackId(null);
+    setDropPosition(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTrackId(null);
+    setDragOverTrackId(null);
+    setDropPosition(null);
+  };
+
   const handleDoubleClick = (track: Track) => {
     onTrackSelect(track, tracks);
   };
@@ -592,8 +784,8 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         <div className="hidden lg:flex items-center min-w-0">
           {tracklistSortBy === 'popularity'
             ? 'Popularity'
-            : isArtistView
-            ? 'Date Uploaded'
+            : (isArtist || isAlbum)
+            ? 'Year'
             : 'Date Added'}
         </div>
         <div className="flex items-center justify-end pr-1 text-right">
@@ -633,8 +825,13 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isPlaying={isPlaying}
               isBuffering={isBuffering}
               hideTrackNumber={hideTrackNumber}
-              isArtistView={isArtistView}
+              isArtistView={isArtist}
+              isAlbumView={isAlbum}
               tracklistSortBy={tracklistSortBy}
+              isReorderable={isReorderable}
+              isDragged={draggedTrackId === track.id}
+              isDragOver={dragOverTrackId === track.id}
+              dropPosition={dragOverTrackId === track.id ? dropPosition : null}
               onRowClick={handleRowClick}
               onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}
@@ -643,8 +840,35 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               onSelectAlbum={onSelectAlbum}
               onOpenContextMenu={handleOpenContextMenu}
               onOpenConflictModal={setConflictTrack}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
             />
           ))
+        )}
+
+        {hasMoreTracks && (
+          <div className="flex justify-center py-6">
+            <button
+              onClick={onLoadMoreTracks}
+              disabled={isLoadingMoreTracks}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-white/80 dark:bg-white/[0.08] hover:bg-white/95 dark:hover:bg-white/[0.14] text-[#0F172A] dark:text-white border border-white/90 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md active:scale-95 disabled:opacity-50"
+            >
+              {isLoadingMoreTracks ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Loading remaining tracks...</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={14} strokeWidth={2.5} />
+                  <span>Show more tracks</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
 

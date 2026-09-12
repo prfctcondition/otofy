@@ -26,6 +26,7 @@ interface PlayerState {
   isAutoplayLoading: boolean;
   isLoadingAutoplay: boolean;
   cachedTracks: Track[];
+  playbackHistory: Track[];
 }
 
 interface PlayerActions {
@@ -110,6 +111,7 @@ let activeTrackPlayDuration = 0;
 let lastTimeUpdateTimestamp = 0;
 let lastPositionSync = 0;
 let lastDiscordSync = 0;
+let lastPrevClickTime = 0;
 
 const resetTrackHistoryState = (newTrackId?: string | null) => {
   hasLoggedCurrentTrackHistory = false;
@@ -426,6 +428,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   isAutoplayLoading: false,
   isLoadingAutoplay: false,
   cachedTracks: [],
+  playbackHistory: [],
   getCachedTracks: () => get().cachedTracks,
 
   setIsSeeking: (seeking: boolean) => set({ isSeeking: seeking }),
@@ -826,8 +829,14 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   nextTrack: async () => {
-    const { queue, queueIndex, isShuffle, repeatMode } = get();
+    const { queue, queueIndex, isShuffle, repeatMode, activeTrack, playbackHistory } = get();
     if (queue.length === 0) return;
+
+    if (activeTrack) {
+      const nextHistory = [...playbackHistory, activeTrack];
+      if (nextHistory.length > 100) nextHistory.shift();
+      set({ playbackHistory: nextHistory });
+    }
 
     const isAtEnd = queueIndex >= queue.length - 1;
     if (isAtEnd) {
@@ -872,8 +881,35 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   prevTrack: async () => {
-    const { queue, queueIndex } = get();
+    const { queue, queueIndex, currentTime, playbackHistory } = get();
     if (queue.length === 0) return;
+
+    const now = Date.now();
+
+    // Case 1 (Seek past 10s without double-click): restart current track
+    if (currentTime > 10 && now - lastPrevClickTime > 2000) {
+      audioEngine.seek(0);
+      set({ currentTime: 0 });
+      lastPrevClickTime = now;
+      return;
+    }
+
+    // Case 2 (Within first 10s OR double-click within 2s):
+    lastPrevClickTime = 0;
+
+    if (playbackHistory.length > 0) {
+      const nextHistory = [...playbackHistory];
+      const previousTrack = nextHistory.pop()!;
+      set({ playbackHistory: nextHistory });
+
+      const qIdx = queue.findIndex((t) => t.id === previousTrack.id);
+      if (qIdx !== -1) {
+        await get().jumpToQueueIndex(qIdx);
+      } else {
+        await get().playTrack(previousTrack);
+      }
+      return;
+    }
 
     const prevIdx = queueIndex === 0 ? queue.length - 1 : queueIndex - 1;
     await get().jumpToQueueIndex(prevIdx);
@@ -1045,6 +1081,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
                   const prevTrack = get().activeTrack;
                   if (prevTrack) {
                     commitTrackToHistory(prevTrack);
+                    const curHistory = get().playbackHistory;
+                    const nextHistory = [...curHistory, prevTrack];
+                    if (nextHistory.length > 100) nextHistory.shift();
+                    set({ playbackHistory: nextHistory });
                   }
 
                   await audioEngine.crossfadeTo(url, crossfadeDuration);

@@ -15,12 +15,33 @@ import {
   X,
   Clock,
   Radio,
+  ExternalLink,
 } from 'lucide-react';
 import { Track, Playlist } from '../types';
 import repo from '../db/repository';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, cleanTrackId } from '../store/playerStore';
 import { useToastStore } from '../store/toastStore';
+
+const getTrackCanonicalUrl = (track: Track): string => {
+  if (track.source === 'SC') {
+    if (track.externalUrl) return track.externalUrl;
+    if (track.sourceId && track.sourceId.startsWith('http')) return track.sourceId;
+    return `https://soundcloud.com/search?q=${encodeURIComponent(`${track.artist} - ${track.title}`)}`;
+  }
+
+  // YouTube / YouTube Music
+  if (track.externalUrl && !track.externalUrl.includes('googlevideo.com')) {
+    return track.externalUrl;
+  }
+
+  const cleanId = cleanTrackId(track.sourceId || track.id);
+  if (cleanId && /^[a-zA-Z0-9_-]{11}$/.test(cleanId)) {
+    return `https://www.youtube.com/watch?v=${cleanId}`;
+  }
+
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${track.artist} - ${track.title}`)}`;
+};
 
 interface TrackContextMenuProps {
   track: Track;
@@ -638,6 +659,27 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             <span>View artist ({track.artist})</span>
           </button>
         )}
+
+      {/* Open Link in Browser (Single track only) */}
+      {!isMulti && (
+        <button
+          onClick={() => {
+            const url = getTrackCanonicalUrl(track);
+            if (url) {
+              if (window.electronAPI?.openExternal) {
+                window.electronAPI.openExternal(url);
+              } else {
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }
+            }
+            onClose();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+        >
+          <ExternalLink size={15} className="text-[#64748B] dark:text-white/70" />
+          <span>Open link in browser</span>
+        </button>
+      )}
 
       {/* Copy Share Code (Single track only) */}
       {!isMulti && (

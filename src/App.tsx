@@ -228,11 +228,101 @@ export default function App() {
     });
   }, [currentPlaylistTracks, playlistSearch, isPlaylistSearchVisible]);
 
+  const [hasMoreTracks, setHasMoreTracks] = useState(false);
+  const [isLoadingMoreTracks, setIsLoadingMoreTracks] = useState(false);
+
+  const handleLoadMoreArtistTracks = async () => {
+    if (isLoadingMoreTracks) return;
+    const viewing = libraryStore.viewingPlaylist;
+    if (!viewing || viewing.type !== 'Artist') return;
+    const channelId = libraryStore.currentArtistDetails?.channelId || libraryStore.currentArtistDetails?.browseId;
+    if (!channelId) return;
+
+    setIsLoadingMoreTracks(true);
+    try {
+      let fullResults: any[] | null = null;
+      if (window.electronAPI?.getArtistFullTracks) {
+        fullResults = await window.electronAPI.getArtistFullTracks(channelId, viewing.title);
+      } else {
+        const res = await fetch(`/api/music/artist-full-tracks?channelId=${encodeURIComponent(channelId)}&artistName=${encodeURIComponent(viewing.title)}`);
+        if (res.ok) {
+          fullResults = await res.json();
+        }
+      }
+
+      if (fullResults && fullResults.length > 0) {
+        const existingIds = new Set(libraryStore.currentPlaylistTracks.map((t) => t.sourceId || t.id));
+        const newTracks: Track[] = [];
+          let curNumber = libraryStore.currentPlaylistTracks.length;
+
+          for (const r of fullResults) {
+            if (existingIds.has(r.sourceId || r.id)) continue;
+            existingIds.add(r.sourceId || r.id);
+            curNumber++;
+            newTracks.push({
+              id: `artist-${(r.source || 'YT').toLowerCase()}-${viewing.title.replace(/\s+/g, '-').toLowerCase()}-${curNumber}-${r.id || r.sourceId}`,
+              number: curNumber,
+              title: r.title,
+              artist: r.artist || viewing.title,
+              album: r.album || `${viewing.title} - Top Tracks`,
+              duration: r.duration,
+              durationSec: r.durationSec,
+              dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
+              releaseDate: r.releaseDate,
+              releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
+              artistBrowseId: r.artistBrowseId || channelId,
+              artistUrl: r.artistUrl,
+              albumBrowseId: r.albumBrowseId,
+              externalUrl: r.externalUrl,
+              views: (r as any).views,
+              playbackCount: (r as any).playbackCount || (r as any).playback_count,
+              source: (r.source || 'YT') as SourceType,
+              sourceLabel: r.sourceLabel || 'YouTube Music',
+              sourceId: r.sourceId,
+              artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined),
+              iconName: 'user' as const,
+              gradientFrom: '#4338CA',
+              gradientTo: '#7C3AED',
+              isLiked: false,
+            });
+          }
+
+          if (newTracks.length > 0) {
+            const combined = [...libraryStore.currentPlaylistTracks, ...newTracks];
+            await repo.putTracks(newTracks);
+            const currentDetails = libraryStore.currentArtistDetails;
+            const releaseCount = (currentDetails?.albums?.length || 0) + (currentDetails?.singles?.length || 0);
+            const subs = currentDetails?.subscribers;
+            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` • ${subs}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+
+            useLibraryStore.setState({
+              currentPlaylistTracks: combined,
+              viewingPlaylist: libraryStore.viewingPlaylist
+                ? {
+                    ...libraryStore.viewingPlaylist,
+                    creator: updatedSubtitle,
+                    songCount: combined.length,
+                  }
+                : null,
+            });
+          }
+        }
+      } catch (err) {
+      console.error('[App] Failed to load more artist tracks:', err);
+    } finally {
+      setHasMoreTracks(false);
+      setIsLoadingMoreTracks(false);
+    }
+  };
+
   const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
   const tracklistSortOrder = useLibraryStore((s) => s.tracklistSortOrder);
 
   const sortedTracks = useMemo(() => {
     const list = [...filteredTracks];
+    if (tracklistSortBy === 'custom') {
+      return list;
+    }
     list.sort((a, b) => {
       let cmp = 0;
       if (tracklistSortBy === 'title') {
@@ -606,6 +696,7 @@ export default function App() {
           : (browseId.startsWith('UC') ? `https://music.youtube.com/channel/${browseId}` : undefined))
       : undefined;
 
+    setHasMoreTracks(false);
     libraryStore.setCustomPlaylistView(cleanName, [], {
       id: artistViewId,
       type: 'Artist',
@@ -630,11 +721,17 @@ export default function App() {
               details.avatarUrl = details.topTracks[0].artworkUrl;
             }
             detailsResult = details;
+            const moreTracksAvailable = Boolean(details.hasMore || (details.topTracks && details.topTracks.length > 50));
+            const realTracksCount = details.totalTracksCount || (details.topTracks ? details.topTracks.length : 0);
+            if (details.topTracks && details.topTracks.length > 50) {
+              details.topTracks = details.topTracks.slice(0, 50);
+            }
+            setHasMoreTracks(moreTracksAvailable);
             libraryStore.setCurrentArtistDetails(details);
 
             if (details.topTracks && details.topTracks.length > 0) {
               const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-              artistSubtitle = `${details.topTracks.length} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+              artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
               const mappedTracks: Track[] = details.topTracks.map((r, idx) => ({
                 id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -646,7 +743,7 @@ export default function App() {
                 durationSec: r.durationSec,
                 dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
                 releaseDate: r.releaseDate,
-                releaseYear: r.releaseYear,
+                releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
                 artistBrowseId: r.artistBrowseId || details.browseId || browseId,
                 artistUrl: r.artistUrl || details.externalUrl,
                 albumBrowseId: r.albumBrowseId,
@@ -664,9 +761,7 @@ export default function App() {
               }));
 
               artistTracks.push(...mappedTracks);
-              for (const t of mappedTracks) {
-                await repo.putTrack(t);
-              }
+              await repo.putTracks(mappedTracks);
             }
           }
         } catch (err) {
@@ -683,10 +778,16 @@ export default function App() {
                 details.avatarUrl = details.topTracks[0].artworkUrl;
               }
               detailsResult = details;
+              const moreTracksAvailable = Boolean(details.hasMore || (details.topTracks && details.topTracks.length > 50));
+              const realTracksCount = details.totalTracksCount || (details.topTracks ? details.topTracks.length : 0);
+              if (details.topTracks && details.topTracks.length > 50) {
+                details.topTracks = details.topTracks.slice(0, 50);
+              }
+              setHasMoreTracks(moreTracksAvailable);
               libraryStore.setCurrentArtistDetails(details);
               if (details.topTracks && details.topTracks.length > 0) {
                 const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-                artistSubtitle = `${details.topTracks.length} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+                artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
                 const mappedTracks: Track[] = details.topTracks.map((r: any, idx: number) => ({
                   id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -698,7 +799,7 @@ export default function App() {
                   durationSec: r.durationSec,
                   dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
                   releaseDate: r.releaseDate,
-                  releaseYear: r.releaseYear,
+                  releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
                   artistBrowseId: r.artistBrowseId || details.browseId || browseId,
                   artistUrl: r.artistUrl || details.externalUrl,
                   albumBrowseId: r.albumBrowseId,
@@ -716,9 +817,7 @@ export default function App() {
                 }));
 
                 artistTracks.push(...mappedTracks);
-                for (const t of mappedTracks) {
-                  await repo.putTrack(t);
-                }
+                await repo.putTracks(mappedTracks);
               }
             }
           }
@@ -798,6 +897,7 @@ export default function App() {
         id: artistViewId,
         type: 'Artist',
         creator: artistSubtitle,
+        songCount: detailsResult?.totalTracksCount || artistTracks.length,
         iconName: 'user',
         gradientFrom: '#4338CA',
         gradientTo: '#6D28D9',
@@ -867,6 +967,10 @@ export default function App() {
               : undefined))
       : undefined;
 
+    if (useLibraryStore.getState().tracklistSortBy === 'custom') {
+      libraryStore.setTracklistSort('dateAdded', 'asc');
+    }
+
     if (hasCachedTracks && savedAlbum?.tracks) {
       libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
         id: albumViewId,
@@ -923,39 +1027,41 @@ export default function App() {
 
         const resolvedArtist = albumData.artist || initialArtist;
         const albumArt = albumData.artworkUrl || albumData.tracks[0]?.artworkUrl || initialCover;
-        const albumTracks: Track[] = albumData.tracks.map((r: any, idx: number) => ({
-          id: `album-${(r.source || source || 'YT').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
-          number: idx + 1,
-          title: r.title,
-          artist: r.artist || resolvedArtist,
-          album: resolvedTitle,
-          duration: r.duration,
-          durationSec: r.durationSec,
-          dateAdded: (r.releaseDate && !isNaN(Date.parse(r.releaseDate)))
-            ? new Date(r.releaseDate).toISOString()
-            : (albumData.year && !isNaN(Date.parse(albumData.year)))
-            ? new Date(albumData.year).toISOString()
-            : (r.releaseDate || albumData.year || ''),
-          releaseDate: r.releaseDate || albumData.releaseDate || (albumData.year ? String(albumData.year) : undefined),
-          releaseYear: r.releaseYear || (albumData.year ? String(albumData.year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
-          artistBrowseId: r.artistBrowseId,
-          artistUrl: r.artistUrl,
-          albumBrowseId: cleanBrowseId || r.albumBrowseId,
-          albumUrl: albumData.externalUrl,
-          externalUrl: r.externalUrl,
-          source: (r.source || source || 'YT') as SourceType,
-          sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
-          sourceId: r.sourceId,
-          artworkUrl: r.artworkUrl || albumArt,
-          iconName: 'disc',
-          gradientFrom: '#3B82F6',
-          gradientTo: '#1E1B4B',
-          isLiked: false,
-        }));
+        const albumTracks: Track[] = albumData.tracks.map((r: any, idx: number) => {
+          const rawYr = r.releaseYear || (r as any).year || albumData.year || r.releaseDate || albumData.releaseDate;
+          const relYear = rawYr ? String(rawYr).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+          return {
+            id: `album-${(r.source || source || 'YT').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
+            number: idx + 1,
+            title: r.title,
+            artist: r.artist || resolvedArtist,
+            album: resolvedTitle,
+            duration: r.duration,
+            durationSec: r.durationSec,
+            dateAdded: (r.releaseDate && !isNaN(Date.parse(r.releaseDate)))
+              ? new Date(r.releaseDate).toISOString()
+              : (albumData.year && !isNaN(Date.parse(albumData.year)))
+              ? new Date(albumData.year).toISOString()
+              : (r.releaseDate || albumData.year || ''),
+            releaseDate: r.releaseDate || albumData.releaseDate || (relYear ? String(relYear) : undefined),
+            releaseYear: relYear,
+            artistBrowseId: r.artistBrowseId,
+            artistUrl: r.artistUrl,
+            albumBrowseId: cleanBrowseId || r.albumBrowseId,
+            albumUrl: albumData.externalUrl,
+            externalUrl: r.externalUrl,
+            source: (r.source || source || 'YT') as SourceType,
+            sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
+            sourceId: r.sourceId,
+            artworkUrl: r.artworkUrl || albumArt,
+            iconName: 'disc',
+            gradientFrom: '#3B82F6',
+            gradientTo: '#1E1B4B',
+            isLiked: false,
+          };
+        });
 
-        for (const t of albumTracks) {
-          await repo.putTrack(t);
-        }
+        await repo.putTracks(albumTracks);
 
         libraryStore.setCustomPlaylistView(resolvedTitle, albumTracks, {
           id: albumViewId,
@@ -1141,6 +1247,11 @@ export default function App() {
                       isLoading={libraryStore.isLoadingTracks}
                       hideTrackNumber={currentPlaylist.type === 'Artist'}
                       isArtistView={currentPlaylist.type === 'Artist'}
+                      isAlbumView={currentPlaylist.type === 'Album'}
+                      playlist={currentPlaylist}
+                      hasMoreTracks={currentPlaylist.type === 'Artist' && hasMoreTracks}
+                      isLoadingMoreTracks={isLoadingMoreTracks}
+                      onLoadMoreTracks={handleLoadMoreArtistTracks}
                       onTrackSelect={handleSelectTrack}
                       onPlayToggle={playerStore.togglePlay}
                       onToggleLike={libraryStore.toggleLike}
@@ -1219,6 +1330,11 @@ export default function App() {
                     isLoading={libraryStore.isLoadingTracks}
                     hideTrackNumber={currentPlaylist.type === 'Artist'}
                     isArtistView={currentPlaylist.type === 'Artist'}
+                    isAlbumView={currentPlaylist.type === 'Album'}
+                    playlist={currentPlaylist}
+                    hasMoreTracks={currentPlaylist.type === 'Artist' && hasMoreTracks}
+                    isLoadingMoreTracks={isLoadingMoreTracks}
+                    onLoadMoreTracks={handleLoadMoreArtistTracks}
                     onTrackSelect={handleSelectTrack}
                     onPlayToggle={playerStore.togglePlay}
                     onToggleLike={libraryStore.toggleLike}

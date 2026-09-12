@@ -94,7 +94,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     
     searchTimeoutRef.current = setTimeout(() => {
       searchStore.search(query);
-    }, 500);
+    }, 220);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

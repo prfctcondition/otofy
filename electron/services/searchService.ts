@@ -36,7 +36,20 @@ export interface UnifiedSearchResponse {
   results: SearchResult[];
 }
 
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+const searchServiceCache = new Map<string, CacheEntry<UnifiedSearchResponse>>();
+
 async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL'): Promise<UnifiedSearchResponse> {
+  const cacheKey = `${sourceFilter}:${query.trim().toLowerCase()}`;
+  const cached = searchServiceCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   // 0. Direct URL Detection & Resolution (bypasses fuzzy text search)
   const detected = detectMusicUrl(query);
   if (detected) {
@@ -405,10 +418,18 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
   scoredResults.sort((a, b) => b.score - a.score);
   const finalResults = scoredResults.map((s) => s.track);
 
-  return {
+  const finalResponse: UnifiedSearchResponse = {
     artistCard,
     results: finalResults,
   };
+
+  if (searchServiceCache.size > 200) {
+    const firstKey = searchServiceCache.keys().next().value;
+    if (firstKey) searchServiceCache.delete(firstKey);
+  }
+  searchServiceCache.set(cacheKey, { data: finalResponse, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+  return finalResponse;
 }
 
 export interface SearchPlaylistResult {

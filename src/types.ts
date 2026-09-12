@@ -118,6 +118,27 @@ export const isSystemPlaylist = (
   return false;
 };
 
+export const isUserPlaylist = (
+  playlist: Playlist | { id: string; type?: string; creator?: string; isDailyMix?: boolean } | null | undefined
+): boolean => {
+  if (!playlist) return false;
+  if (playlist.type && playlist.type !== 'Playlist') return false;
+  if (playlist.isDailyMix) return false;
+  const id = playlist.id || '';
+  if (
+    id.startsWith('artist-') ||
+    id.startsWith('album-') ||
+    id.startsWith('mix-') ||
+    id.startsWith('radio-') ||
+    id.startsWith('pl-downloads') ||
+    id.startsWith('pl-cached') ||
+    id.startsWith('pl-history')
+  ) {
+    return false;
+  }
+  return true;
+};
+
 export interface ArtistInfo {
   name: string;
   listeners: string;
@@ -180,6 +201,8 @@ export interface ArtistDetails {
   externalUrl?: string;
   subscribers?: string;
   source?: 'YT' | 'SC';
+  hasMore?: boolean;
+  totalTracksCount?: number;
   topTracks: SearchResult[];
   albums: ArtistAlbum[];
   singles?: ArtistAlbum[];
@@ -305,6 +328,7 @@ export interface AccountStatus {
 
 // Electron API bridge type
 declare global {
+  const __APP_VERSION__: string;
   interface Window {
     electronAPI?: {
       resolveStream: (trackId: string, source: string, title?: string, artist?: string, excludeIds?: string[], durationSec?: number) => Promise<StreamInfo>;
@@ -320,9 +344,11 @@ declare global {
         tracks: any[];
       }>;
       getArtistDetails?: (artistName: string, source?: 'YT' | 'SC', browseId?: string) => Promise<ArtistDetails>;
+      getArtistFullTracks?: (channelId: string, artistName?: string) => Promise<SearchResult[]>;
       getAlbum?: (browseId: string, source?: 'YT' | 'SC') => Promise<AlbumDetails>;
       getLyrics?: (videoId: string) => Promise<string | undefined>;
       analyzeTracksPopularity?: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) => Promise<Record<string, number>>;
+      openExternal?: (url: string) => Promise<boolean>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
       getRelatedTracks?: (
         trackId: string,
@@ -374,6 +400,7 @@ declare global {
       }) => Promise<{ success: boolean; error?: string }>;
       onCloudSyncProgress?: (callback: (data: CloudSyncProgress) => void) => () => void;
       onAuthSessionUpdated?: (callback: (data: { platform: 'youtube' | 'soundcloud'; connected: boolean }) => void) => () => void;
+      getAppVersion?: () => Promise<string>;
       checkForUpdates?: () => Promise<UpdateCheckResult>;
       downloadAndInstallUpdate?: () => Promise<{ success: boolean; error?: string }>;
       cancelUpdateDownload?: () => Promise<{ success: boolean }>;
