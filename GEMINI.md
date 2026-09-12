@@ -32,3 +32,13 @@ Whenever adding, updating, or styling UI elements, components, dialogs, pills, d
 - **Playlists & Sorting**:
   - User-created playlists (`isCustom` / local playlists) support `custom` order and drag-and-drop reordering.
   - Drag-and-drop indicators must always use theme accents (`#0F172A` in light theme, `#FFFFFF` in dark theme).
+
+---
+
+## 3. Releases & Changelog Formatting (STRICT)
+
+- **Zero Asterisks Policy**:
+  - NEVER use asterisks (`*` or `**`) anywhere in release notes, changelogs, or update descriptions.
+  - Do NOT bold items with `**`.
+  - Use hyphens (`- `) for list items so they render cleanly as standard bullet points (`•`).
+
