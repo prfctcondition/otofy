@@ -332,6 +332,33 @@ function musicApiPlugin(): Plugin {
           }
         }
 
+        if (req.url && req.url.startsWith('/api/music/popularity')) {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+          req.on('end', async () => {
+            try {
+              const tracks = JSON.parse(body || '[]');
+              const itModule = await import('./dist-electron/services/innertubeService.js');
+              const scModule = await import('./dist-electron/services/scResolver.js');
+              const ytTracks = tracks.filter((t: any) => (t.source || 'YT') === 'YT');
+              const scTracks = tracks.filter((t: any) => t.source === 'SC');
+              const [ytMap, scMap] = await Promise.all([
+                ytTracks.length > 0 ? (itModule.default as any).getTracksPopularity(ytTracks) : Promise.resolve({}),
+                scTracks.length > 0 ? (scModule.default as any).getTracksPopularity(scTracks) : Promise.resolve({}),
+              ]);
+              const popMap = { ...ytMap, ...scMap };
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(popMap));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err?.message || 'Failed to analyze popularity' }));
+            }
+          });
+          return;
+        }
+
         next();
       });
     },

@@ -366,15 +366,13 @@ export default function App() {
     return list;
   }, [filteredTracks, tracklistSortBy, tracklistSortOrder]);
 
-  // Conduct popularity analysis on current tracks (playlist or artist page)
+  // Conduct popularity analysis on current tracks (playlist, album, or artist page)
   useEffect(() => {
     if (!currentPlaylistTracks || currentPlaylistTracks.length === 0) return;
-    if (!window.electronAPI?.analyzeTracksPopularity) return;
 
-    // Find tracks in active view that lack view count (limit to first 30 to stay swift)
+    // Find all tracks in active view that lack view count (enrich entire list progressively)
     const missing = currentPlaylistTracks
       .filter((t) => !t.views || t.views === 0)
-      .slice(0, 30)
       .map((t) => ({
         id: t.id,
         sourceId: t.sourceId,
@@ -386,14 +384,31 @@ export default function App() {
     let isCancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const popMap = await window.electronAPI!.analyzeTracksPopularity!(missing);
-        if (!isCancelled && popMap && Object.keys(popMap).length > 0) {
-          libraryStore.updateTracksPopularity(popMap);
+        const batchSize = 25;
+        for (let i = 0; i < missing.length; i += batchSize) {
+          if (isCancelled) break;
+          const chunk = missing.slice(i, i + batchSize);
+          let popMap: Record<string, number> | null = null;
+          if (window.electronAPI?.analyzeTracksPopularity) {
+            popMap = await window.electronAPI.analyzeTracksPopularity(chunk);
+          } else {
+            try {
+              const resp = await fetch('/api/music/popularity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(chunk),
+              });
+              if (resp.ok) popMap = await resp.json();
+            } catch {}
+          }
+          if (!isCancelled && popMap && Object.keys(popMap).length > 0) {
+            await libraryStore.updateTracksPopularity(popMap);
+          }
         }
       } catch (err) {
         console.warn('[App] analyzeTracksPopularity error:', err);
       }
-    }, 400);
+    }, 250);
 
     return () => {
       isCancelled = true;

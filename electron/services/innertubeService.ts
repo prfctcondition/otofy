@@ -640,6 +640,7 @@ async function findRealChannelInfo(yt: Innertube, artistName: string): Promise<{
 }
 
 const trackDateCache = new Map<string, { uploadDate?: string; releaseYear?: string }>();
+const trackPopularityCache = new Map<string, number>();
 
 export async function enrichTracksWithUploadDates(
   yt: Innertube,
@@ -648,17 +649,22 @@ export async function enrichTracksWithUploadDates(
 ): Promise<void> {
   const needsEnrichment = tracks
     .slice(0, maxToEnrich)
-    .filter((t) => !t.releaseYear && !t.releaseDate && t.id && !t.id.startsWith('album-') && !t.id.startsWith('artist-'));
+    .filter((t) => (!t.releaseYear && !t.releaseDate) || !t.views && t.id && !t.id.startsWith('album-') && !t.id.startsWith('artist-'));
 
   if (needsEnrichment.length === 0) return;
 
   const toFetch: typeof needsEnrichment = [];
   for (const t of needsEnrichment) {
-    const cached = trackDateCache.get(t.id);
-    if (cached) {
-      if (cached.uploadDate) t.releaseDate = cached.uploadDate;
-      if (cached.releaseYear) t.releaseYear = cached.releaseYear;
-    } else {
+    const cachedDate = trackDateCache.get(t.id);
+    if (cachedDate) {
+      if (cachedDate.uploadDate) t.releaseDate = cachedDate.uploadDate;
+      if (cachedDate.releaseYear) t.releaseYear = cachedDate.releaseYear;
+    }
+    const cachedPop = trackPopularityCache.get(t.id);
+    if (cachedPop) {
+      t.views = cachedPop;
+    }
+    if (!cachedDate || !cachedPop) {
       toFetch.push(t);
     }
   }
@@ -680,6 +686,13 @@ export async function enrichTracksWithUploadDates(
             const releaseYear = match ? match[0] : undefined;
             t.releaseYear = releaseYear;
             trackDateCache.set(t.id, { uploadDate, releaseYear });
+          }
+
+          const rawViews = (res.data as any)?.videoDetails?.viewCount || mf?.viewCount;
+          let vc = typeof rawViews === 'number' ? rawViews : parseInt(String(rawViews || ''), 10);
+          if (!isNaN(vc) && vc > 0) {
+            t.views = vc;
+            trackPopularityCache.set(t.id, vc);
           }
         } catch {}
       })
@@ -1594,6 +1607,15 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
             extractInnertubeArtist(item) || plArtist
           );
           const durStr = item.duration?.text || '0:00';
+          const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+            text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+          }));
+          const viewCol = flexRuns.find((f: any) => /plays|views|прослушиван/i.test(f.text));
+          const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views || item.view_count?.text || item.view_count);
+          if (parsedViews && vId) {
+            trackPopularityCache.set(vId, parsedViews);
+          }
+
           plTracks.push({
             id: vId,
             title: tTitle,
@@ -1605,6 +1627,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
             sourceLabel: 'YouTube Music',
             artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail) || plThumb,
             sourceId: vId,
+            views: parsedViews || undefined,
           });
         }
 
@@ -1703,6 +1726,15 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
             extractInnertubeArtist(item) || plArtist
           );
           const durStr = item.duration?.text || '0:00';
+          const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+            text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+          }));
+          const viewCol = flexRuns.find((f: any) => /plays|views|прослушиван/i.test(f.text));
+          const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views || item.view_count?.text || item.view_count);
+          if (parsedViews && vId) {
+            trackPopularityCache.set(vId, parsedViews);
+          }
+
           plTracks.push({
             id: vId,
             title: tTitle,
@@ -1714,6 +1746,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
             sourceLabel: 'YouTube Music',
             artworkUrl: extractThumbnailUrl(item.thumbnails || item.thumbnail) || plThumb,
             sourceId: vId,
+            views: parsedViews || undefined,
           });
         }
         return cacheAndReturn({
@@ -1836,6 +1869,15 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
     const rawYear = year;
     const relYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
 
+    const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+      text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+    }));
+    const viewCol = flexRuns.find((f: any) => /plays|views|прослушиван/i.test(f.text));
+    const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views || item.view_count?.text || item.view_count);
+    if (parsedViews && vId) {
+      trackPopularityCache.set(vId, parsedViews);
+    }
+
     tracks.push({
       id: vId,
       title: trackTitle,
@@ -1853,6 +1895,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
       artistUrl: (albumData.header as any)?.artists?.[0]?.id ? `https://music.youtube.com/channel/${(albumData.header as any).artists[0].id}` : undefined,
       albumBrowseId: cleanId,
       externalUrl: `https://music.youtube.com/watch?v=${vId}`,
+      views: parsedViews || undefined,
     });
   }
 
@@ -2228,13 +2271,20 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
 
     const { title: tTitle, artist: tArtist } = cleanArtistAndTitle(rawTitle || 'Untitled', rawArtist || 'Unknown Artist');
 
+    const flexRuns = (item.flex_columns || []).map((fc: any) =>
+      fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || ''
+    );
+    const viewText = flexRuns.find((t: string) => /plays|views|streams|прослушиван/i.test(t));
     const rawViews =
+      viewText ||
       item.views?.text ||
       item.views ||
       item.view_count?.text ||
-      item.view_count ||
-      (item.flex_columns || []).find((fc: any) => /plays|views|streams/i.test(fc?.title?.text || ''))?.title?.text;
+      item.view_count;
     const views = parseViewsToNumber(rawViews);
+    if (views && vId) {
+      trackPopularityCache.set(vId, views);
+    }
 
     const rawYear =
       item.year?.text ||
@@ -2284,21 +2334,53 @@ export async function getTracksPopularity(
   const result: Record<string, number> = {};
   const ytTracks = tracks.filter((t) => (t.source || 'YT') === 'YT');
 
-  const batchSize = 10;
-  for (let i = 0; i < ytTracks.length; i += batchSize) {
-    const chunk = ytTracks.slice(i, i + batchSize);
+  const toFetch: Array<{ id: string; vId: string }> = [];
+  for (const t of ytTracks) {
+    const vId = t.sourceId || t.id;
+    if (!vId || !/^[a-zA-Z0-9_-]{11}$/.test(vId)) continue;
+    if (trackPopularityCache.has(vId)) {
+      const cached = trackPopularityCache.get(vId)!;
+      result[t.id] = cached;
+      result[vId] = cached;
+    } else {
+      toFetch.push({ id: t.id, vId });
+    }
+  }
+
+  const batchSize = 15;
+  for (let i = 0; i < toFetch.length; i += batchSize) {
+    const chunk = toFetch.slice(i, i + batchSize);
     await Promise.allSettled(
-      chunk.map(async (t) => {
-        const vId = t.sourceId || t.id;
-        if (!vId || !/^[a-zA-Z0-9_-]{11}$/.test(vId)) return;
+      chunk.map(async ({ id, vId }) => {
         try {
-          const info = await yt.getBasicInfo(vId);
-          const vc = info?.basic_info?.view_count;
-          if (typeof vc === 'number' && vc > 0) {
-            result[t.id] = vc;
-            result[vId] = vc;
+          // 1. Try /player endpoint directly for instant videoDetails.viewCount
+          const res = await yt.actions.execute('/player', { videoId: vId, client: 'WEB' });
+          const rawViews = (res.data as any)?.videoDetails?.viewCount || (res.data as any)?.microformat?.playerMicroformatRenderer?.viewCount;
+          let vc = typeof rawViews === 'number' ? rawViews : parseInt(String(rawViews || ''), 10);
+
+          // 2. Fallback to getBasicInfo if needed
+          if (isNaN(vc) || vc <= 0) {
+            const info = await yt.getBasicInfo(vId);
+            const basicVc = info?.basic_info?.view_count;
+            if (typeof basicVc === 'number' && basicVc > 0) {
+              vc = basicVc;
+            }
           }
-        } catch {}
+
+          if (typeof vc === 'number' && vc > 0) {
+            trackPopularityCache.set(vId, vc);
+            result[id] = vc;
+            result[vId] = vc;
+          } else {
+            trackPopularityCache.set(vId, 1);
+            result[id] = 1;
+            result[vId] = 1;
+          }
+        } catch {
+          trackPopularityCache.set(vId, 1);
+          result[id] = 1;
+          result[vId] = 1;
+        }
       })
     );
   }

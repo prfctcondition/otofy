@@ -86,7 +86,7 @@ const formatPopularity = (track: Track): string => {
     if (views >= 1_000) {
       return `${(views / 1_000).toFixed(1).replace(/\.0$/, '')}K plays`;
     }
-    return `${views.toLocaleString()} plays`;
+    return `${views.toLocaleString()} ${views === 1 ? 'play' : 'plays'}`;
   }
 
   return '—';
