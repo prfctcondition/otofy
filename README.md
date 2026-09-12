@@ -198,6 +198,14 @@ If Otofy brought harmony to your days, preserved your offline playlists, or simp
 
 ---
 
+## ✦ Engineering & Philosophy
+
+Otofy is engineered as a zero-bloat, privacy-first desktop utility[cite: 2]. Built by an independent developer, its development leverages modern AI pair-programming and LLM orchestration to accelerate iteration cycles and deliver features rapidly. 
+
+System architecture, audio routing pipelines, bypass protocols, and aesthetic direction remain strictly human-curated and actively maintained.
+
+> *「 Craft with intent, ship without bloat. 」*
+
 ## 🕮 License
 
 Distributed under the [MIT License](LICENSE). Built for music lovers who cherish privacy, sound fidelity, and freedom.
