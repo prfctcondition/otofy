@@ -281,7 +281,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
       <aside
         id="left-library-dock"
         className={`h-full flex flex-col liquid-glass-panel rounded-2xl select-none transition-all duration-300 overflow-hidden relative ${
-          isCollapsed ? 'w-[72px] min-w-[72px]' : 'w-[270px] min-w-[270px]'
+          isCollapsed ? 'w-[72px] min-w-[72px]' : 'w-[280px] min-w-[280px]'
         }`}
       >
         <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 dark:from-white/[0.05] to-transparent" />
@@ -296,22 +296,22 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
             id="toggle-library-collapse-btn"
             onClick={onToggleCollapse}
             className={`flex items-center ${
-              isCollapsed ? 'justify-center w-11 h-11 p-0' : 'gap-3'
+              isCollapsed ? 'justify-center w-11 h-11 p-0' : 'gap-2.5 min-w-0'
             } text-[#0F172A] dark:text-white hover:opacity-80 transition-opacity group`}
             title={isCollapsed ? t.library.expand : t.library.collapse}
           >
-            <div className="p-1.5 rounded-lg group-hover:bg-white/50 dark:group-hover:bg-white/10 transition-colors flex items-center justify-center">
+            <div className="p-1.5 rounded-lg group-hover:bg-white/50 dark:group-hover:bg-white/10 transition-colors flex items-center justify-center shrink-0">
               <Library size={20} className="text-[#0F172A] dark:text-white group-hover:scale-105 transition-transform" />
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-sm tracking-tight text-[#0F172A] dark:text-white">
+              <span className="font-bold text-sm tracking-tight text-[#0F172A] dark:text-white whitespace-nowrap truncate">
                 {t.library.title}
               </span>
             )}
           </button>
 
           {!isCollapsed && (
-            <div className="flex items-center gap-1 text-[#64748B] dark:text-white/80">
+            <div className="flex items-center gap-0.5 text-[#64748B] dark:text-white/80 shrink-0">
               <button
                 id="import-playlist-btn"
                 onClick={onImportCode}
@@ -345,11 +345,11 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
 
         {/* Filter Pills & Search in Expanded State */}
         {!isCollapsed && (
-          <div className="px-3 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-30">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="px-2.5 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-30">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <button
                 onClick={() => setFilterTag(filterTag === 'playlists' ? 'all' : 'playlists')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'playlists'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
@@ -359,7 +359,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'artists' ? 'all' : 'artists')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'artists'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
@@ -369,7 +369,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'albums' ? 'all' : 'albums')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'albums'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'

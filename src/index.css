@@ -158,6 +158,19 @@
   background: rgba(255, 255, 255, 0.28);
 }
 
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Native Instant Context Menu Fade (No jump, no translate, no spring, strictly 20ms opacity fade) */
 @keyframes nativeContextMenuFade {
   0% {

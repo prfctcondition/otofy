@@ -28,7 +28,7 @@ export const ru: TranslationSchema = {
     dailyMix: 'Daily Mix',
   },
   library: {
-    title: 'Моя медиатека',
+    title: 'Медиатека',
     playlists: 'Плейлисты',
     artists: 'Исполнители',
     albums: 'Альбомы',
