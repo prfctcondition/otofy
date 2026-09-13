@@ -53,6 +53,15 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
   const [inputValue, setInputValue] = useState('');
   const [isInspecting, setIsInspecting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [directImportProgress, setDirectImportProgress] = useState<{
+    current: number;
+    total: number;
+    currentTrackTitle: string;
+  }>({
+    current: 0,
+    total: 0,
+    currentTrackTitle: '',
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -92,6 +101,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
     setRemoteData(null);
     setSpotifyData(null);
     setIsMatching(false);
+    setIsImporting(false);
+    setDirectImportProgress({ current: 0, total: 0, currentTrackTitle: '' });
   };
 
   const handleClose = () => {
@@ -102,6 +113,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
     setRemoteData(null);
     setSpotifyData(null);
     setIsMatching(false);
+    setIsImporting(false);
+    setDirectImportProgress({ current: 0, total: 0, currentTrackTitle: '' });
     onClose();
   };
 
@@ -188,6 +201,9 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
     try {
       if (activeTab === 'otofy' && otofyData) {
+        const total = otofyData.tracks.length;
+        setDirectImportProgress({ current: 0, total, currentTrackTitle: 'Creating playlist...' });
+
         const newPl = await createPlaylist({
           title: otofyData.title,
           creator: otofyData.creator || 'Imported User',
@@ -196,8 +212,14 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           iconName: 'disc',
         });
 
-        for (let i = 0; i < otofyData.tracks.length; i++) {
+        for (let i = 0; i < total; i++) {
           const item = otofyData.tracks[i];
+          setDirectImportProgress({
+            current: i + 1,
+            total,
+            currentTrackTitle: `${item.artist} - ${item.title}`,
+          });
+
           const durSec = item.durationSec || 180;
           const mins = Math.floor(durSec / 60);
           const secs = Math.floor(durSec % 60);
@@ -232,6 +254,9 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         await selectPlaylist(newPl.id);
         setTimeout(handleClose, 1200);
       } else if ((activeTab === 'yt' || activeTab === 'sc') && remoteData) {
+        const total = remoteData.tracks.length;
+        setDirectImportProgress({ current: 0, total, currentTrackTitle: 'Creating playlist...' });
+
         const newPl = await createPlaylist({
           title: remoteData.title,
           creator: remoteData.author || (activeTab === 'yt' ? 'YouTube Music' : 'SoundCloud'),
@@ -241,8 +266,14 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           iconName: activeTab === 'yt' ? 'music' : 'waves',
         });
 
-        for (let i = 0; i < remoteData.tracks.length; i++) {
+        for (let i = 0; i < total; i++) {
           const t = remoteData.tracks[i];
+          setDirectImportProgress({
+            current: i + 1,
+            total,
+            currentTrackTitle: `${t.artist} - ${t.title}`,
+          });
+
           const track: Track = {
             ...t,
             id: t.id || `imp-${Date.now()}-${i}`,
@@ -477,14 +508,56 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             </div>
           )}
 
+          {/* Direct Import Progress Box (YouTube / SoundCloud / Otofy) */}
+          {isImporting && (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 space-y-3 shadow-xs animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Download size={16} className="text-[#0F172A] dark:text-white animate-bounce" />
+                  <span className="font-bold text-[#0F172A] dark:text-white">
+                    Importing: {directImportProgress.current} / {directImportProgress.total} tracks...
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-xs text-[#64748B] dark:text-white/70">
+                  {directImportProgress.total > 0
+                    ? Math.round((directImportProgress.current / directImportProgress.total) * 100)
+                    : 0}%
+                </span>
+              </div>
+
+              {/* Progress Bar Track */}
+              <div className="w-full h-2.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden relative">
+                <div
+                  className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-all duration-150"
+                  style={{
+                    width: `${
+                      directImportProgress.total > 0
+                        ? Math.round((directImportProgress.current / directImportProgress.total) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] pt-1">
+                <span className="text-[#64748B] dark:text-white/60 truncate max-w-[340px]">
+                  {directImportProgress.currentTrackTitle || 'Saving to library...'}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
+                  {directImportProgress.current} of {directImportProgress.total}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Spotify Match Engine Progress Box */}
           {isMatching && (
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 space-y-3 shadow-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 space-y-3 shadow-xs animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <Sparkles size={16} className="text-[#0F172A] dark:text-white animate-pulse" />
                   <span className="font-bold text-[#0F172A] dark:text-white">
-                    Importing: {matchProgress.current} / {matchProgress.total} tracks matched...
+                    Importing: {matchProgress.current} / {matchProgress.total} tracks...
                   </span>
                 </div>
                 <span className="font-mono font-bold text-xs text-[#64748B] dark:text-white/70">

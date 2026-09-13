@@ -79,6 +79,83 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+async function fetchSpotifyToken(playlistId: string): Promise<string | null> {
+  try {
+    const tokenRes = await fetch('https://open.spotify.com/embed/api/token', {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Referer: `https://open.spotify.com/embed/playlist/${playlistId}`,
+      },
+    });
+    if (tokenRes.ok) {
+      const data = await tokenRes.json();
+      return data.accessToken || null;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchSpotifyPlaylistContentsGraphQL(
+  playlistId: string,
+  token: string,
+  offset: number,
+  limit: number = 100
+): Promise<{ totalCount: number; items: SpotifyTrackItem[] }> {
+  const sha = '86dde7b9d9356e2369414647cf6950cfed96e778e129cfdfc99aea6c1613b3b0';
+  const url = `https://api-partner.spotify.com/pathfinder/v1/query?operationName=fetchPlaylistContents&variables=${encodeURIComponent(
+    JSON.stringify({
+      uri: `spotify:playlist:${playlistId}`,
+      offset,
+      limit,
+    })
+  )}&extensions=${encodeURIComponent(
+    JSON.stringify({
+      persistedQuery: { version: 1, sha256Hash: sha },
+    })
+  )}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    },
+  });
+
+  if (!res.ok) {
+    return { totalCount: 0, items: [] };
+  }
+
+  const json = await res.json();
+  const content = json.data?.playlistV2?.content;
+  const totalCount = content?.totalCount || 0;
+  const rawItems: any[] = content?.items || [];
+  const items: SpotifyTrackItem[] = [];
+
+  for (const raw of rawItems) {
+    const t = raw?.itemV2?.data;
+    if (!t) continue;
+    const dMs = t.trackDuration?.totalMilliseconds || 0;
+    const durSec = Math.round(dMs / 1000);
+    const artistsList = (t.artists?.items || [])
+      .map((a: any) => a.profile?.name)
+      .filter(Boolean);
+    const artistStr = artistsList.join(', ') || 'Unknown Artist';
+
+    items.push({
+      title: t.name || 'Untitled',
+      artist: artistStr,
+      artists: artistsList.length > 0 ? artistsList : [artistStr],
+      durationMs: dMs,
+      durationSec: durSec,
+      uri: t.uri,
+    });
+  }
+
+  return { totalCount, items };
+}
+
 export async function inspectSpotifyPlaylist(urlOrId: string): Promise<SpotifyPlaylistDetails> {
   const playlistId = parseSpotifyPlaylistId(urlOrId);
   if (!playlistId) {
@@ -137,6 +214,27 @@ export async function inspectSpotifyPlaylist(urlOrId: string): Promise<SpotifyPl
       uri: t.uri,
     };
   });
+
+  // If playlist has 100 tracks in initial embed, paginate to get ALL remaining tracks!
+  if (tracks.length >= 100) {
+    try {
+      const token = await fetchSpotifyToken(playlistId);
+      if (token) {
+        let offset = tracks.length;
+        let total = tracks.length + 1;
+        while (offset < total) {
+          const page = await fetchSpotifyPlaylistContentsGraphQL(playlistId, token, offset, 100);
+          if (page.items.length === 0) break;
+          tracks.push(...page.items);
+          total = page.totalCount || total;
+          offset += page.items.length;
+          if (tracks.length >= total || page.items.length < 100) break;
+        }
+      }
+    } catch (graphQLErr) {
+      console.warn('[spotifyService] GraphQL pagination error:', graphQLErr);
+    }
+  }
 
   return {
     id: playlistId,

@@ -350,26 +350,83 @@ export async function getArtistDetails(artistNameOrId: string) {
         const collection = (uData.collection || []) as any[];
         if (collection.length > 0) {
           const cleanQ = artistNameOrId.trim().toLowerCase();
+          const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
           const scored = collection
             .map((u: any) => {
               const uname = (u.username || '').trim().toLowerCase();
               const permalink = (u.permalink || '').trim().toLowerCase();
-              let score = 0;
-              if (uname === cleanQ || permalink === cleanQ) score += 2_000_000;
-              else if (uname.startsWith(cleanQ) || permalink.startsWith(cleanQ)) score += 200_000;
-              else if (uname.includes(cleanQ) || permalink.includes(cleanQ)) score += 20_000;
+              const strippedUname = uname.replace(/[^a-z0-9]/g, '');
+              const desc = (u.description || '').toLowerCase();
+              const fullName = (u.full_name || '').toLowerCase();
 
-              if (u.verified) score += 1_000_000;
+              // 1. Engagement Score:
+              // > 1M -> +50, > 100K -> +35, > 10K -> +20, > 5K -> +10, < 1K -> -10
+              let engagementScore = 0;
               const followers = typeof u.followers_count === 'number' ? u.followers_count : 0;
-              score += Math.min(followers, 10_000_000);
-              const tracks = typeof u.track_count === 'number' ? u.track_count : 0;
-              score += Math.min(tracks * 100, 100_000);
-              return { u, score };
-            })
-            .sort((a: { u: any; score: number }, b: { u: any; score: number }) => b.score - a.score);
+              if (followers >= 1_000_000) engagementScore += 50;
+              else if (followers >= 100_000) engagementScore += 35;
+              else if (followers >= 10_000) engagementScore += 20;
+              else if (followers >= 5_000) engagementScore += 10;
+              else if (followers < 1_000) engagementScore -= 10;
 
-          if (scored[0]) {
-            user = scored[0].u;
+              if (u.verified) engagementScore += 30;
+
+              // 2. Catalog Depth Score:
+              // >= 10 releases -> +30, >= 3 releases -> +15, <= 2 releases -> -20 penalty
+              let catalogScore = 0;
+              const tracks = typeof u.track_count === 'number' ? u.track_count : 0;
+              if (tracks >= 10) catalogScore += 30;
+              else if (tracks >= 3) catalogScore += 15;
+              else if (tracks <= 2) catalogScore -= 20;
+
+              // 3. Metadata Relevance Score:
+              let metadataScore = 0;
+              const isExactName =
+                uname === cleanQ ||
+                permalink === cleanQ ||
+                (strippedUname.length > 0 && strippedUname === strippedQ);
+              if (isExactName) {
+                metadataScore += 35;
+              } else if (
+                uname.startsWith(cleanQ) ||
+                permalink.startsWith(cleanQ) ||
+                (strippedQ.length > 2 && strippedUname.startsWith(strippedQ))
+              ) {
+                metadataScore += 20;
+              } else if (
+                uname.includes(cleanQ) ||
+                permalink.includes(cleanQ) ||
+                (strippedQ.length > 2 && strippedUname.includes(strippedQ))
+              ) {
+                metadataScore += 10;
+              }
+
+              // Content / bio linkage:
+              if (
+                desc.includes(cleanQ) ||
+                fullName.includes(cleanQ) ||
+                (strippedQ.length > 2 &&
+                  (desc.replace(/[^a-z0-9]/g, '').includes(strippedQ) ||
+                    fullName.replace(/[^a-z0-9]/g, '').includes(strippedQ)))
+              ) {
+                metadataScore += 40;
+              }
+
+              const score = engagementScore + catalogScore + metadataScore;
+              return { u, score, followers, tracks, verified: Boolean(u.verified) };
+            })
+            .sort((a: any, b: any) => b.score - a.score);
+
+          const topCandidate = scored[0];
+          // Low-Quality Gatekeeper for SoundCloud users:
+          if (topCandidate && topCandidate.score > 0) {
+            const isLowQuality =
+              !topCandidate.verified &&
+              topCandidate.followers < 10_000 &&
+              topCandidate.tracks < 3;
+            if (!isLowQuality) {
+              user = topCandidate.u;
+            }
           }
         }
       }
@@ -390,21 +447,76 @@ export async function getArtistDetails(artistNameOrId: string) {
           .filter((u: any) => Boolean(u && u.id));
         if (candidates.length > 0) {
           const cleanQ = artistNameOrId.trim().toLowerCase();
+          const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
           const scored = candidates
             .map((u: any) => {
               const uname = (u.username || '').trim().toLowerCase();
-              let score = 0;
-              if (uname === cleanQ) score += 500_000;
-              else if (uname.includes(cleanQ)) score += 50_000;
-              if (u.verified) score += 100_000;
-              const followers = typeof u.followers_count === 'number' ? u.followers_count : 0;
-              score += Math.min(followers, 1_000_000);
-              return { u, score };
-            })
-            .sort((a: { u: any; score: number }, b: { u: any; score: number }) => b.score - a.score);
+              const permalink = (u.permalink || '').trim().toLowerCase();
+              const strippedUname = uname.replace(/[^a-z0-9]/g, '');
+              const desc = (u.description || '').toLowerCase();
+              const fullName = (u.full_name || '').toLowerCase();
 
-          if (scored[0]) {
-            user = scored[0].u;
+              let engagementScore = 0;
+              const followers = typeof u.followers_count === 'number' ? u.followers_count : 0;
+              if (followers >= 1_000_000) engagementScore += 50;
+              else if (followers >= 100_000) engagementScore += 35;
+              else if (followers >= 10_000) engagementScore += 20;
+              else if (followers >= 5_000) engagementScore += 10;
+              else if (followers < 1_000) engagementScore -= 10;
+
+              if (u.verified) engagementScore += 30;
+
+              let catalogScore = 0;
+              const tracks = typeof u.track_count === 'number' ? u.track_count : 0;
+              if (tracks >= 10) catalogScore += 30;
+              else if (tracks >= 3) catalogScore += 15;
+              else if (tracks <= 2) catalogScore -= 20;
+
+              let metadataScore = 0;
+              const isExactName =
+                uname === cleanQ ||
+                permalink === cleanQ ||
+                (strippedUname.length > 0 && strippedUname === strippedQ);
+              if (isExactName) {
+                metadataScore += 35;
+              } else if (
+                uname.startsWith(cleanQ) ||
+                permalink.startsWith(cleanQ) ||
+                (strippedQ.length > 2 && strippedUname.startsWith(strippedQ))
+              ) {
+                metadataScore += 20;
+              } else if (
+                uname.includes(cleanQ) ||
+                permalink.includes(cleanQ) ||
+                (strippedQ.length > 2 && strippedUname.includes(strippedQ))
+              ) {
+                metadataScore += 10;
+              }
+
+              if (
+                desc.includes(cleanQ) ||
+                fullName.includes(cleanQ) ||
+                (strippedQ.length > 2 &&
+                  (desc.replace(/[^a-z0-9]/g, '').includes(strippedQ) ||
+                    fullName.replace(/[^a-z0-9]/g, '').includes(strippedQ)))
+              ) {
+                metadataScore += 40;
+              }
+
+              const score = engagementScore + catalogScore + metadataScore;
+              return { u, score, followers, tracks, verified: Boolean(u.verified) };
+            })
+            .sort((a: any, b: any) => b.score - a.score);
+
+          const topCandidate = scored[0];
+          if (topCandidate && topCandidate.score > 0) {
+            const isLowQuality =
+              !topCandidate.verified &&
+              topCandidate.followers < 10_000 &&
+              topCandidate.tracks < 3;
+            if (!isLowQuality) {
+              user = topCandidate.u;
+            }
           }
         }
       }

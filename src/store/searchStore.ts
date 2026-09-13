@@ -28,6 +28,7 @@ interface SearchActions {
 }
 
 let latestSearchRequestId = 0;
+let searchAbortController: AbortController | null = null;
 
 export const useSearchStore = create<SearchState & SearchActions>()((set, get) => ({
   query: '',
@@ -40,7 +41,17 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
   hasSearched: false,
 
   search: async (query, sourceOverride, typeOverride) => {
+    if (searchAbortController) {
+      searchAbortController.abort();
+    }
+    searchAbortController = new AbortController();
+    const abortSignal = searchAbortController.signal;
     const reqId = ++latestSearchRequestId;
+
+    const isStale = () =>
+      reqId !== latestSearchRequestId ||
+      get().query.trim().toLowerCase() !== query.trim().toLowerCase();
+
     if (!query.trim()) {
       set({ results: [], playlistResults: [], artistCard: undefined, isSearching: false, hasSearched: false });
       return;
@@ -55,6 +66,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
       try {
         if (window.electronAPI?.searchPlaylists) {
           const playlists = await window.electronAPI.searchPlaylists(query, activeFilter);
+          if (isStale()) return;
           set({
             playlistResults: Array.isArray(playlists) ? playlists : [],
             isSearching: false,
@@ -67,10 +79,13 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
         if (activeFilter === 'ALL' || activeFilter === 'SC') {
           const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
           const scRes = await fetch(
-            `https://api-v2.soundcloud.com/search/playlists_without_albums?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`
+            `https://api-v2.soundcloud.com/search/playlists_without_albums?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`,
+            { signal: abortSignal }
           );
+          if (isStale()) return;
           if (scRes.ok) {
             const scData = await scRes.json();
+            if (isStale()) return;
             const playlists: SearchPlaylistResult[] = (scData.collection || []).map((p: any) => ({
               id: String(p.id),
               title: p.title || 'SoundCloud Playlist',
@@ -85,9 +100,11 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
           }
         }
 
+        if (isStale()) return;
         set({ playlistResults: [], isSearching: false, hasSearched: true });
         return;
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || isStale()) return;
         console.error('[Search Playlists] Failed:', err);
         set({ playlistResults: [], isSearching: false, hasSearched: true });
         return;
@@ -99,12 +116,13 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
       // 1. If Electron IPC is available
       if (window.electronAPI?.searchMusic) {
         const resp = await window.electronAPI.searchMusic(query, activeFilter);
-        if (reqId !== latestSearchRequestId) return;
+        if (isStale()) return;
         if (resp && typeof resp === 'object' && 'results' in resp) {
           const results = (resp.results || []).map((r: any) => {
             const { title, artist } = cleanArtistAndTitle(r.title, r.artist);
             return { ...r, title, artist };
           });
+          if (isStale()) return;
           set({
             results,
             artistCard: resp.artistCard,
@@ -116,6 +134,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
             const { title, artist } = cleanArtistAndTitle(r.title, r.artist);
             return { ...r, title, artist };
           });
+          if (isStale()) return;
           set({
             results,
             artistCard: undefined,
@@ -123,6 +142,7 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
             hasSearched: true,
           });
         } else {
+          if (isStale()) return;
           set({ results: [], artistCard: undefined, isSearching: false, hasSearched: true });
         }
         return;
@@ -130,14 +150,19 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
 
       // 2. If running via Vite dev server
       try {
-        const res = await fetch(`/api/music/search?q=${encodeURIComponent(query)}&source=${activeFilter}`);
+        const res = await fetch(`/api/music/search?q=${encodeURIComponent(query)}&source=${activeFilter}`, {
+          signal: abortSignal,
+        });
+        if (isStale()) return;
         if (res.ok) {
           const data = await res.json();
+          if (isStale()) return;
           if (data && typeof data === 'object' && 'results' in data) {
             const results = (data.results || []).map((r: any) => {
               const { title, artist } = cleanArtistAndTitle(r.title, r.artist);
               return { ...r, title, artist };
             });
+            if (isStale()) return;
             set({
               results,
               artistCard: data.artistCard,
@@ -150,22 +175,29 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
               const { title, artist } = cleanArtistAndTitle(r.title, r.artist);
               return { ...r, title, artist };
             });
+            if (isStale()) return;
             set({ results, isSearching: false, hasSearched: true });
             return;
           }
         }
-      } catch {
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
         // Fall through to public client-side fallback
       }
+
+      if (isStale()) return;
 
       // 3. Client-side fallback to SoundCloud public API v2 (only if ALL or SC)
       if (activeFilter === 'ALL' || activeFilter === 'SC') {
         const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
         const scRes = await fetch(
-          `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=15`
+          `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=15`,
+          { signal: abortSignal }
         );
+        if (isStale()) return;
         if (scRes.ok) {
           const scData = await scRes.json();
+          if (isStale()) return;
           const results: SearchResult[] = (scData.collection || []).map((t: any) => {
             const durSec = Math.round((t.duration || 0) / 1000);
             const mins = Math.floor(durSec / 60);
@@ -189,13 +221,16 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
               artworkUrl: (t.artwork_url || t.user?.avatar_url || '').replace('-large.', '-t500x500.'),
             };
           });
+          if (isStale()) return;
           set({ results, isSearching: false, hasSearched: true });
           return;
         }
       }
 
+      if (isStale()) return;
       set({ results: [], isSearching: false, hasSearched: true });
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || isStale()) return;
       console.error('[Search] Failed:', err);
       set({ results: [], isSearching: false, hasSearched: true });
     }
@@ -216,7 +251,14 @@ export const useSearchStore = create<SearchState & SearchActions>()((set, get) =
       get().search(currentQuery, undefined, contentType);
     }
   },
-  clearResults: () => set({ results: [], playlistResults: [], artistCard: undefined, hasSearched: false, query: '' }),
+  clearResults: () => {
+    if (searchAbortController) {
+      searchAbortController.abort();
+      searchAbortController = null;
+    }
+    latestSearchRequestId++;
+    set({ results: [], playlistResults: [], artistCard: undefined, hasSearched: false, query: '' });
+  },
 }));
 
 export default useSearchStore;

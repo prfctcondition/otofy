@@ -255,33 +255,86 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
   const results: SearchResult[] = [];
   let artistCard: UnifiedSearchResponse['artistCard'] | undefined;
 
+function isExactArtistMatch(name: string, query: string): boolean {
+  const cleanN = (name || '').trim().toLowerCase();
+  const cleanQ = (query || '').trim().toLowerCase();
+  if (cleanN === cleanQ) return true;
+  const strippedN = cleanN.replace(/[^a-z0-9]/g, '');
+  const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
+  return strippedN.length > 0 && strippedN === strippedQ;
+}
+
+function shouldReplaceArtistCard(
+  existing: UnifiedSearchResponse['artistCard'] | undefined,
+  candidate: UnifiedSearchResponse['artistCard'] | undefined,
+  query: string
+): boolean {
+  if (!candidate) return false;
+  if (!existing) return true;
+
+  const isExistingExact = isExactArtistMatch(existing.name, query);
+  const isCandidateExact = isExactArtistMatch(candidate.name, query);
+
+  // EXACT MATCH IMMUNITY RULE:
+  // An exact match can NEVER be overwritten by a non-exact match!
+  if (isExistingExact && !isCandidateExact) {
+    return false;
+  }
+  if (!isExistingExact && isCandidateExact) {
+    return true;
+  }
+
+  // If both are exact or neither is exact, prefer YouTube source over SoundCloud
+  if (existing.source === 'YT' && candidate.source === 'SC') {
+    return false;
+  }
+  if (candidate.source === 'YT' && existing.source === 'SC') {
+    return true;
+  }
+
+  const existingSubs = parseSubscriberCount(existing.subtitle);
+  const candidateSubs = parseSubscriberCount(candidate.subtitle);
+  return candidateSubs > existingSubs;
+}
+
   if (ytRes.status === 'fulfilled' && ytRes.value) {
     if (ytRes.value.artistCard) {
       const bId = ytRes.value.artistCard.browseId;
-      artistCard = {
+      const candidateCard: UnifiedSearchResponse['artistCard'] = {
         ...ytRes.value.artistCard,
         source: 'YT',
         externalUrl: bId && bId.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : ytRes.value.artistCard.externalUrl,
       };
+      if (shouldReplaceArtistCard(artistCard, candidateCard, query)) {
+        artistCard = candidateCard;
+      }
     }
     results.push(...ytRes.value.songs);
   }
 
-  // If no artistCard returned from YouTube search, try scoped artist resolution
-  if (!artistCard && shouldSearchYT && query.trim().length >= 2) {
+  // If no artistCard or candidate can improve current card, try scoped artist resolution
+  if (shouldSearchYT && query.trim().length >= 2 && (!artistCard || !isExactArtistMatch(artistCard.name, query))) {
     try {
       const aDetails = await innertubeService.getArtist(query);
       if (aDetails && (aDetails.topTracks.length > 0 || aDetails.albums.length > 0) && aDetails.channelId?.startsWith('UC')) {
         const subs = parseSubscriberCount(aDetails.subscribers);
-        if (subs >= 25_000 || aDetails.artist.toLowerCase().trim() === query.trim().toLowerCase()) {
-          artistCard = {
-            name: aDetails.artist,
-            avatarUrl: aDetails.avatarUrl,
-            subtitle: aDetails.subscribers || 'Official Artist',
-            browseId: aDetails.channelId,
-            source: 'YT',
-            externalUrl: `https://music.youtube.com/channel/${aDetails.channelId}`,
-          };
+        const totalReleases = (aDetails.albums?.length || 0) + (aDetails.singles?.length || 0);
+        const maxViewsInResults = Math.max(...results.map((r) => r.views || r.playbackCount || 0), 0);
+        const isObscure = subs < 10_000 && totalReleases < 3;
+        if (!isObscure || maxViewsInResults < 100_000) {
+          if (subs >= 10_000 || totalReleases >= 3 || aDetails.artist.toLowerCase().trim() === query.trim().toLowerCase()) {
+            const candidateCard: UnifiedSearchResponse['artistCard'] = {
+              name: aDetails.artist,
+              avatarUrl: aDetails.avatarUrl,
+              subtitle: aDetails.subscribers || 'Official Artist',
+              browseId: aDetails.channelId,
+              source: 'YT',
+              externalUrl: `https://music.youtube.com/channel/${aDetails.channelId}`,
+            };
+            if (shouldReplaceArtistCard(artistCard, candidateCard, query)) {
+              artistCard = candidateCard;
+            }
+          }
         }
       }
     } catch {}
@@ -293,19 +346,27 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
       sourceLabel: 'SoundCloud',
     })));
 
-    // If no artistCard from YouTube, try to find SoundCloud artist
-    if (!artistCard && shouldSearchSC) {
+    // Try to find SoundCloud artist if no exact card found yet
+    if (shouldSearchSC && (!artistCard || !isExactArtistMatch(artistCard.name, query))) {
       try {
         const scArtist = await scResolver.getArtistDetails(query);
         if (scArtist && scArtist.topTracks.length > 0) {
-          artistCard = {
-            name: scArtist.artist,
-            avatarUrl: scArtist.avatarUrl,
-            subtitle: scArtist.subscribers || 'SoundCloud Artist',
-            browseId: scArtist.browseId,
-            source: 'SC',
-            externalUrl: scArtist.externalUrl,
-          };
+          const subs = parseSubscriberCount(scArtist.subscribers);
+          const maxViewsInResults = Math.max(...results.map((r) => r.views || r.playbackCount || 0), 0);
+          const isObscure = subs < 10_000 && scArtist.topTracks.length < 3;
+          if (!isObscure || maxViewsInResults < 100_000) {
+            const candidateCard: UnifiedSearchResponse['artistCard'] = {
+              name: scArtist.artist,
+              avatarUrl: scArtist.avatarUrl,
+              subtitle: scArtist.subscribers || 'SoundCloud Artist',
+              browseId: scArtist.browseId,
+              source: 'SC',
+              externalUrl: scArtist.externalUrl,
+            };
+            if (shouldReplaceArtistCard(artistCard, candidateCard, query)) {
+              artistCard = candidateCard;
+            }
+          }
         }
       } catch {}
     }
@@ -327,6 +388,7 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
   });
 
   const cleanQ = query.trim().toLowerCase();
+  const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
 
   // If we have an artistCard, check whether an overshadowing viral track exists BEFORE scoring!
   // ONLY obscure artists (< 25k subscribers) can be overshadowed by a viral track with the same name.
@@ -347,10 +409,14 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
     }
   }
 
+  const cardName = artistCard?.name?.toLowerCase().trim() || '';
+  const cardNameStripped = cardName.replace(/[^a-z0-9]/g, '');
+
   const hasConfirmedArtist = Boolean(
     artistCard &&
-    (artistCard.name.toLowerCase().trim() === cleanQ ||
-     cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, ''))
+      (cardName === cleanQ ||
+        (cardNameStripped.length > 0 && cardNameStripped === strippedQ) ||
+        parseSubscriberCount(artistCard.subtitle) >= 10_000)
   );
 
   // Weighted scoring for each track in search results
@@ -360,13 +426,22 @@ async function searchAll(query: string, sourceFilter: 'ALL' | 'YT' | 'SC' = 'ALL
     const tArtist = (track.artist || '').toLowerCase().trim();
     const views = track.views || track.playbackCount || 0;
 
+    const isCardArtistMatch = Boolean(
+      cardName &&
+        (tArtist === cardName ||
+          (cardNameStripped.length > 2 && tArtist.replace(/[^a-z0-9]/g, '') === cardNameStripped))
+    );
+    const isQueryArtistMatch = Boolean(
+      tArtist === cleanQ || (strippedQ.length > 2 && tArtist.replace(/[^a-z0-9]/g, '') === strippedQ)
+    );
+
     // If an established official artist matches the query, songs BY this artist take supreme priority!
     if (hasConfirmedArtist) {
-      if (tArtist === cleanQ) {
+      if (isCardArtistMatch || isQueryArtistMatch) {
         score += 2_000_000_000;
-      } else if (tArtist.startsWith(cleanQ)) {
+      } else if (tArtist.startsWith(cleanQ) || (cardName && tArtist.startsWith(cardName))) {
         score += 800_000_000;
-      } else if (tArtist.includes(cleanQ)) {
+      } else if (tArtist.includes(cleanQ) || (cardName && tArtist.includes(cardName))) {
         score += 400_000_000;
       }
     }
