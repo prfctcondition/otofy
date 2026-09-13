@@ -149,10 +149,18 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           setError('Invalid or corrupted Otofy share code.');
         }
       } else if (activeTab === 'yt') {
-        if (!window.electronAPI?.importRemotePlaylist) {
-          throw new Error('Desktop IPC bridge is unavailable.');
+        let res: any = null;
+        if (window.electronAPI?.importRemotePlaylist) {
+          res = await window.electronAPI.importRemotePlaylist('YT', clean);
+        } else {
+          const f = await fetch(`/api/music/import-remote?source=YT&url=${encodeURIComponent(clean)}`);
+          if (!f.ok) {
+            const ej = await f.json().catch(() => ({}));
+            throw new Error(ej.error || 'Failed to inspect YouTube Music playlist.');
+          }
+          res = await f.json();
         }
-        const res = await window.electronAPI.importRemotePlaylist('YT', clean);
+
         if (res.error || !res.tracks || res.tracks.length === 0) {
           throw new Error(res.error || 'No tracks found in YouTube Music playlist.');
         }
@@ -163,10 +171,18 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           tracks: res.tracks,
         });
       } else if (activeTab === 'sc') {
-        if (!window.electronAPI?.importRemotePlaylist) {
-          throw new Error('Desktop IPC bridge is unavailable.');
+        let res: any = null;
+        if (window.electronAPI?.importRemotePlaylist) {
+          res = await window.electronAPI.importRemotePlaylist('SC', clean);
+        } else {
+          const f = await fetch(`/api/music/import-remote?source=SC&url=${encodeURIComponent(clean)}`);
+          if (!f.ok) {
+            const ej = await f.json().catch(() => ({}));
+            throw new Error(ej.error || 'Failed to inspect SoundCloud playlist.');
+          }
+          res = await f.json();
         }
-        const res = await window.electronAPI.importRemotePlaylist('SC', clean);
+
         if (res.error || !res.tracks || res.tracks.length === 0) {
           throw new Error(res.error || 'No tracks found in SoundCloud playlist/set.');
         }
@@ -177,10 +193,18 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           tracks: res.tracks,
         });
       } else if (activeTab === 'spotify') {
-        if (!window.electronAPI?.inspectSpotifyPlaylist) {
-          throw new Error('Spotify scraper is unavailable in current build.');
+        let spDetails: any = null;
+        if (window.electronAPI?.inspectSpotifyPlaylist) {
+          spDetails = await window.electronAPI.inspectSpotifyPlaylist(clean);
+        } else {
+          const f = await fetch(`/api/spotify/inspect?url=${encodeURIComponent(clean)}`);
+          if (!f.ok) {
+            const ej = await f.json().catch(() => ({}));
+            throw new Error(ej.error || 'Failed to inspect Spotify playlist.');
+          }
+          spDetails = await f.json();
         }
-        const spDetails = await window.electronAPI.inspectSpotifyPlaylist(clean);
+
         if (!spDetails || !spDetails.tracks || spDetails.tracks.length === 0) {
           throw new Error('Spotify playlist contains no playable tracks or is private.');
         }
@@ -303,7 +327,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
   // Spotify Matching Engine & Import
   const handleSpotifyMatchAndImport = async () => {
-    if (!spotifyData || !window.electronAPI?.importAndMatchSpotify) return;
+    if (!spotifyData) return;
 
     setIsMatching(true);
     setError('');
@@ -323,10 +347,27 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
     }
 
     try {
-      const matchedTracks = await window.electronAPI.importAndMatchSpotify({
-        tracks: spotifyData.tracks,
-        playlistTitle: spotifyData.title,
-      });
+      let matchedTracks: any[] = [];
+      if (window.electronAPI?.importAndMatchSpotify) {
+        matchedTracks = await window.electronAPI.importAndMatchSpotify({
+          tracks: spotifyData.tracks,
+          playlistTitle: spotifyData.title,
+        });
+      } else {
+        const res = await fetch('/api/spotify/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tracks: spotifyData.tracks,
+            playlistTitle: spotifyData.title,
+          }),
+        });
+        if (!res.ok) {
+          const ej = await res.json().catch(() => ({}));
+          throw new Error(ej.error || 'Failed to match Spotify tracks.');
+        }
+        matchedTracks = await res.json();
+      }
 
       // Create new playlist in user library
       const newPl = await createPlaylist({

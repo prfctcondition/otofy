@@ -359,6 +359,142 @@ function musicApiPlugin(): Plugin {
           return;
         }
 
+        if (req.url && req.url.startsWith('/api/spotify/inspect')) {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const targetUrl = urlObj.searchParams.get('url') || '';
+          try {
+            const spModule = await import('./dist-electron/services/spotifyService.js');
+            const details = await spModule.inspectSpotifyPlaylist(targetUrl);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(details));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
+        if (req.url && req.url.startsWith('/api/spotify/match') && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+          req.on('end', async () => {
+            try {
+              const parsed = JSON.parse(body || '{}');
+              const spModule = await import('./dist-electron/services/spotifyService.js');
+              const matched = await spModule.matchSpotifyTracks(
+                parsed.tracks || [],
+                parsed.playlistTitle || 'Spotify Playlist'
+              );
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(matched));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (req.url && req.url.startsWith('/api/music/import-remote')) {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const source = urlObj.searchParams.get('source') || 'YT';
+          const targetUrl = urlObj.searchParams.get('url') || '';
+          try {
+            if (source === 'SC' || targetUrl.includes('soundcloud.com')) {
+              const scModule = await import('./dist-electron/services/scResolver.js');
+              const clientId = await scModule.default.getClientId();
+              const resolveRes = await fetch(
+                `https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(targetUrl)}&client_id=${clientId}`
+              );
+              if (!resolveRes.ok) throw new Error(`Failed to resolve SoundCloud playlist: ${resolveRes.statusText}`);
+              const data: any = await resolveRes.json();
+              let rawTracks: any[] = data.tracks || (data.kind === 'track' ? [data] : []);
+              const stubIds = rawTracks
+                .filter((t: any) => t && t.id && (!t.title || typeof t.title !== 'string' || !t.duration))
+                .map((t: any) => String(t.id));
+
+              if (stubIds.length > 0) {
+                const resolvedTrackMap = new Map<string, any>();
+                for (let i = 0; i < stubIds.length; i += 50) {
+                  const chunk = stubIds.slice(i, i + 50);
+                  const tracksRes = await fetch(
+                    `https://api-v2.soundcloud.com/tracks?ids=${chunk.join('%2C')}&client_id=${clientId}`
+                  );
+                  if (tracksRes.ok) {
+                    const list: any[] = await tracksRes.json();
+                    for (const rt of list) {
+                      if (rt && rt.id) resolvedTrackMap.set(String(rt.id), rt);
+                    }
+                  }
+                }
+                rawTracks = rawTracks.map((t: any) => {
+                  if (t && t.id && resolvedTrackMap.has(String(t.id))) {
+                    return { ...t, ...resolvedTrackMap.get(String(t.id)) };
+                  }
+                  return t;
+                });
+              }
+
+              const playlistArt = (data.artwork_url || rawTracks[0]?.artwork_url || '').replace(
+                '-large.',
+                '-t500x500.'
+              );
+              const validTracks = rawTracks.filter(
+                (t: any) => t && t.id && t.policy !== 'SNIP' && t.snipped !== true
+              );
+              const tracks = validTracks.map((t: any) => {
+                const durSec = Math.round((t.duration || 0) / 1000);
+                let rawArt = t.artwork_url || t.user?.avatar_url || data.artwork_url || '';
+                if (rawArt) rawArt = rawArt.replace('-large.', '-t500x500.');
+                return {
+                  id: String(t.id),
+                  title: (t.title || 'Untitled').trim(),
+                  artist: (
+                    t.user?.username ||
+                    t.publisher_metadata?.artist ||
+                    data.user?.username ||
+                    'SoundCloud Artist'
+                  ).trim(),
+                  album: data.title || '',
+                  duration: scModule.default.formatDuration(durSec),
+                  durationSec: durSec,
+                  source: 'SC',
+                  sourceLabel: 'SoundCloud',
+                  artworkUrl: rawArt || playlistArt || undefined,
+                  sourceId: String(t.id),
+                };
+              });
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(
+                JSON.stringify({
+                  title: data.title || 'SoundCloud Playlist',
+                  author: data.user?.username || 'SoundCloud',
+                  artworkUrl: playlistArt,
+                  tracks,
+                })
+              );
+              return;
+            } else {
+              const listMatch = targetUrl.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+              const playlistId = listMatch ? listMatch[1] : targetUrl.trim();
+              const cleanPlId = playlistId.replace(/^VL/, '');
+              const itModule = await import('./dist-electron/services/innertubeService.js');
+              const ytResult = await itModule.default.getPlaylistTracks(cleanPlId);
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(ytResult));
+              return;
+            }
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
         next();
       });
     },
