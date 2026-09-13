@@ -161,8 +161,9 @@ export async function getInnertube(): Promise<Innertube> {
 }
 
 export function parseSubscriberCount(str?: string): number {
-  if (!str) return 0;
-  const s = str.trim().toLowerCase();
+  if (!str || typeof str !== 'string') return 0;
+  let s = str.trim().toLowerCase();
+  s = s.replace(/\b(million|млн)\b/gi, 'm').replace(/\b(billion|млрд)\b/gi, 'b').replace(/\b(thousand|тыс)\b/gi, 'k');
   const m = s.match(/([\d.,]+)\s*([kmb])?/i);
   if (!m) return 0;
   let num = parseFloat(m[1].replace(/,/g, ''));
@@ -199,6 +200,228 @@ export function parseViewsToNumber(viewsStr?: string | number): number {
   return Math.round(val);
 }
 
+export interface ScoredArtistCandidate {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  subs: number;
+  subsStr: string;
+  isVerified: boolean;
+  totalReleases: number;
+  score: number;
+  art?: any;
+  candidate: any;
+  breakdown: {
+    engagementScore: number;
+    catalogScore: number;
+    metadataScore: number;
+  };
+}
+
+export async function scoreArtistCandidates(
+  yt: Innertube,
+  query: string,
+  rawCandidates: any[]
+): Promise<ScoredArtistCandidate[]> {
+  if (!rawCandidates || rawCandidates.length === 0) return [];
+
+  const cleanQ = query.trim().toLowerCase();
+  const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
+
+  const seenIds = new Set<string>();
+  const topCandidates: any[] = [];
+  for (const c of rawCandidates) {
+    const id = c.id || c.browseId || c.title?.endpoint?.payload?.browseId || c.endpoint?.payload?.browseId;
+    if (!id || typeof id !== 'string' || !id.startsWith('UC') || seenIds.has(id)) continue;
+    seenIds.add(id);
+    topCandidates.push({
+      ...c,
+      id,
+      name: c.name || c.title?.text || (typeof c.title === 'string' ? c.title : ''),
+    });
+    if (topCandidates.length >= 4) break;
+  }
+
+  if (topCandidates.length === 0) return [];
+
+  const details = await Promise.allSettled(
+    topCandidates.map(async (c) => {
+      try {
+        const artPromise = yt.music.getArtist(c.id);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
+        const art = await Promise.race([artPromise, timeoutPromise]);
+        return { c, art };
+      } catch {
+        return { c, art: null };
+      }
+    })
+  );
+
+  const scored: ScoredArtistCandidate[] = details.map((d, index) => {
+    const c = topCandidates[index];
+    if (d.status !== 'fulfilled' || !d.value) {
+      return {
+        id: c.id,
+        name: c.name || query,
+        subs: 0,
+        subsStr: '',
+        isVerified: false,
+        totalReleases: 0,
+        score: -999,
+        candidate: c,
+        breakdown: { engagementScore: 0, catalogScore: 0, metadataScore: 0 },
+      };
+    }
+
+    const art = d.value.art as any;
+    const cName = (c.name || art?.header?.title?.text || '').trim().toLowerCase();
+    const strippedCName = cName.replace(/[^a-z0-9]/g, '');
+    const subsStr =
+      c.subscribers ||
+      (typeof c.subtitle === 'string' ? c.subtitle : c.subtitle?.text) ||
+      art?.header?.subscribers?.text ||
+      '';
+    const subs = parseSubscriberCount(subsStr);
+
+    // 1. Engagement Score:
+    // > 1M -> +50, > 100K -> +35, > 10K -> +20, > 5K -> +10, < 1K -> -10
+    let engagementScore = 0;
+    if (subs >= 1_000_000) engagementScore += 50;
+    else if (subs >= 100_000) engagementScore += 35;
+    else if (subs >= 10_000) engagementScore += 20;
+    else if (subs >= 5_000) engagementScore += 10;
+    else if (subs < 1_000) engagementScore -= 10;
+
+    const hasBadge = Array.isArray(c.badges) && c.badges.some((b: any) => {
+      const t = (b.tooltip || b.label || b.text || b.type || '').toLowerCase();
+      return t.includes('official') || t.includes('verified') || t.includes('artist');
+    });
+    const hasSubtitleVerified =
+      subsStr.toLowerCase().includes('official') ||
+      subsStr.toLowerCase().includes('verified') ||
+      subsStr.toLowerCase().includes('artist');
+    const isVerified = Boolean(hasBadge || hasSubtitleVerified || c.fromMusicCard);
+    if (isVerified) engagementScore += 30;
+
+    // 2. Catalog Depth Score:
+    // >= 10 releases -> +30, >= 3 releases -> +15, <= 2 releases -> -20 penalty
+    let catalogScore = 0;
+    let totalReleases = 0;
+    let topSongs: any[] = [];
+    if (art) {
+      const sections: any[] = art.sections || [];
+      const albumsSec = sections.find((s: any) => (s.header?.title?.text || s.title?.text || '').toLowerCase().includes('album'));
+      const singlesSec = sections.find((s: any) => (s.header?.title?.text || s.title?.text || '').toLowerCase().includes('single'));
+      const songsSec = sections.find((s: any) => (s.header?.title?.text || s.title?.text || '').toLowerCase().includes('song'));
+      const albumsCount = albumsSec?.contents?.length || 0;
+      const singlesCount = singlesSec?.contents?.length || 0;
+      totalReleases = albumsCount + singlesCount;
+      topSongs = songsSec?.contents || [];
+
+      if (totalReleases >= 10) catalogScore += 30;
+      else if (totalReleases >= 3) catalogScore += 15;
+      else if (totalReleases <= 2) catalogScore -= 20;
+    }
+
+    // 3. Metadata Relevance Score:
+    // Exact name match -> +35, Prefix -> +20, Partial -> +10
+    let metadataScore = 0;
+    const isExactName = cName === cleanQ || (strippedCName.length > 0 && strippedCName === strippedQ);
+    if (isExactName) {
+      metadataScore += 35;
+    } else if (cName.startsWith(cleanQ) || (strippedQ.length > 2 && strippedCName.startsWith(strippedQ))) {
+      metadataScore += 20;
+    } else if (cName.includes(cleanQ) || (strippedQ.length > 2 && strippedCName.includes(strippedQ))) {
+      metadataScore += 10;
+    }
+
+    // Content linkage: check if candidate's top tracks or albums/sections contain query artist
+    const contentMatch =
+      topSongs.some((s: any) => {
+        const title = (s.title?.text || s.title || '').toLowerCase();
+        const artists = (s.artists || []).map((a: any) => (a.name || '').toLowerCase()).join(' ');
+        return (
+          title.includes(cleanQ) ||
+          artists.includes(cleanQ) ||
+          (strippedQ.length > 2 &&
+            (title.replace(/[^a-z0-9]/g, '').includes(strippedQ) ||
+             artists.replace(/[^a-z0-9]/g, '').includes(strippedQ)))
+        );
+      }) ||
+      (art?.sections || []).some((sec: any) => {
+        return (sec.contents || []).some((item: any) => {
+          const t = (item.title?.text || item.title || '').toLowerCase();
+          return (
+            t.includes(cleanQ) ||
+            (strippedQ.length > 2 && t.replace(/[^a-z0-9]/g, '').includes(strippedQ))
+          );
+        });
+      });
+
+    if (contentMatch) {
+      metadataScore += 40;
+    }
+
+    const totalScore = engagementScore + catalogScore + metadataScore;
+
+    const avatarUrl =
+      extractThumbnailUrl(c.thumbnails || c.thumbnail) ||
+      extractThumbnailUrl(art?.header?.thumbnail) ||
+      extractThumbnailUrl(art?.header?.thumbnails);
+
+    return {
+      id: c.id,
+      name: c.name || art?.header?.title?.text || query,
+      avatarUrl,
+      subs,
+      subsStr,
+      isVerified,
+      totalReleases,
+      score: totalScore,
+      art,
+      candidate: c,
+      breakdown: { engagementScore, catalogScore, metadataScore },
+    };
+  });
+
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+export async function resolveArtistCandidates(yt: Innertube, query: string): Promise<ScoredArtistCandidate[]> {
+  const [genRes, artistRes] = await Promise.allSettled([
+    yt.music.search(query),
+    yt.music.search(query, { type: 'artist' }),
+  ]);
+  const rawCandidates: any[] = [];
+  if (genRes.status === 'fulfilled' && genRes.value?.contents) {
+    const contents = genRes.value.contents as any[];
+    const card = contents.find((c: any) => c.type === 'MusicCardShelf');
+    if (card) {
+      const isArtist =
+        card.subtitle?.text?.toLowerCase().includes('artist') ||
+        card.title?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST' ||
+        card.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST';
+      const browseId = card.title?.endpoint?.payload?.browseId || card.endpoint?.payload?.browseId;
+      if (isArtist && browseId && typeof browseId === 'string' && browseId.startsWith('UC')) {
+        rawCandidates.push({
+          id: browseId,
+          name: card.title?.text || query,
+          subscribers: card.subtitle?.text,
+          subtitle: card.subtitle,
+          thumbnails: card.thumbnail || card.thumbnails,
+          fromMusicCard: true,
+        });
+      }
+    }
+  }
+  if (artistRes.status === 'fulfilled' && artistRes.value) {
+    const aShelf = artistRes.value.contents?.[0];
+    const aItems: any[] = aShelf && 'contents' in aShelf ? (aShelf.contents as any[]) : [];
+    rawCandidates.push(...aItems);
+  }
+  return scoreArtistCandidates(yt, query, rawCandidates);
+}
+
 export function scoreArtist(a: any, query: string, topResultBrowseId?: string): number {
   const cleanQ = query.trim().toLowerCase();
   const name = (a.name || '').trim().toLowerCase();
@@ -206,19 +429,18 @@ export function scoreArtist(a: any, query: string, topResultBrowseId?: string): 
   let score = 0;
 
   if (topResultBrowseId && (a.id === topResultBrowseId || a.endpoint?.payload?.browseId === topResultBrowseId)) {
-    score += 100_000_000;
+    score += 50;
   }
 
-  if (name === cleanQ) {
-    score += 2_000_000;
-  } else if (name.startsWith(cleanQ)) {
-    score += 200_000;
-  } else if (name.includes(cleanQ)) {
-    score += 50_000;
-  }
+  if (subs >= 1_000_000) score += 50;
+  else if (subs >= 100_000) score += 35;
+  else if (subs >= 10_000) score += 20;
+  else if (subs >= 5_000) score += 10;
+  else if (subs < 1_000) score -= 10;
 
-  // Weight by subscriber count so an artist with 316K subscribers dominates one with 290 subscribers
-  score += Math.min(subs, 50_000_000);
+  if (name === cleanQ) score += 35;
+  else if (name.startsWith(cleanQ)) score += 20;
+  else if (name.includes(cleanQ)) score += 10;
 
   return score;
 }
@@ -260,7 +482,7 @@ export async function search(query: string): Promise<{
     yt.music.search(query, { type: 'artist' }),
   ]);
 
-  let topResultArtist: { name: string; avatarUrl?: string; subtitle?: string; browseId?: string } | undefined;
+  const rawCandidates: any[] = [];
 
   if (genRes.status === 'fulfilled' && genRes.value?.contents) {
     const contents = genRes.value.contents as any[];
@@ -272,74 +494,64 @@ export async function search(query: string): Promise<{
         card.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST';
       const browseId = card.title?.endpoint?.payload?.browseId || card.endpoint?.payload?.browseId;
       if (isArtist && browseId && typeof browseId === 'string' && browseId.startsWith('UC')) {
-        topResultArtist = {
+        rawCandidates.push({
+          id: browseId,
           name: card.title?.text || query,
-          avatarUrl: extractThumbnailUrl(card.thumbnail || card.thumbnails),
-          subtitle: card.subtitle?.text || 'Official Artist',
-          browseId,
-        };
+          subscribers: card.subtitle?.text,
+          subtitle: card.subtitle,
+          thumbnails: card.thumbnail || card.thumbnails,
+          fromMusicCard: true,
+        });
       }
     }
   }
 
-  // Score and rank all artist search results
-  let bestArtistCandidate: any = null;
   if (artistRes.status === 'fulfilled' && artistRes.value) {
     const aShelf = artistRes.value.contents?.[0];
     const aItems: any[] = aShelf && 'contents' in aShelf ? (aShelf.contents as any[]) : [];
-    if (aItems.length > 0) {
-      const scored = aItems
-        .map((item) => ({
-          item,
-          score: scoreArtist(item, query, topResultArtist?.browseId),
-        }))
-        .sort((a, b) => b.score - a.score);
+    rawCandidates.push(...aItems);
+  }
 
-      bestArtistCandidate = scored[0]?.item;
+  // Inspect raw songs and videos to gauge popularity of tracks matching query
+  const rawSongItems: any[] = (songRes.status === 'fulfilled' && (songRes.value as any)?.contents?.[0]?.contents) || [];
+  const rawVideoItems: any[] = (videoRes.status === 'fulfilled' && (videoRes.value as any)?.contents?.[0]?.contents) || [];
+  const cleanQ = query.trim().toLowerCase();
+
+  let maxTrackViews = 0;
+  for (const it of [...rawSongItems, ...rawVideoItems]) {
+    const rawV = it.views?.text || it.views || it.view_count?.text || it.view_count;
+    const vNum = parseViewsToNumber(rawV);
+    const itTitle = (typeof it.title === 'string' ? it.title : it.title?.text || '').toLowerCase().trim();
+    if (itTitle === cleanQ || itTitle.startsWith(cleanQ) || itTitle.includes(cleanQ)) {
+      if (vNum > maxTrackViews) maxTrackViews = vNum;
     }
   }
 
-  if (topResultArtist && bestArtistCandidate) {
-    const topSubs = parseSubscriberCount(topResultArtist.subtitle);
-    const candSubs = parseSubscriberCount(bestArtistCandidate.subscribers || bestArtistCandidate.subtitle?.text);
-    const candName = (bestArtistCandidate.name || '').toLowerCase().trim();
-    const cleanQ = query.trim().toLowerCase();
-    // Prefer bestArtistCandidate if exact match and has substantially more subscribers
-    if (candName === cleanQ && candSubs > topSubs * 2) {
-      const bId = bestArtistCandidate.id || topResultArtist.browseId;
+  // Score and rank all artist search results using the entity resolution formula
+  const scoredCandidates = await scoreArtistCandidates(yt, query, rawCandidates);
+  const bestCandidate = scoredCandidates[0];
+
+  // Low-Quality Gatekeeper:
+  // Reject candidate from being returned as artistCard if:
+  // - Candidate is unverified,
+  // - Has < 10,000 subscribers / monthly audience,
+  // - Has < 3 releases,
+  // - AND there are other established tracks or entities in the results with >= 100,000 views.
+  if (bestCandidate && bestCandidate.score > 0) {
+    const isObscure = !bestCandidate.isVerified && bestCandidate.subs < 10_000 && bestCandidate.totalReleases < 3;
+    const isGatekeeperSuppressed = isObscure && maxTrackViews >= 100_000;
+    const isViralTrackOvershadowed =
+      bestCandidate.subs < 25_000 &&
+      maxTrackViews >= 1_000_000 &&
+      (bestCandidate.subs < 10_000 || maxTrackViews > bestCandidate.subs * 20);
+
+    if (!isGatekeeperSuppressed && !isViralTrackOvershadowed) {
       artistCard = {
-        name: bestArtistCandidate.name || query,
-        avatarUrl: extractThumbnailUrl(bestArtistCandidate.thumbnails || bestArtistCandidate.thumbnail) || topResultArtist.avatarUrl,
-        subtitle: bestArtistCandidate.subscribers || topResultArtist.subtitle || 'Official Artist',
-        browseId: bId,
-        externalUrl: bId?.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : undefined,
-      };
-    } else {
-      artistCard = {
-        ...topResultArtist,
-        externalUrl: topResultArtist.browseId?.startsWith('UC')
-          ? `https://music.youtube.com/channel/${topResultArtist.browseId}`
-          : undefined,
-      };
-    }
-  } else if (topResultArtist) {
-    artistCard = {
-      ...topResultArtist,
-      externalUrl: topResultArtist.browseId?.startsWith('UC')
-        ? `https://music.youtube.com/channel/${topResultArtist.browseId}`
-        : undefined,
-    };
-  } else if (bestArtistCandidate) {
-    const cleanQ = query.trim().toLowerCase();
-    const candName = (bestArtistCandidate.name || '').toLowerCase().trim();
-    if (candName.includes(cleanQ) || cleanQ.includes(candName)) {
-      const bId = bestArtistCandidate.id;
-      artistCard = {
-        name: bestArtistCandidate.name || query,
-        avatarUrl: extractThumbnailUrl(bestArtistCandidate.thumbnails || bestArtistCandidate.thumbnail),
-        subtitle: bestArtistCandidate.subscribers || 'Official YouTube Music Artist',
-        browseId: bId,
-        externalUrl: bId?.startsWith('UC') ? `https://music.youtube.com/channel/${bId}` : undefined,
+        name: bestCandidate.name,
+        avatarUrl: bestCandidate.avatarUrl,
+        subtitle: bestCandidate.subsStr || (bestCandidate.subs > 0 ? `${bestCandidate.subs.toLocaleString()} subscribers` : 'Official Artist'),
+        browseId: bestCandidate.id,
+        externalUrl: bestCandidate.id.startsWith('UC') ? `https://music.youtube.com/channel/${bestCandidate.id}` : undefined,
       };
     }
   }
@@ -399,62 +611,25 @@ export async function search(query: string): Promise<{
     }
   };
 
-  const cleanQ = query.trim().toLowerCase();
-
-  // Inspect raw songs and videos to gauge popularity of tracks matching query
-  const rawSongItems: any[] = (songRes.status === 'fulfilled' && (songRes.value as any)?.contents?.[0]?.contents) || [];
-  const rawVideoItems: any[] = (videoRes.status === 'fulfilled' && (videoRes.value as any)?.contents?.[0]?.contents) || [];
-
-  let maxTrackViews = 0;
-  for (const it of [...rawSongItems, ...rawVideoItems]) {
-    const rawV = it.views?.text || it.views || it.view_count?.text || it.view_count;
-    const vNum = parseViewsToNumber(rawV);
-    const itTitle = (typeof it.title === 'string' ? it.title : it.title?.text || '').toLowerCase().trim();
-    if (itTitle === cleanQ || itTitle.startsWith(cleanQ) || itTitle.includes(cleanQ)) {
-      if (vNum > maxTrackViews) maxTrackViews = vNum;
-    }
-  }
-
-  const artistSubs = parseSubscriberCount(
-    artistCard?.subtitle ||
-    topResultArtist?.subtitle ||
-    bestArtistCandidate?.subscribers ||
-    bestArtistCandidate?.subtitle?.text
-  );
-
-  // An artist query is considered overshadowed by a viral track ONLY if the artist is obscure (< 25k subscribers).
-  // Established artists (>= 25k subscribers, such as BONES with 316k subs) must NEVER be suppressed!
-  const isObscureArtist = artistSubs < 25_000;
-  const isViralTrackQuery = isObscureArtist && maxTrackViews >= 1_000_000 && (artistSubs < 10_000 || maxTrackViews > artistSubs * 20);
-
-  if (isViralTrackQuery) {
-    artistCard = undefined;
-  }
-
   // Top Tracks vs Artist Page:
-  // Load artist's official top hits if confirmed topResultArtist OR verified established artist
+  // Load artist's official top hits if confirmed established artist
   const isArtistQuery = Boolean(
-    !isViralTrackQuery &&
     artistCard &&
     artistCard.browseId &&
-    (topResultArtist ||
-      (artistSubs >= 15_000 && (
-        artistCard.name.toLowerCase().trim() === cleanQ ||
-        cleanQ === artistCard.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '')
-      )))
+    (bestCandidate?.isVerified || bestCandidate?.subs >= 15_000 || (bestCandidate?.totalReleases || 0) >= 3)
   );
 
   if (isArtistQuery && artistCard?.browseId) {
     try {
-      const aDetails = await yt.music.getArtist(artistCard.browseId);
+      const aDetails = bestCandidate?.art || (await yt.music.getArtist(artistCard.browseId));
       let officialSongs: any[] = [];
-      if (typeof aDetails.getAllSongs === 'function') {
+      if (typeof aDetails?.getAllSongs === 'function') {
         try {
           const allSongs = await aDetails.getAllSongs();
           officialSongs = allSongs?.contents || [];
         } catch {}
       }
-      if (officialSongs.length === 0) {
+      if (officialSongs.length === 0 && aDetails?.sections) {
         const songsSec = (aDetails.sections as any[])?.find(
           (s: any) => s.type === 'MusicShelf' || (s.title?.text && s.title.text.toLowerCase().includes('song'))
         );
@@ -594,6 +769,7 @@ async function findRealChannelInfo(yt: Innertube, artistName: string): Promise<{
   try {
     const chSearch = await yt.search(artistName, { type: 'channel' });
     const cleanN = artistName.toLowerCase().trim();
+    const strippedN = cleanN.replace(/[^a-z0-9]/g, '');
     const channels: any[] = (chSearch.results || []).map((c: any) => {
       const name = (c.author?.name || c.title?.text || '').trim();
       const subsStr = c.subscribers?.text || c.video_count?.text || '';
@@ -608,19 +784,35 @@ async function findRealChannelInfo(yt: Innertube, artistName: string): Promise<{
 
     if (channels.length === 0) return {};
 
-    // Score channels by exact match and subscriber count
-    const scored = channels.map((c) => {
-      const cn = c.name.toLowerCase();
-      let score = 0;
-      const isExact = cn === cleanN;
-      const isTopic = cn.includes('topic');
-      if (isExact) score += 500_000;
-      else if (cn.includes(cleanN)) score += 50_000;
+    // Strict name compatibility: Never match an alien channel (like Rare Americans for BONES)
+    const scored = channels
+      .map((c) => {
+        const cn = c.name.toLowerCase().trim();
+        const strippedCn = cn.replace(/[^a-z0-9]/g, '');
 
-      if (isTopic) score -= 10_000;
-      score += Math.min(c.subscribers, 10_000_000);
-      return { c, score };
-    }).sort((a, b) => b.score - a.score);
+        const isExact = cn === cleanN || (strippedCn.length > 0 && strippedCn === strippedN);
+        const isTopic = cn.includes('topic');
+        const isPrefix =
+          (strippedN.length >= 3 && strippedCn.startsWith(strippedN)) ||
+          (strippedCn.length >= 3 && strippedN.startsWith(strippedCn));
+        const isSubstring = strippedN.length >= 3 && strippedCn.includes(strippedN);
+
+        // Disqualify any channel whose name does not match the target artist
+        if (!isExact && !isPrefix && !isSubstring) {
+          return { c, score: -1 };
+        }
+
+        let score = 0;
+        if (isExact) score += 10_000_000;
+        else if (isPrefix) score += 2_000_000;
+        else if (isSubstring) score += 500_000;
+
+        if (isTopic) score -= 1_000_000;
+        score += Math.min(c.subscribers, 5_000_000);
+        return { c, score };
+      })
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score);
 
     const best = scored[0]?.c;
     if (best && best.id) {
@@ -715,55 +907,23 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
   let resolvedSubscribers: string | undefined = undefined;
   let realCh: { avatarUrl?: string; channelId?: string; subscriberCount?: number } = {};
 
+  let artistPage: any = null;
+
   // 1. If not a valid UC channel ID, resolve via YouTube Music first!
   if (!channelId.startsWith('UC')) {
-    // Step A: Check general search for MusicCardShelf Top Result
     try {
-      const genSearch = await yt.music.search(cleanQuery);
-      for (const rawC of genSearch.contents || []) {
-        const c = rawC as any;
-        if (c.type === 'MusicCardShelf') {
-          const isArtist =
-            c.subtitle?.text?.toLowerCase().includes('artist') ||
-            c.title?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST' ||
-            c.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType === 'MUSIC_PAGE_TYPE_ARTIST';
-          const bId = c.title?.endpoint?.payload?.browseId || c.endpoint?.payload?.browseId;
-          if (isArtist && bId && typeof bId === 'string' && bId.startsWith('UC')) {
-            channelId = bId;
-            searchItemThumbnail = c.thumbnail || c.thumbnails;
-            if (c.subtitle?.text) resolvedSubscribers = c.subtitle.text;
-            break;
-          }
+      const candidates = await resolveArtistCandidates(yt, cleanQuery);
+      const winner = candidates[0];
+      if (winner && winner.score > 0 && winner.id.startsWith('UC')) {
+        channelId = winner.id;
+        searchItemThumbnail = winner.avatarUrl;
+        if (winner.subsStr) resolvedSubscribers = winner.subsStr;
+        if (winner.art) {
+          artistPage = winner.art;
         }
       }
     } catch (e) {
-      console.warn('[InnertubeService] getArtist MusicCardShelf search error:', e);
-    }
-
-    // Step B: Search for music artist type and score candidates
-    if (!channelId.startsWith('UC')) {
-      try {
-        const aSearch = await yt.music.search(cleanQuery, { type: 'artist' });
-        const aShelf = aSearch.contents?.[0];
-        const aItems: any[] = aShelf && 'contents' in aShelf ? (aShelf.contents as any[]) : [];
-        if (aItems.length > 0) {
-          const scored = aItems
-            .map((item) => ({
-              item,
-              score: scoreArtist(item, cleanQuery),
-            }))
-            .sort((a, b) => b.score - a.score);
-
-          const best = scored[0]?.item;
-          if (best && best.id?.startsWith('UC')) {
-            channelId = best.id;
-            searchItemThumbnail = best.thumbnail || best.thumbnails;
-            if (best.subscribers) resolvedSubscribers = best.subscribers;
-          }
-        }
-      } catch (e) {
-        console.warn('[InnertubeService] Artist type search error:', e);
-      }
+      console.warn('[InnertubeService] resolveArtistCandidates error in getArtist:', e);
     }
 
     // Step C: If still not resolved, inspect top song artist
@@ -810,9 +970,8 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
     } catch {}
   }
 
-  // 2. Fetch artist page if valid channel ID
-  let artistPage: any = null;
-  if (channelId.startsWith('UC')) {
+  // 3. Fetch artist page if valid channel ID (reuse artistPage if already loaded during candidate resolution)
+  if (!artistPage && channelId.startsWith('UC')) {
     try {
       artistPage = await yt.music.getArtist(channelId);
     } catch (err) {
@@ -1419,19 +1578,30 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     }
   }
 
-  // 3. Real YouTube channel video uploads
-  let targetChannelId = channelId;
+  // 3. Real YouTube channel video uploads (only if a real verified channel matching the artist is found)
+  let targetChannelId: string | undefined = undefined;
   try {
     const rc = await findRealChannelInfo(yt, artistName);
-    if (rc.channelId && rc.channelId.startsWith('UC')) {
+    if (rc.channelId && rc.channelId.startsWith('UC') && (rc.subscriberCount || 0) >= 1000) {
       targetChannelId = rc.channelId;
     }
   } catch {}
 
-  if (targetChannelId.startsWith('UC')) {
+  if (targetChannelId && targetChannelId.startsWith('UC')) {
     try {
       const ch = await yt.getChannel(targetChannelId);
-      if (typeof ch.getVideos === 'function') {
+      const chTitle = ((ch?.header as any)?.author?.name || ch?.metadata?.title || '').toLowerCase().trim();
+      const strippedChTitle = chTitle.replace(/[^a-z0-9]/g, '');
+      const cleanArtist = artistName.toLowerCase().trim();
+      const strippedArtist = cleanArtist.replace(/[^a-z0-9]/g, '');
+
+      // Strictly verify that this channel actually corresponds to the artist!
+      const isChannelValid =
+        chTitle === cleanArtist ||
+        (strippedArtist.length >= 3 && strippedChTitle === strippedArtist) ||
+        (strippedArtist.length >= 3 && strippedChTitle.startsWith(strippedArtist));
+
+      if (isChannelValid && typeof ch.getVideos === 'function') {
         let vPage: any = await ch.getVideos();
         const channelVids: any[] = [...(vPage?.videos || [])];
         let vPages = 0;
@@ -1448,12 +1618,30 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
         for (const item of channelVids) {
           const vId = item.id || item.content_id || item.video_id;
           if (!vId || existingIds.has(vId)) continue;
-          existingIds.add(vId);
 
           const title =
             item.title?.text ||
             item.metadata?.title?.text ||
             (typeof item.title === 'string' ? item.title : 'Untitled');
+
+          const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
+
+          // Disallow alien tracks
+          if (cleanA && cleanA.toLowerCase().trim() !== cleanArtist) {
+            const cleanALower = cleanA.toLowerCase().trim();
+            const strippedA = cleanALower.replace(/[^a-z0-9]/g, '');
+            if (
+              !cleanALower.includes(cleanArtist) &&
+              !cleanArtist.includes(cleanALower) &&
+              !strippedA.includes(strippedArtist) &&
+              !strippedArtist.includes(strippedA)
+            ) {
+              continue;
+            }
+          }
+
+          existingIds.add(vId);
+
           let durStr = item.duration?.text || '0:00';
           if (durStr === '0:00' && item.content_image?.overlays) {
             for (const ov of item.content_image.overlays) {
@@ -1469,7 +1657,6 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
             extractThumbnailUrl(item.thumbnails || item.thumbnail || item.content_image?.image) ||
             `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
 
-          const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
           const rows = item.metadata?.metadata?.metadata_rows || [];
           const metadataParts = rows.flatMap((r: any) => r.metadata_parts?.map((p: any) => p.text?.text || '') || []);
           const datePart = metadataParts.find((p: string) => /ago|назад|\b(19|20)\d{2}\b/i.test(p)) || item.published?.text;
@@ -1511,9 +1698,30 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     } catch {}
   }
 
-  tracks.sort((a, b) => (b.views || 0) - (a.views || 0));
-  await enrichTracksWithUploadDates(yt, tracks, 60);
-  return tracks;
+  // Final strict safeguard: filter out any tracks that explicitly belong to a foreign/alien primary artist
+  const finalTracks = tracks.filter((t) => {
+    if (!t.title || !t.id) return false;
+    const tArt = (t.artist || '').toLowerCase().trim();
+    const cleanArt = artistName.toLowerCase().trim();
+    const strippedTArt = tArt.replace(/[^a-z0-9]/g, '');
+    const strippedCleanArt = cleanArt.replace(/[^a-z0-9]/g, '');
+
+    if (tArt && tArt !== cleanArt && strippedTArt !== strippedCleanArt) {
+      const matches =
+        tArt.includes(cleanArt) ||
+        cleanArt.includes(tArt) ||
+        (strippedCleanArt.length >= 3 &&
+          (strippedTArt.includes(strippedCleanArt) || strippedCleanArt.includes(strippedTArt)));
+      if (!matches) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  finalTracks.sort((a, b) => (b.views || 0) - (a.views || 0));
+  await enrichTracksWithUploadDates(yt, finalTracks, 60);
+  return finalTracks;
 }
 
 export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails> {
@@ -1570,7 +1778,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
         const plItems: any[] = [...((pl.items as any[]) || [])];
         let plPage = pl;
         let plPages = 0;
-        while (plPage && (plPage as any).has_continuation && plPages < 10) {
+        while (plPage && (plPage as any).has_continuation && plPages < 100) {
           try {
             plPage = await (plPage as any).getContinuation();
             if (plPage?.items && Array.isArray(plPage.items)) {
@@ -1704,7 +1912,7 @@ export async function getAlbum(browseId: string): Promise<InnertubeAlbumDetails>
 
         let plPage = pl;
         let plPages = 0;
-        while (plPage && (plPage as any).has_continuation && plPages < 10) {
+        while (plPage && (plPage as any).has_continuation && plPages < 100) {
           try {
             plPage = await (plPage as any).getContinuation();
             if (plPage?.items && Array.isArray(plPage.items)) {
@@ -2224,21 +2432,33 @@ export async function getPlaylistTracks(playlistId: string): Promise<{
 }> {
   const yt = await getInnertube();
   const cleanId = playlistId.replace(/^VL/, '');
-  const pl = await yt.music.getPlaylist(cleanId);
-  const plTitle = (pl.header as any)?.title?.text || 'Playlist';
-  const plArtist = (pl.header as any)?.author?.name || 'YouTube Music';
+  let pl: any = null;
+  try {
+    pl = await yt.music.getPlaylist(cleanId);
+  } catch {
+    try {
+      pl = await yt.getPlaylist(cleanId);
+    } catch (e) {
+      throw new Error(`Playlist could not be loaded: ${cleanId}`);
+    }
+  }
+
+  const plTitle = (pl.header as any)?.title?.text || (typeof pl.header?.title === 'string' ? pl.header.title : '') || 'Playlist';
+  const plArtist = (pl.header as any)?.author?.name || (pl.header as any)?.author?.text || 'YouTube Music';
   const plThumb = extractThumbnailUrl((pl.header as any)?.thumbnails || (pl.header as any)?.thumbnail);
   const tracks: InnertubeTrack[] = [];
-  const plItems: any[] = [...((pl.items as any[]) || [])];
+  const plItems: any[] = [...((pl.items as any[]) || (pl.videos as any[]) || [])];
 
   let plPage = pl;
   let plPages = 0;
-  while (plPage && (plPage as any).has_continuation && plPages < 20) {
+  while (plPage && (plPage as any).has_continuation && plPages < 100) {
     try {
-      await new Promise((res) => setTimeout(res, 200));
+      await new Promise((res) => setTimeout(res, 100));
       plPage = await (plPage as any).getContinuation();
       if (plPage?.items && Array.isArray(plPage.items)) {
         plItems.push(...plPage.items);
+      } else if (plPage?.videos && Array.isArray(plPage.videos)) {
+        plItems.push(...plPage.videos);
       } else if (plPage?.contents && Array.isArray(plPage.contents)) {
         plItems.push(...plPage.contents);
       }

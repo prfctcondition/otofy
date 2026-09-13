@@ -85,21 +85,40 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const handleMaximize = () => window.electronAPI?.windowControl('maximize');
   const handleClose = () => window.electronAPI?.windowControl('close');
 
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     onSearchChange(query);
     searchStore.setQuery(query);
 
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+
+    if (!query.trim()) {
+      searchStore.clearResults();
+      return;
+    }
+
     searchTimeoutRef.current = setTimeout(() => {
-      searchStore.search(query);
+      searchStore.search(query.trim());
     }, 220);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
+      }
       if (searchQuery.trim().length > 0) {
         searchStore.search(searchQuery.trim());
       }
