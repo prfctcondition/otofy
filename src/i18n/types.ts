@@ -142,6 +142,34 @@ export interface TranslationSchema {
     quit: string;
     otofyDesktop: string;
   };
+  catalog: {
+    title: string;
+    subtitle: string;
+    filterPlaceholder: string;
+    backToHome: string;
+    backToAll: string;
+    playAll: string;
+    shuffle: string;
+    saveToLibrary: string;
+    saved: string;
+    genreTracks: string;
+    curatingTracks: string;
+    noTracksFound: string;
+    playingToast: string;
+    queuedToast: string;
+    shufflingToast: string;
+    randomOrderToast: string;
+    savedToastTitle: string;
+    savedToastBody: string;
+    genres: Record<string, GenreTranslation>;
+  };
+}
+
+export interface GenreTranslation {
+  name: string;
+  category: string;
+  description: string;
+  subgenres: string[];
 }
 
 export interface LanguageOption {

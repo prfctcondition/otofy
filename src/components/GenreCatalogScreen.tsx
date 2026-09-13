@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Flame,
   Coffee,
@@ -30,6 +30,7 @@ import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
+import { useTranslation } from '../i18n';
 
 export interface GenreDef {
   id: string;
@@ -265,6 +266,7 @@ interface GenreCatalogScreenProps {
 const genreTracksCache = new Map<string, Track[]>();
 
 export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }) => {
+  const { t } = useTranslation();
   const [selectedGenre, setSelectedGenre] = useState<GenreDef | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [genreTracks, setGenreTracks] = useState<Track[]>([]);
@@ -275,16 +277,44 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   const libraryStore = useLibraryStore();
   const toastStore = useToastStore();
 
-  const filteredGenres = GENRE_CATALOG.filter((genre) => {
-    if (!searchFilter.trim()) return true;
+  const localizedGenres: GenreDef[] = useMemo(() => {
+    return GENRE_CATALOG.map((genre) => {
+      const gTrans = t.catalog?.genres?.[genre.id];
+      if (!gTrans) return genre;
+      return {
+        ...genre,
+        name: gTrans.name || genre.name,
+        category: gTrans.category || genre.category,
+        description: gTrans.description || genre.description,
+        subgenres: gTrans.subgenres || genre.subgenres,
+      };
+    });
+  }, [t]);
+
+  const activeGenre = useMemo(() => {
+    if (!selectedGenre) return null;
+    return localizedGenres.find((g) => g.id === selectedGenre.id) || selectedGenre;
+  }, [selectedGenre, localizedGenres]);
+
+  const filteredGenres = useMemo(() => {
+    if (!searchFilter.trim()) return localizedGenres;
     const q = searchFilter.toLowerCase().trim();
-    return (
-      genre.name.toLowerCase().includes(q) ||
-      genre.category.toLowerCase().includes(q) ||
-      genre.description.toLowerCase().includes(q) ||
-      genre.subgenres.some((s) => s.toLowerCase().includes(q))
-    );
-  });
+    return localizedGenres.filter((genre) => {
+      const orig = GENRE_CATALOG.find((g) => g.id === genre.id);
+      return (
+        genre.name.toLowerCase().includes(q) ||
+        genre.category.toLowerCase().includes(q) ||
+        genre.description.toLowerCase().includes(q) ||
+        genre.subgenres.some((s) => s.toLowerCase().includes(q)) ||
+        (orig && (
+          orig.name.toLowerCase().includes(q) ||
+          orig.category.toLowerCase().includes(q) ||
+          orig.description.toLowerCase().includes(q) ||
+          orig.subgenres.some((s) => s.toLowerCase().includes(q))
+        ))
+      );
+    });
+  }, [searchFilter, localizedGenres]);
 
   const loadTracksForGenre = async (genre: GenreDef) => {
     // Check in-memory cache first for 0ms load
@@ -347,14 +377,20 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   const handlePlayAll = () => {
     if (genreTracks.length === 0) return;
     playerStore.playTrack(genreTracks[0], genreTracks);
-    toastStore.info(`Playing ${selectedGenre?.name || 'Genre'}`, `Queued ${genreTracks.length} curated tracks.`);
+    toastStore.info(
+      t.catalog.playingToast.replace('{genre}', activeGenre?.name || 'Genre'),
+      t.catalog.queuedToast.replace('{count}', String(genreTracks.length))
+    );
   };
 
   const handleShufflePlay = () => {
     if (genreTracks.length === 0) return;
     const shuffled = [...genreTracks].sort(() => Math.random() - 0.5);
     playerStore.playTrack(shuffled[0], shuffled);
-    toastStore.info(`Shuffling ${selectedGenre?.name || 'Genre'}`, `Playing in random order.`);
+    toastStore.info(
+      t.catalog.shufflingToast.replace('{genre}', activeGenre?.name || 'Genre'),
+      t.catalog.randomOrderToast
+    );
   };
 
   const handlePlayTrack = (track: Track) => {
@@ -368,7 +404,10 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
         const cached = genreTracksCache.get(genre.id)!;
         if (cached.length > 0) {
           playerStore.playTrack(cached[0], cached);
-          toastStore.success(`Playing ${genre.name}`, `Loaded ${cached.length} tracks.`);
+          toastStore.success(
+            t.catalog.playingToast.replace('{genre}', genre.name),
+            t.catalog.queuedToast.replace('{count}', String(cached.length))
+          );
           return;
         }
       }
@@ -404,7 +443,10 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
         }));
         genreTracksCache.set(genre.id, mapped);
         playerStore.playTrack(mapped[0], mapped);
-        toastStore.success(`Playing ${genre.name}`, `Loaded ${mapped.length} tracks.`);
+        toastStore.success(
+          t.catalog.playingToast.replace('{genre}', genre.name),
+          t.catalog.queuedToast.replace('{count}', String(mapped.length))
+        );
       }
     } catch (err) {
       console.warn('[GenreCatalog] quick play failed:', err);
@@ -412,11 +454,14 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   };
 
   const handleSaveToLibrary = async () => {
-    if (!selectedGenre || genreTracks.length === 0) return;
+    if (!activeGenre || genreTracks.length === 0) return;
     try {
-      await libraryStore.createPlaylistFromTracks(`${selectedGenre.name} Station`, genreTracks);
+      await libraryStore.createPlaylistFromTracks(`${activeGenre.name} Station`, genreTracks);
       setIsSaved(true);
-      toastStore.success('Saved to Library', `"${selectedGenre.name} Station" has been saved.`);
+      toastStore.success(
+        t.catalog.savedToastTitle,
+        t.catalog.savedToastBody.replace('{genre}', activeGenre.name)
+      );
     } catch (err) {
       console.warn('[GenreCatalog] save playlist error:', err);
     }
@@ -434,20 +479,19 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 <button
                   onClick={onBack}
                   className="p-2 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white transition-all shadow-xs flex items-center justify-center"
-                  title="Back to Home"
+                  title={t.catalog.backToHome}
                 >
                   <ArrowLeft size={18} />
                 </button>
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-white">
-                  Genre & Mood Catalog
+                  {t.catalog.title}
                 </h1>
               </div>
               <p className="text-xs sm:text-sm font-medium text-[#64748B] dark:text-white/80">
-                16 curated musical realms with dynamic radio stations and auto-mixes
+                {t.catalog.subtitle}
               </p>
             </div>
 
-            {/* Quick Search */}
             <div className="relative w-full sm:w-72">
               <Search
                 size={16}
@@ -455,7 +499,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
               />
               <input
                 type="text"
-                placeholder="Filter genres..."
+                placeholder={t.catalog.filterPlaceholder}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20 transition-all shadow-xs"
@@ -518,7 +562,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                     <button
                       onClick={(e) => handleQuickPlayGenre(genre, e)}
                       className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
-                      title={`Play ${genre.name}`}
+                      title={t.catalog.playingToast.replace('{genre}', genre.name)}
                     >
                       <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                     </button>
@@ -538,34 +582,34 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-xs font-bold text-[#0F172A] dark:text-white transition-all shadow-xs"
             >
               <ArrowLeft size={14} />
-              Back to all genres
+              {t.catalog.backToAll}
             </button>
           </div>
 
           {/* Hero Genre Banner */}
           <div
-            className={`relative rounded-3xl overflow-hidden p-6 sm:p-8 bg-gradient-to-br ${selectedGenre.gradient} text-white shadow-xl flex flex-col justify-between`}
+            className={`relative rounded-3xl overflow-hidden p-6 sm:p-8 bg-gradient-to-br ${(activeGenre || selectedGenre).gradient} text-white shadow-xl flex flex-col justify-between`}
           >
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2.5 mb-2">
                   <div className="p-2 rounded-xl bg-white/20 backdrop-blur-md">
-                    {React.createElement(selectedGenre.icon, { size: 24, className: 'text-white' })}
+                    {React.createElement((activeGenre || selectedGenre).icon, { size: 24, className: 'text-white' })}
                   </div>
                   <span className="text-xs font-bold uppercase tracking-widest text-white/80 bg-black/25 px-2.5 py-1 rounded-full backdrop-blur-xs">
-                    {selectedGenre.category}
+                    {(activeGenre || selectedGenre).category}
                   </span>
                 </div>
                 <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
-                  {selectedGenre.name}
+                  {(activeGenre || selectedGenre).name}
                 </h1>
                 <p className="mt-2 text-sm sm:text-base text-white/90 leading-relaxed max-w-xl">
-                  {selectedGenre.description}
+                  {(activeGenre || selectedGenre).description}
                 </p>
 
                 {/* Subgenres pills */}
                 <div className="flex flex-wrap gap-1.5 mt-4">
-                  {selectedGenre.subgenres.map((sg) => (
+                  {(activeGenre || selectedGenre).subgenres.map((sg) => (
                     <span
                       key={sg}
                       className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30"
@@ -584,34 +628,34 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                   className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 font-extrabold hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 text-sm"
                 >
                   <Play size={17} className="fill-white dark:fill-black" />
-                  Play All
+                  {t.catalog.playAll}
                 </button>
 
                 <button
                   onClick={handleShufflePlay}
                   disabled={isLoadingTracks || genreTracks.length === 0}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold backdrop-blur-md transition-all active:scale-95 disabled:opacity-50 text-sm"
-                  title="Shuffle and play"
+                  title={t.catalog.shuffle}
                 >
                   <Shuffle size={16} />
-                  Shuffle
+                  {t.catalog.shuffle}
                 </button>
 
                 <button
                   onClick={handleSaveToLibrary}
                   disabled={isLoadingTracks || genreTracks.length === 0 || isSaved}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold backdrop-blur-md transition-all active:scale-95 disabled:opacity-75 text-sm"
-                  title="Save collection to your library"
+                  title={t.catalog.saveToLibrary}
                 >
                   {isSaved ? (
                     <>
                       <Check size={16} className="text-white" />
-                      Saved
+                      {t.catalog.saved}
                     </>
                   ) : (
                     <>
                       <BookmarkPlus size={16} />
-                      Save to Library
+                      {t.catalog.saveToLibrary}
                     </>
                   )}
                 </button>
@@ -623,12 +667,12 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-base font-bold text-[#0F172A] dark:text-white">
-                Genre Tracks ({genreTracks.length})
+                {t.catalog.genreTracks} ({genreTracks.length})
               </h2>
               {isLoadingTracks && (
                 <div className="flex items-center gap-2 text-xs text-[#64748B] dark:text-white/80">
                   <Loader2 size={14} className="animate-spin text-indigo-400" />
-                  Curating the best tracks...
+                  {t.catalog.curatingTracks}
                 </div>
               )}
             </div>
@@ -636,12 +680,12 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
             {isLoadingTracks ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#64748B] dark:text-white/80">
                 <Loader2 size={32} className="animate-spin text-indigo-500" />
-                <p className="text-sm font-medium">Curating the best tracks for this genre...</p>
+                <p className="text-sm font-medium">{t.catalog.curatingTracks}</p>
               </div>
             ) : genreTracks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-[#64748B] dark:text-white/80">
                 <Music size={36} className="mb-2 opacity-50" />
-                <p className="text-sm">No tracks found for this genre</p>
+                <p className="text-sm">{t.catalog.noTracksFound}</p>
               </div>
             ) : (
               <div className="flex flex-col rounded-2xl bg-white/50 dark:bg-white/[0.04] border border-white/80 dark:border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">

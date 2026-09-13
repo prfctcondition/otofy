@@ -54,6 +54,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (item.id === 'qa-liked') return t.library.likedSongs;
     if (item.id === 'qa-history') return t.home.history;
     if (item.id === 'qa-discover') return t.home.discoverWeekly;
+    if (item.id === 'qa-phonk') return `${t.home.dailyMix} 1 • Phonk`;
+    if (item.id === 'qa-lofi') return `${t.home.dailyMix} 2 • Lo-Fi`;
+    if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 • Synthwave`;
+    if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 • Hip-Hop`;
     return item.title;
   };
 
@@ -245,7 +249,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       onPlayStation(station);
                     }}
                     className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
-                    title={`Play ${station.title} Radio`}
+                    title={`${t.player.play} ${station.title}`}
                   >
                     <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                   </button>
@@ -256,9 +260,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <div className="mt-2.5 px-0.5 min-w-0">
                 <p
                   className="text-xs text-[#64748B] dark:text-white/60 group-hover:text-[#475569] dark:group-hover:text-white/80 leading-snug truncate transition-colors"
-                  title={station.artistsSummary}
+                  title={
+                    station.artistsSummary.startsWith('With ')
+                      ? `${t.hero.withPrefix}${station.artistsSummary.slice(5)}`
+                      : station.artistsSummary
+                  }
                 >
-                  {station.artistsSummary}
+                  {station.artistsSummary.startsWith('With ')
+                    ? `${t.hero.withPrefix}${station.artistsSummary.slice(5)}`
+                    : station.artistsSummary}
                 </p>
               </div>
             </div>
@@ -351,7 +361,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       onPlayMix(item);
                     }}
                     className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
-                    title={`Play ${item.title}`}
+                    title={`${t.player.play} ${item.title}`}
                   >
                     <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
                   </button>
@@ -362,9 +372,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <div className="mt-2.5 px-0.5 min-w-0">
                 <p
                   className="text-xs text-[#64748B] dark:text-white/60 group-hover:text-[#475569] dark:group-hover:text-white/80 leading-snug truncate transition-colors"
-                  title={item.subtitle}
+                  title={
+                    item.subtitle.includes(' and more.')
+                      ? item.subtitle.replace(' and more.', ` ${t.hero.andMore}.`)
+                      : item.subtitle
+                  }
                 >
-                  {item.subtitle}
+                  {item.subtitle.includes(' and more.')
+                    ? item.subtitle.replace(' and more.', ` ${t.hero.andMore}.`)
+                    : item.subtitle}
                 </p>
               </div>
             </div>
