@@ -30,7 +30,7 @@ export const ru: TranslationSchema = {
   library: {
     title: 'Медиатека',
     playlists: 'Плейлисты',
-    artists: 'Исполнители',
+    artists: 'Авторы',
     albums: 'Альбомы',
     searchPlaceholder: 'Поиск в медиатеке',
     sortBy: 'Сортировка',
