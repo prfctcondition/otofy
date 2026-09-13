@@ -867,7 +867,14 @@ export default function App() {
           }
 
           if (searchResults.length > 0) {
-            const mappedOnline: Track[] = searchResults.slice(0, 25).map((r, idx) => ({
+            const cleanTarget = cleanName.toLowerCase().trim();
+            const filteredResults = searchResults.filter((r) => {
+              const rArt = (r.artist || '').toLowerCase().trim();
+              if (!rArt) return false;
+              return rArt.includes(cleanTarget) || cleanTarget.includes(rArt);
+            });
+
+            const mappedOnline: Track[] = filteredResults.slice(0, 25).map((r, idx) => ({
               id: `artist-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
               number: artistTracks.length + idx + 1,
               title: r.title,

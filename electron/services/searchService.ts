@@ -1,4 +1,4 @@
-import innertubeService, { parseSubscriberCount } from './innertubeService.js';
+import innertubeService, { parseSubscriberCount, getCanonicalArtistMapping } from './innertubeService.js';
 import scResolver from './scResolver.js';
 import { cleanArtistAndTitle } from './trackParser.js';
 import { detectMusicUrl } from './urlDetector.js';
@@ -261,7 +261,19 @@ function isExactArtistMatch(name: string, query: string): boolean {
   if (cleanN === cleanQ) return true;
   const strippedN = cleanN.replace(/[^a-z0-9]/g, '');
   const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
-  return strippedN.length > 0 && strippedN === strippedQ;
+  if (strippedN.length > 0 && strippedN === strippedQ) return true;
+
+  // Canonical aliases check
+  const canonical = getCanonicalArtistMapping(query) || getCanonicalArtistMapping(name);
+  if (canonical) {
+    const norm = (s: string) => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    const nNorm = norm(name);
+    const qNorm = norm(query);
+    const cNorm = norm(canonical.canonicalName);
+    if (nNorm === cNorm || qNorm === cNorm) return true;
+    if (canonical.aliases.some((a) => norm(a) === nNorm || norm(a) === qNorm)) return true;
+  }
+  return false;
 }
 
 function shouldReplaceArtistCard(
