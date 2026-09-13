@@ -88,9 +88,9 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-              <Sparkles size={18} className="text-pink-600 dark:text-pink-400" />
+              <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
               Singles & EPs
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
                 {details.singles!.length}
               </span>
             </h3>

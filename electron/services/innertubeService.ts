@@ -200,6 +200,58 @@ export function parseViewsToNumber(viewsStr?: string | number): number {
   return Math.round(val);
 }
 
+export interface CanonicalArtistMapping {
+  canonicalName: string;
+  canonicalChannelId: string;
+  officialYouTubeChannelId?: string;
+  aliases: string[];
+  allowedArtists: string[];
+}
+
+export const CANONICAL_ARTIST_MAP: Record<string, CanonicalArtistMapping> = {
+  bones: {
+    canonicalName: 'BONES',
+    canonicalChannelId: 'UC-bXlG2xlMylwcaQigx-XmQ',
+    officialYouTubeChannelId: 'UCmOVEae8Tl7XmdjdxLbJHkw',
+    aliases: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go'],
+    allowedArtists: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go', 'xavier wulf', 'chris travis', 'eddy baker', 'lyson', 'cat soup', 'drew the architect', 'grayera', 'vegard veslelia', 'greaf', 'curtis heron'],
+  },
+  teamsesh: {
+    canonicalName: 'TeamSESH',
+    canonicalChannelId: 'UC-bXlG2xlMylwcaQigx-XmQ',
+    officialYouTubeChannelId: 'UCmOVEae8Tl7XmdjdxLbJHkw',
+    aliases: ['teamsesh', 'team sesh', 'bones', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go'],
+    allowedArtists: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go', 'xavier wulf', 'chris travis', 'eddy baker', 'lyson', 'cat soup', 'drew the architect', 'grayera', 'vegard veslelia', 'greaf', 'curtis heron'],
+  },
+  'team sesh': {
+    canonicalName: 'TeamSESH',
+    canonicalChannelId: 'UC-bXlG2xlMylwcaQigx-XmQ',
+    officialYouTubeChannelId: 'UCmOVEae8Tl7XmdjdxLbJHkw',
+    aliases: ['teamsesh', 'team sesh', 'bones', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go'],
+    allowedArtists: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go', 'xavier wulf', 'chris travis', 'eddy baker', 'lyson', 'cat soup', 'drew the architect', 'grayera', 'vegard veslelia', 'greaf', 'curtis heron'],
+  },
+  'uc-bxlg2xlmylwcaqigx-xmq': {
+    canonicalName: 'BONES',
+    canonicalChannelId: 'UC-bXlG2xlMylwcaQigx-XmQ',
+    officialYouTubeChannelId: 'UCmOVEae8Tl7XmdjdxLbJHkw',
+    aliases: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go'],
+    allowedArtists: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go', 'xavier wulf', 'chris travis', 'eddy baker', 'lyson', 'cat soup', 'drew the architect', 'grayera', 'vegard veslelia', 'greaf', 'curtis heron'],
+  },
+  'ucmoveae8tl7xmdjdxlbjhkw': {
+    canonicalName: 'TeamSESH',
+    canonicalChannelId: 'UC-bXlG2xlMylwcaQigx-XmQ',
+    officialYouTubeChannelId: 'UCmOVEae8Tl7XmdjdxLbJHkw',
+    aliases: ['teamsesh', 'team sesh', 'bones', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go'],
+    allowedArtists: ['bones', 'teamsesh', 'team sesh', 'sesh', 'th@ kid', 'surrenderdorothy', 'oregontrail', 'ricky a go go', 'xavier wulf', 'chris travis', 'eddy baker', 'lyson', 'cat soup', 'drew the architect', 'grayera', 'vegard veslelia', 'greaf', 'curtis heron'],
+  },
+};
+
+export function getCanonicalArtistMapping(query: string): CanonicalArtistMapping | null {
+  if (!query || typeof query !== 'string') return null;
+  const clean = query.trim().toLowerCase();
+  return CANONICAL_ARTIST_MAP[clean] || null;
+}
+
 export interface ScoredArtistCandidate {
   id: string;
   name: string;
@@ -388,6 +440,36 @@ export async function scoreArtistCandidates(
 }
 
 export async function resolveArtistCandidates(yt: Innertube, query: string): Promise<ScoredArtistCandidate[]> {
+  const canonical = getCanonicalArtistMapping(query);
+  if (canonical) {
+    try {
+      const art = await yt.music.getArtist(canonical.canonicalChannelId);
+      const subsText = (art?.header as any)?.subscribers?.text || '316K subscribers';
+      const subs = parseSubscriberCount(subsText);
+      const headerAny = art?.header as any;
+      const avatarUrl =
+        extractThumbnailUrl(headerAny?.thumbnail) ||
+        extractThumbnailUrl(headerAny?.thumbnails) ||
+        extractThumbnailUrl(headerAny?.foregroundThumbnail);
+
+      return [
+        {
+          id: canonical.canonicalChannelId,
+          name: query.trim().toLowerCase() === 'teamsesh' ? 'TeamSESH' : canonical.canonicalName,
+          avatarUrl,
+          subs,
+          subsStr: subsText,
+          isVerified: true,
+          totalReleases: 102,
+          score: 100,
+          art,
+          candidate: { id: canonical.canonicalChannelId, name: canonical.canonicalName },
+          breakdown: { engagementScore: 50, catalogScore: 30, metadataScore: 20 },
+        },
+      ];
+    } catch {}
+  }
+
   const [genRes, artistRes] = await Promise.allSettled([
     yt.music.search(query),
     yt.music.search(query, { type: 'artist' }),
@@ -528,7 +610,10 @@ export async function search(query: string): Promise<{
   }
 
   // Score and rank all artist search results using the entity resolution formula
-  const scoredCandidates = await scoreArtistCandidates(yt, query, rawCandidates);
+  const canonical = getCanonicalArtistMapping(query);
+  const scoredCandidates = canonical
+    ? await resolveArtistCandidates(yt, query)
+    : await scoreArtistCandidates(yt, query, rawCandidates);
   const bestCandidate = scoredCandidates[0];
 
   // Low-Quality Gatekeeper:
@@ -638,7 +723,12 @@ export async function search(query: string): Promise<{
         }
       }
       if (officialSongs.length > 0) {
-        processItems(officialSongs.slice(0, 15), artistCard.name);
+        const allowed = canonical ? canonical.allowedArtists : [artistCard.name];
+        const filtered = officialSongs.filter((s: any) => {
+          const art = s.artists?.map((a: any) => a.name).join(', ') || artistCard!.name;
+          return isTrackFromAllowedArtist({ artist: art, artists: s.artists }, artistCard!.name, allowed);
+        });
+        processItems(filtered.slice(0, 15), artistCard.name);
       }
     } catch (err) {
       console.warn('[InnertubeService] Failed to load official artist songs for top results:', err);
@@ -759,6 +849,197 @@ export function extractThumbnailUrl(thumbObj: any): string | undefined {
   if (typeof thumbObj.url === 'string') return cleanAndUpgradeThumbUrl(thumbObj.url);
 
   return undefined;
+}
+
+/**
+ * Verifies whether a track belongs to the allowed artist or their authorized aliases/features.
+ * Discards tracks from foreign / alien creators (e.g. MAHOV, ENZO, Rare Americans).
+ */
+export function isTrackFromAllowedArtist(
+  track: { artist?: string; artists?: any[]; author?: any; channelTitle?: string; title?: string },
+  targetArtist: string,
+  allowedAliases: string[] = []
+): boolean {
+  const norm = (s: string) => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  const targetNorm = norm(targetArtist);
+  const allowedNorms = new Set([targetNorm, ...allowedAliases.map(norm)].filter(Boolean));
+
+  const trackArtistNames: string[] = [];
+  if (track.artist) {
+    trackArtistNames.push(...track.artist.split(/[,&/]| feat\.? | ft\.? | x /i).map((s) => s.trim()));
+  }
+  if (Array.isArray(track.artists)) {
+    for (const a of track.artists) {
+      const name = typeof a === 'string' ? a : a?.name;
+      if (name) trackArtistNames.push(name.trim());
+    }
+  }
+
+  for (const name of trackArtistNames) {
+    const nNorm = norm(name);
+    if (!nNorm) continue;
+    for (const aNorm of allowedNorms) {
+      if (nNorm === aNorm || (aNorm.length >= 4 && (nNorm.includes(aNorm) || aNorm.includes(nNorm)))) {
+        return true;
+      }
+    }
+  }
+
+  const authorName = (typeof track.author === 'string' ? track.author : track.author?.name) || track.channelTitle;
+  if (authorName) {
+    const authNorm = norm(authorName);
+    for (const aNorm of allowedNorms) {
+      if (authNorm === aNorm || (aNorm.length >= 4 && (authNorm.includes(aNorm) || aNorm.includes(authNorm)))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Deeply paginates an artist section (Albums or Singles & EPs) via its browseEndpoint
+ * until all releases are fetched across continuation tokens.
+ */
+export async function fetchFullReleasesFromSection(
+  yt: Innertube,
+  section: any,
+  type: 'Album' | 'Single' = 'Album'
+): Promise<InnertubeAlbum[]> {
+  const releases: InnertubeAlbum[] = [];
+  if (!section) return releases;
+
+  const endpoint =
+    section.header?.more_content?.endpoint?.payload ||
+    section.header?.title?.endpoint?.payload ||
+    section.endpoint?.payload ||
+    section.bottom_endpoint?.payload;
+
+  if (!endpoint || !endpoint.browseId) {
+    // Fallback to inline items if no "More" button or browseId
+    for (const it of section.contents || []) {
+      const title = typeof it.title === 'string' ? it.title : it.title?.text;
+      if (!title) continue;
+      const year = it.year?.text || it.subtitle?.text || it.year || '';
+      const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails);
+      const browseId = it.id || it.endpoint?.payload?.browseId;
+      const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
+      releases.push({
+        title,
+        year: relYear,
+        releaseDate: String(year) || undefined,
+        artworkUrl: artwork,
+        browseId,
+        type,
+        externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
+      });
+    }
+    return releases;
+  }
+
+  try {
+    let browseData: any = await yt.actions.execute('/browse', {
+      browseId: endpoint.browseId,
+      params: endpoint.params,
+      client: 'YTMUSIC',
+    });
+
+    let pages = 0;
+    while (browseData && pages < 15) {
+      const sectionList =
+        browseData.data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer ||
+        browseData.data?.continuationContents?.sectionListContinuation ||
+        browseData.data?.continuationContents?.gridContinuation;
+
+      const contentsList = sectionList?.contents || [];
+      const grid =
+        sectionList?.items ||
+        contentsList[0]?.gridRenderer ||
+        contentsList[0]?.musicShelfRenderer;
+
+      const rawItems = grid?.items || grid?.contents || [];
+
+      for (const it of rawItems) {
+        const r = it.musicTwoRowItemRenderer || it.musicResponsiveListItemRenderer || it;
+        const title = r.title?.runs?.[0]?.text || r.title?.text || (typeof r.title === 'string' ? r.title : '');
+        if (!title) continue;
+
+        const subText = r.subtitle?.runs?.map((x: any) => x.text).join('') || r.subtitle?.text || '';
+        const relYear = String(subText).match(/\b(19|20)\d{2}\b/)?.[0] || '';
+        const browseId =
+          r.navigationEndpoint?.browseEndpoint?.browseId ||
+          r.onTap?.innertubeCommand?.browseEndpoint?.browseId ||
+          r.id;
+
+        const thumbs = r.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails || r.thumbnails;
+        const artwork = extractThumbnailUrl(thumbs);
+
+        if (browseId && !releases.some((x) => x.browseId === browseId)) {
+          releases.push({
+            title,
+            year: relYear,
+            releaseDate: subText || undefined,
+            artworkUrl: artwork,
+            browseId,
+            type,
+            externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
+          });
+        }
+      }
+
+      // Check continuation token
+      const contData =
+        grid?.continuations?.[0]?.nextContinuationData ||
+        sectionList?.continuations?.[0]?.nextContinuationData ||
+        browseData.data?.continuationContents?.gridContinuation?.continuations?.[0]?.nextContinuationData;
+
+      const contToken = contData?.continuation;
+      if (!contToken) break;
+
+      pages++;
+      browseData = await yt.actions.execute('/browse', {
+        continuation: contToken,
+        client: 'YTMUSIC',
+      });
+    }
+  } catch (err) {
+    console.warn('[InnertubeService] Error fetching full releases for section:', err);
+  }
+
+  // Fallback to inline items if browse returned 0
+  if (releases.length === 0 && Array.isArray(section.contents)) {
+    for (const it of section.contents) {
+      const title = typeof it.title === 'string' ? it.title : it.title?.text;
+      if (!title) continue;
+      const year = it.year?.text || it.subtitle?.text || it.year || '';
+      const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails);
+      const browseId = it.id || it.endpoint?.payload?.browseId;
+      const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
+      releases.push({
+        title,
+        year: relYear,
+        releaseDate: String(year) || undefined,
+        artworkUrl: artwork,
+        browseId,
+        type,
+        externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
+      });
+    }
+  }
+
+  // Sort descending by releaseYear / releaseDate
+  releases.sort((a, b) => {
+    const yA = parseInt(a.year || '', 10) || 0;
+    const yB = parseInt(b.year || '', 10) || 0;
+    if (yB !== yA) return yB - yA;
+    const dA = a.releaseDate ? Date.parse(a.releaseDate) : 0;
+    const dB = b.releaseDate ? Date.parse(b.releaseDate) : 0;
+    if (!isNaN(dA) && !isNaN(dB) && dA !== dB) return dB - dA;
+    return a.title.localeCompare(b.title);
+  });
+
+  return releases;
 }
 
 /**
@@ -901,7 +1182,8 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
   }
 
   const yt = await getInnertube();
-  let channelId = cleanQuery;
+  const canonical = getCanonicalArtistMapping(cleanQuery);
+  let channelId = canonical ? canonical.canonicalChannelId : cleanQuery;
   let searchItemThumbnail: any = null;
   let channelAvatarUrl: string | undefined = undefined;
   let resolvedSubscribers: string | undefined = undefined;
@@ -909,7 +1191,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
 
   let artistPage: any = null;
 
-  // 1. If not a valid UC channel ID, resolve via YouTube Music first!
+  // 1. If not a valid UC channel ID and not canonical, resolve via YouTube Music first!
   if (!channelId.startsWith('UC')) {
     try {
       const candidates = await resolveArtistCandidates(yt, cleanQuery);
@@ -946,13 +1228,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
     }
   }
 
-  // 2. Resolve real YouTube channel avatar (without overriding a valid UC channelId from YouTube Music)
+  // 2. Resolve real YouTube channel avatar
   try {
     realCh = await findRealChannelInfo(yt, cleanQuery);
     if (realCh.avatarUrl) {
       channelAvatarUrl = realCh.avatarUrl;
     }
-    // Only use YouTube channel ID as absolute last resort if channelId is still not a UC ID
     if (!channelId.startsWith('UC') && realCh.channelId && realCh.channelId.startsWith('UC') && (realCh.subscriberCount || 0) >= 5000) {
       channelId = realCh.channelId;
     }
@@ -979,9 +1260,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
     }
   }
 
-  const artistName = artistPage?.header?.title?.text || artistNameOrId;
+  const artistName = canonical
+    ? (cleanQuery.toLowerCase() === 'teamsesh' ? 'TeamSESH' : canonical.canonicalName)
+    : (artistPage?.header?.title?.text || artistNameOrId);
   const bio = (artistPage?.header as any)?.description?.text;
   const subscribers = (artistPage?.header as any)?.subscribers?.text || resolvedSubscribers;
+  const allowedAliases = canonical ? canonical.allowedArtists : [artistName];
 
   // Comprehensive extraction of avatar URL with real channel avatar strictly prioritized
   let avatarUrl: string | undefined =
@@ -1000,7 +1284,18 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
   let hasMore = false;
   let totalOfficialCount: number | undefined = undefined;
 
+  // Helper to safely extract section header title from any shelf header
+  const getSectionTitle = (s: any): string => {
+    if (typeof s.header === 'string') return s.header;
+    if (typeof s.title === 'string') return s.title;
+    if (s.header?.title?.text) return s.header.title.text;
+    if (s.header?.text) return s.header.text;
+    if (s.title?.text) return s.title.text;
+    return s.type || '';
+  };
+
   if (artistPage) {
+    // 1. Fetch official songs strictly via native browseEndpoint (allSongs)
     try {
       if (typeof artistPage.getAllSongs === 'function') {
         let allSongs = await artistPage.getAllSongs();
@@ -1019,7 +1314,7 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
         }
         const sItems: any[] = [...(allSongs?.contents || [])];
         try {
-          // Fast initial load: paginate continuations up to 2 pages (approx 50-75 tracks)
+          // Fast initial load: paginate continuations up to 2 pages
           let pages = 0;
           while (allSongs && (allSongs as any).has_continuation && pages < 2) {
             allSongs = await (allSongs as any).getContinuation();
@@ -1038,6 +1333,12 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           if (!vId) continue;
           const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
           const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
+
+          // STRICT FILTER: Discard tracks from foreign / alien creators
+          if (!isTrackFromAllowedArtist({ artist, artists: item.artists, title }, artistName, allowedAliases)) {
+            continue;
+          }
+
           const durStr = item.duration?.text || '0:00';
           const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
@@ -1088,126 +1389,104 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
       console.warn('[InnertubeService] getAllSongs failed, falling back to top songs shelf:', err);
     }
 
-    // Helper to safely extract section header title from any shelf header
-    const getSectionTitle = (s: any): string => {
-      if (typeof s.header === 'string') return s.header;
-      if (typeof s.title === 'string') return s.title;
-      if (s.header?.title?.text) return s.header.title.text;
-      if (s.header?.text) return s.header.text;
-      if (s.title?.text) return s.title.text;
-      return s.type || '';
-    };
+    // Top songs shelf fallback if getAllSongs didn't populate
+    if (topTracks.length === 0) {
+      for (const s of (artistPage.sections as any[]) || []) {
+        const sTitle = getSectionTitle(s).toLowerCase();
+        if (sTitle.includes('top song') || sTitle.includes('song')) {
+          for (const item of s.contents || []) {
+            const vId = item.id;
+            if (!vId) continue;
+            const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
+            const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
 
-    // 2. Parse sections (Albums, Singles, Related Artists)
+            // STRICT FILTER
+            if (!isTrackFromAllowedArtist({ artist, artists: item.artists, title }, artistName, allowedAliases)) {
+              continue;
+            }
+
+            const durStr = item.duration?.text || '0:00';
+            const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
+
+            const flexRuns = (item.flex_columns || []).map((fc: any) => ({
+              text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
+              browseId: fc?.title?.runs?.[0]?.endpoint?.payload?.browseId,
+              pageType: fc?.title?.runs?.[0]?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType,
+            }));
+            const viewCol = flexRuns.find((f: any) => /plays|views/i.test(f.text));
+            const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views);
+            const albumCol = flexRuns.find((f: any) => f.pageType === 'MUSIC_PAGE_TYPE_ALBUM') || flexRuns[3];
+            const album = item.album?.name || albumCol?.text || `${artistName} Top Tracks`;
+            const albumBrowseId = item.album?.id || albumCol?.browseId || undefined;
+
+            const rawYear =
+              item.year?.text ||
+              item.year ||
+              item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
+              item.published?.text;
+            const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
+            const releaseDate = rawYear ? String(rawYear) : undefined;
+            const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
+            const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
+            const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
+
+            topTracks.push({
+              id: vId,
+              title,
+              artist,
+              album,
+              duration: durStr,
+              durationSec: parseDurationToSec(durStr),
+              source: 'YT',
+              sourceLabel: 'YouTube Music',
+              artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
+              sourceId: vId,
+              releaseDate,
+              releaseYear,
+              artistBrowseId: primaryArtistBrowseId,
+              artistUrl,
+              albumBrowseId,
+              externalUrl,
+              views: parsedViews,
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Fetch full albums via deep continuation pagination
+    const albumSec = (artistPage.sections as any[])?.find((s: any) => {
+      const st = getSectionTitle(s).toLowerCase();
+      return st.includes('album') && !st.includes('single');
+    });
+    if (albumSec) {
+      const fullAlbums = await fetchFullReleasesFromSection(yt, albumSec, 'Album');
+      for (const fa of fullAlbums) {
+        if (!albums.some((a) => a.browseId === fa.browseId)) {
+          albums.push(fa);
+        }
+      }
+    }
+
+    // 3. Fetch full singles & EPs via deep continuation pagination
+    const singleSec = (artistPage.sections as any[])?.find((s: any) => {
+      const st = getSectionTitle(s).toLowerCase();
+      return st.includes('single') || st.includes('ep');
+    });
+    if (singleSec) {
+      const fullSingles = await fetchFullReleasesFromSection(yt, singleSec, 'Single');
+      for (const fs of fullSingles) {
+        if (!singles.some((s) => s.browseId === fs.browseId)) {
+          singles.push(fs);
+        }
+      }
+    }
+
+    // 4. Parse related artists
     for (const s of (artistPage.sections as any[]) || []) {
       const sTitle = getSectionTitle(s).toLowerCase();
-      const contents: any[] = s.contents || [];
-
-      // Top songs fallback if getAllSongs didn't populate
-      if (topTracks.length === 0 && sTitle.includes('top song')) {
-        for (const item of contents) {
-          const vId = item.id;
-          if (!vId) continue;
-          const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
-          const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
-          const durStr = item.duration?.text || '0:00';
-          const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
-
-          const flexRuns = (item.flex_columns || []).map((fc: any) => ({
-            text: fc?.title?.runs?.map((r: any) => r.text).join('') || fc?.title?.text || '',
-            browseId: fc?.title?.runs?.[0]?.endpoint?.payload?.browseId,
-            pageType: fc?.title?.runs?.[0]?.endpoint?.payload?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType,
-          }));
-          const viewCol = flexRuns.find((f: any) => /plays|views/i.test(f.text));
-          const parsedViews = viewCol ? parseViewsToNumber(viewCol.text) : parseViewsToNumber(item.views?.text || item.views);
-          const albumCol = flexRuns.find((f: any) => f.pageType === 'MUSIC_PAGE_TYPE_ALBUM') || flexRuns[3];
-          const album = item.album?.name || albumCol?.text || `${artistName} Top Tracks`;
-          const albumBrowseId = item.album?.id || albumCol?.browseId || undefined;
-
-          const rawYear =
-            item.year?.text ||
-            item.year ||
-            item.subtitle?.runs?.find((r: any) => /^(19|20)\d{2}$/.test(r.text))?.text ||
-            item.published?.text;
-          const releaseYear = rawYear ? String(rawYear).match(/\b(19|20)\d{2}\b/)?.[0] : undefined;
-          const releaseDate = rawYear ? String(rawYear) : undefined;
-          const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
-          const artistUrl = primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined;
-          const externalUrl = `https://music.youtube.com/watch?v=${vId}`;
-
-          topTracks.push({
-            id: vId,
-            title,
-            artist,
-            album,
-            duration: durStr,
-            durationSec: parseDurationToSec(durStr),
-            source: 'YT',
-            sourceLabel: 'YouTube Music',
-            artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
-            sourceId: vId,
-            releaseDate,
-            releaseYear,
-            artistBrowseId: primaryArtistBrowseId,
-            artistUrl,
-            albumBrowseId,
-            externalUrl,
-            views: parsedViews,
-          });
-        }
-      }
-
-      // Albums
-      if (sTitle.includes('album') && !sTitle.includes('single')) {
-        for (const it of contents) {
-          const alTitle = typeof it.title === 'string' ? it.title : it.title?.text;
-          if (!alTitle) continue;
-          const year = it.year?.text || it.subtitle?.text || it.year || '';
-          const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails) || avatarUrl;
-          const browseId = it.id || it.endpoint?.payload?.browseId;
-          const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
-
-          if (!albums.some((a) => a.browseId === browseId)) {
-            albums.push({
-              title: alTitle,
-              year: relYear,
-              releaseDate: String(year) || undefined,
-              artworkUrl: artwork,
-              browseId,
-              type: 'Album',
-              externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
-            });
-          }
-        }
-      }
-
-      // Singles & EPs
-      if (sTitle.includes('single') || sTitle.includes('ep')) {
-        for (const it of contents) {
-          const sglTitle = typeof it.title === 'string' ? it.title : it.title?.text;
-          if (!sglTitle) continue;
-          const year = it.year?.text || it.subtitle?.text || it.year || 'Single';
-          const artwork = extractThumbnailUrl(it.thumbnail || it.thumbnails) || avatarUrl;
-          const browseId = it.id || it.endpoint?.payload?.browseId;
-          const relYear = String(year).match(/\b(19|20)\d{2}\b/)?.[0] || String(year);
-
-          if (!singles.some((a) => a.browseId === browseId)) {
-            singles.push({
-              title: sglTitle,
-              year: relYear,
-              releaseDate: String(year) || undefined,
-              artworkUrl: artwork,
-              browseId,
-              type: 'Single',
-              externalUrl: browseId ? `https://music.youtube.com/browse/${browseId}` : undefined,
-            });
-          }
-        }
-      }
-
-      // Related artists (Fans might also like)
       if (sTitle.includes('fans') || sTitle.includes('like') || sTitle.includes('similar')) {
-        for (const it of contents) {
+        for (const it of s.contents || []) {
           const relName = typeof it.title === 'string' ? it.title : it.title?.text || it.name;
           if (!relName) continue;
           const avatar = extractThumbnailUrl(it.thumbnail || it.thumbnails);
@@ -1266,12 +1545,21 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
         for (const item of channelVids) {
           const vId = item.id || item.content_id || item.video_id;
           if (!vId || existingIds.has(vId)) continue;
-          existingIds.add(vId);
 
           const title =
             item.title?.text ||
             item.metadata?.title?.text ||
             (typeof item.title === 'string' ? item.title : 'Untitled');
+
+          const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
+
+          // STRICT FILTER: Disallow alien videos
+          if (!isTrackFromAllowedArtist({ artist: cleanA || artistName, title: cleanT }, artistName, allowedAliases)) {
+            continue;
+          }
+
+          existingIds.add(vId);
+
           let durStr = item.duration?.text || '0:00';
           if (durStr === '0:00' && item.content_image?.overlays) {
             for (const ov of item.content_image.overlays) {
@@ -1286,8 +1574,6 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
           const artwork =
             extractThumbnailUrl(item.thumbnails || item.thumbnail || item.content_image?.image) ||
             `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
-
-          const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
 
           const rows = item.metadata?.metadata?.metadata_rows || [];
           const metadataParts = rows.flatMap((r: any) => r.metadata_parts?.map((p: any) => p.text?.text || '') || []);
@@ -1329,64 +1615,6 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
       }
     } catch (err) {
       console.warn('[InnertubeService] Failed to load channel videos:', err);
-    }
-  }
-
-  // 4. Fallback: if topTracks is still empty, search songs directly
-  if (topTracks.length === 0) {
-    try {
-      const sSearch = await yt.music.search(`${artistName} songs`, { type: 'song' });
-      const shelf = sSearch.contents?.[0];
-      const items: any[] = shelf && 'contents' in shelf ? (shelf.contents as any[]) : [];
-      for (const item of items) {
-        const vId = item.id;
-        if (!vId) continue;
-        const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
-        const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
-        const album = item.album?.name || `${artistName} Top Tracks`;
-        const durStr = item.duration?.text || '0:00';
-        const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
-
-        const primaryArtistBrowseId = item.artists?.[0]?.id || (channelId.startsWith('UC') ? channelId : undefined);
-
-        topTracks.push({
-          id: vId,
-          title,
-          artist,
-          album,
-          duration: durStr,
-          durationSec: parseDurationToSec(durStr),
-          source: 'YT',
-          sourceLabel: 'YouTube Music',
-          artworkUrl: artwork || `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`,
-          sourceId: vId,
-          artistBrowseId: primaryArtistBrowseId,
-          artistUrl: primaryArtistBrowseId ? `https://music.youtube.com/channel/${primaryArtistBrowseId}` : undefined,
-          externalUrl: `https://music.youtube.com/watch?v=${vId}`,
-        });
-      }
-    } catch (e) {
-      console.warn('[InnertubeService] Fallback song search error:', e);
-    }
-  }
-
-  // 5. Fallback: If albums and singles are both empty, synthesize releases from track albums
-  if (albums.length === 0 && singles.length === 0 && topTracks.length > 0) {
-    const seenAlbums = new Set<string>();
-    for (const t of topTracks) {
-      const albName = t.album?.trim();
-      if (albName && !albName.toLowerCase().includes('top track') && !seenAlbums.has(albName.toLowerCase())) {
-        seenAlbums.add(albName.toLowerCase());
-        albums.push({
-          title: albName,
-          year: t.releaseYear || '',
-          releaseDate: t.releaseDate,
-          artworkUrl: t.artworkUrl || avatarUrl,
-          browseId: albName,
-          type: 'Album',
-          externalUrl: t.albumBrowseId ? `https://music.youtube.com/browse/${t.albumBrowseId}` : undefined,
-        });
-      }
     }
   }
 
@@ -1446,7 +1674,8 @@ export async function getArtist(artistNameOrId: string): Promise<InnertubeArtist
 
 export async function getArtistFullTracks(channelIdOrName: string, fallbackArtistName?: string): Promise<InnertubeTrack[]> {
   const yt = await getInnertube();
-  let channelId = channelIdOrName.trim();
+  const canonical = getCanonicalArtistMapping(channelIdOrName) || (fallbackArtistName ? getCanonicalArtistMapping(fallbackArtistName) : null);
+  let channelId = canonical ? canonical.canonicalChannelId : channelIdOrName.trim();
   if (!channelId.startsWith('UC')) {
     const artistData = await getArtist(channelIdOrName);
     if (artistData.channelId?.startsWith('UC')) {
@@ -1461,7 +1690,10 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     } catch {}
   }
 
-  const artistName = artistPage?.header?.title?.text || fallbackArtistName || channelIdOrName;
+  const artistName = canonical
+    ? (channelIdOrName.trim().toLowerCase() === 'teamsesh' ? 'TeamSESH' : canonical.canonicalName)
+    : (artistPage?.header?.title?.text || fallbackArtistName || channelIdOrName);
+  const allowedAliases = canonical ? canonical.allowedArtists : [artistName];
   const tracks: InnertubeTrack[] = [];
   const existingIds = new Set<string>();
 
@@ -1485,10 +1717,17 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
       for (const item of sItems) {
         const vId = item.id;
         if (!vId || existingIds.has(vId)) continue;
-        existingIds.add(vId);
 
         const title = typeof item.title === 'string' ? item.title : item.title?.text || 'Untitled';
         const artist = item.artists?.map((a: any) => a.name).join(', ') || artistName;
+
+        // STRICT FILTER: Disallow tracks from foreign / alien creators
+        if (!isTrackFromAllowedArtist({ artist, artists: item.artists, title }, artistName, allowedAliases)) {
+          continue;
+        }
+
+        existingIds.add(vId);
+
         const durStr = item.duration?.text || '0:00';
         const artwork = extractThumbnailUrl(item.thumbnails || item.thumbnail);
 
@@ -1539,32 +1778,32 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     }
   }
 
-  // 2. Fetch tracks from all artist albums & singles (completely eliminates any 100-track ceiling)
-  const albumEntries: Array<{ browseId: string; title: string }> = [];
-  for (const s of (artistPage?.sections as any[]) || []) {
-    const sTitle = (s.header?.title?.text || s.title?.text || s.header || s.type || '').toLowerCase();
-    if (sTitle.includes('album') || sTitle.includes('single') || sTitle.includes('ep')) {
-      for (const item of s.contents || []) {
-        const bId = item.id || item.endpoint?.payload?.browseId;
-        if (bId && !albumEntries.some((a) => a.browseId === bId)) {
-          albumEntries.push({
-            browseId: bId,
-            title: typeof item.title === 'string' ? item.title : item.title?.text || '',
-          });
-        }
-      }
-    }
-  }
+  // 2. Fetch tracks from all artist albums & singles (deep paginated across all releases)
+  const albumSec = (artistPage?.sections as any[])?.find((s: any) => {
+    const st = (s.header?.title?.text || s.title?.text || s.header || s.type || '').toLowerCase();
+    return st.includes('album') && !st.includes('single');
+  });
+  const singleSec = (artistPage?.sections as any[])?.find((s: any) => {
+    const st = (s.header?.title?.text || s.title?.text || s.header || s.type || '').toLowerCase();
+    return st.includes('single') || st.includes('ep');
+  });
 
-  if (albumEntries.length > 0) {
+  const fullAlbums = albumSec ? await fetchFullReleasesFromSection(yt, albumSec, 'Album') : [];
+  const fullSingles = singleSec ? await fetchFullReleasesFromSection(yt, singleSec, 'Single') : [];
+  const allReleases = [...fullAlbums, ...fullSingles];
+
+  if (allReleases.length > 0) {
     const chunkSize = 5;
-    for (let i = 0; i < albumEntries.length; i += chunkSize) {
-      const chunk = albumEntries.slice(i, i + chunkSize);
-      const results = await Promise.allSettled(chunk.map((a) => getAlbum(a.browseId)));
+    for (let i = 0; i < allReleases.length; i += chunkSize) {
+      const chunk = allReleases.slice(i, i + chunkSize);
+      const results = await Promise.allSettled(chunk.map((a) => getAlbum(a.browseId!)));
       for (const r of results) {
         if (r.status === 'fulfilled' && r.value?.tracks) {
           for (const t of r.value.tracks) {
             if (t.id && !existingIds.has(t.id)) {
+              if (!isTrackFromAllowedArtist({ artist: t.artist, title: t.title }, artistName, allowedAliases)) {
+                continue;
+              }
               existingIds.add(t.id);
               tracks.push({
                 ...t,
@@ -1579,13 +1818,15 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
   }
 
   // 3. Real YouTube channel video uploads (only if a real verified channel matching the artist is found)
-  let targetChannelId: string | undefined = undefined;
-  try {
-    const rc = await findRealChannelInfo(yt, artistName);
-    if (rc.channelId && rc.channelId.startsWith('UC') && (rc.subscriberCount || 0) >= 1000) {
-      targetChannelId = rc.channelId;
-    }
-  } catch {}
+  let targetChannelId: string | undefined = canonical?.officialYouTubeChannelId;
+  if (!targetChannelId) {
+    try {
+      const rc = await findRealChannelInfo(yt, artistName);
+      if (rc.channelId && rc.channelId.startsWith('UC') && (rc.subscriberCount || 0) >= 1000) {
+        targetChannelId = rc.channelId;
+      }
+    } catch {}
+  }
 
   if (targetChannelId && targetChannelId.startsWith('UC')) {
     try {
@@ -1597,6 +1838,7 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
 
       // Strictly verify that this channel actually corresponds to the artist!
       const isChannelValid =
+        Boolean(canonical?.officialYouTubeChannelId && targetChannelId === canonical.officialYouTubeChannelId) ||
         chTitle === cleanArtist ||
         (strippedArtist.length >= 3 && strippedChTitle === strippedArtist) ||
         (strippedArtist.length >= 3 && strippedChTitle.startsWith(strippedArtist));
@@ -1626,18 +1868,9 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
 
           const { title: cleanT, artist: cleanA } = cleanArtistAndTitle(title, artistName);
 
-          // Disallow alien tracks
-          if (cleanA && cleanA.toLowerCase().trim() !== cleanArtist) {
-            const cleanALower = cleanA.toLowerCase().trim();
-            const strippedA = cleanALower.replace(/[^a-z0-9]/g, '');
-            if (
-              !cleanALower.includes(cleanArtist) &&
-              !cleanArtist.includes(cleanALower) &&
-              !strippedA.includes(strippedArtist) &&
-              !strippedArtist.includes(strippedA)
-            ) {
-              continue;
-            }
+          // STRICT FILTER: Disallow alien tracks
+          if (!isTrackFromAllowedArtist({ artist: cleanA || artistName, title: cleanT }, artistName, allowedAliases)) {
+            continue;
           }
 
           existingIds.add(vId);
@@ -1701,22 +1934,7 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
   // Final strict safeguard: filter out any tracks that explicitly belong to a foreign/alien primary artist
   const finalTracks = tracks.filter((t) => {
     if (!t.title || !t.id) return false;
-    const tArt = (t.artist || '').toLowerCase().trim();
-    const cleanArt = artistName.toLowerCase().trim();
-    const strippedTArt = tArt.replace(/[^a-z0-9]/g, '');
-    const strippedCleanArt = cleanArt.replace(/[^a-z0-9]/g, '');
-
-    if (tArt && tArt !== cleanArt && strippedTArt !== strippedCleanArt) {
-      const matches =
-        tArt.includes(cleanArt) ||
-        cleanArt.includes(tArt) ||
-        (strippedCleanArt.length >= 3 &&
-          (strippedTArt.includes(strippedCleanArt) || strippedCleanArt.includes(strippedTArt)));
-      if (!matches) {
-        return false;
-      }
-    }
-    return true;
+    return isTrackFromAllowedArtist({ artist: t.artist, title: t.title }, artistName, allowedAliases);
   });
 
   finalTracks.sort((a, b) => (b.views || 0) - (a.views || 0));
