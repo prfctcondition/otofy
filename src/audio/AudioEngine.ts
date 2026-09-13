@@ -21,7 +21,41 @@ function getInitialSavedVolume(): number {
       }
     } catch {}
   }
-  return 0.5; // Safe default volume (50%), strictly not 1.0
+  return 0.5;
+}
+
+function formatHighResArtwork(url?: string): MediaImage[] {
+  if (!url) {
+    const fallback = typeof window !== 'undefined' ? `${window.location.origin}/icon.png` : '/icon.png';
+    return [
+      { src: fallback, sizes: '512x512', type: 'image/png' },
+    ];
+  }
+
+  let highResUrl = url;
+
+  if (highResUrl.includes('googleusercontent.com') || highResUrl.includes('ggpht.com')) {
+    if (/=w\d+-h\d+/.test(highResUrl)) {
+      highResUrl = highResUrl.replace(/=w\d+-h\d+[^?#]+/, '=w512-h512-l90-rj');
+    } else if (/=s\d+/.test(highResUrl)) {
+      highResUrl = highResUrl.replace(/=s\d+[^?#]+/, '=s512-c');
+    }
+  } else if (highResUrl.includes('ytimg.com')) {
+    highResUrl = highResUrl.replace(/\/(?:hq|mq|sd|default)\.jpg/, '/maxresdefault.jpg');
+  } else if (highResUrl.includes('sndcdn.com')) {
+    highResUrl = highResUrl.replace(/-(?:large|t\d+x\d+|badge|small|tiny)\.jpg/, '-t500x500.jpg');
+  }
+
+  const mimeType = highResUrl.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+  return [
+    { src: highResUrl, sizes: '512x512', type: mimeType },
+    { src: highResUrl, sizes: '384x384', type: mimeType },
+    { src: highResUrl, sizes: '256x256', type: mimeType },
+    { src: highResUrl, sizes: '192x192', type: mimeType },
+    { src: highResUrl, sizes: '128x128', type: mimeType },
+    { src: highResUrl, sizes: '96x96', type: mimeType },
+  ];
 }
 
 export class AudioEngine {
@@ -469,15 +503,7 @@ export class AudioEngine {
     if (!('mediaSession' in navigator)) return;
 
     try {
-      const artworks: MediaImage[] = [];
-      if (metadata.artworkUrl) {
-        artworks.push(
-          { src: metadata.artworkUrl, sizes: '96x96', type: 'image/jpeg' },
-          { src: metadata.artworkUrl, sizes: '128x128', type: 'image/jpeg' },
-          { src: metadata.artworkUrl, sizes: '256x256', type: 'image/jpeg' },
-          { src: metadata.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
-        );
-      }
+      const artworks = formatHighResArtwork(metadata.artworkUrl);
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title: metadata.title || 'Unknown Track',
@@ -496,14 +522,6 @@ export class AudioEngine {
             handlers.onSeek!(details.seekTime);
           }
         });
-        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-          const skip = details.seekOffset || 10;
-          handlers.onSeek!(Math.max(0, this.currentTime - skip));
-        });
-        navigator.mediaSession.setActionHandler('seekforward', (details) => {
-          const skip = details.seekOffset || 10;
-          handlers.onSeek!(Math.min(this.duration || Infinity, this.currentTime + skip));
-        });
       }
       navigator.mediaSession.setActionHandler('stop', () => {
         if (handlers.onPause) handlers.onPause();
@@ -513,17 +531,20 @@ export class AudioEngine {
     }
   }
 
-  updateMediaSessionPosition(position: number, duration: number): void {
+  updateMediaSessionPosition(position: number, duration: number, isPlaying: boolean = true): void {
     if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
       try {
         if (Number.isFinite(duration) && duration > 0 && Number.isFinite(position) && position >= 0) {
+          const clampedPos = Math.min(position, duration);
           navigator.mediaSession.setPositionState({
             duration: duration,
-            playbackRate: 1,
-            position: Math.min(position, duration),
+            playbackRate: isPlaying ? 1 : 0,
+            position: clampedPos,
           });
         }
-      } catch { /* ignore invalid state */ }
+      } catch {
+        // ignore invalid state
+      }
     }
   }
 
@@ -531,6 +552,7 @@ export class AudioEngine {
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.playbackState = state;
+        this.updateMediaSessionPosition(this.currentTime, this.duration, state === 'playing');
       } catch {}
     }
   }

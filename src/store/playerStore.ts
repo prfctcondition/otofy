@@ -32,6 +32,8 @@ interface PlayerState {
 interface PlayerActions {
   playTrack: (track: Track, queue?: Track[]) => Promise<void>;
   setActiveTrackOnly: (track: Track) => void;
+  play: () => Promise<void>;
+  pause: () => void;
   togglePlay: () => Promise<void>;
   nextTrack: () => Promise<void>;
   prevTrack: () => Promise<void>;
@@ -608,8 +610,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         artworkUrl: track.artworkUrl,
       },
       {
-        onPlay: () => get().togglePlay(),
-        onPause: () => get().togglePlay(),
+        onPlay: () => get().play(),
+        onPause: () => get().pause(),
         onNext: () => get().nextTrack(),
         onPrev: () => get().prevTrack(),
         onSeek: (time) => get().seek(time),
@@ -621,18 +623,19 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     syncDiscordPresence(track, true, 0, finalDur);
   },
 
-  togglePlay: async () => {
+  play: async () => {
     const { isPlaying, activeTrack } = get();
     if (!activeTrack) return;
+    if (isPlaying) return;
 
     try {
       if (audioEngine.element.src) {
-        await audioEngine.togglePlay();
-        const nextPlaying = !isPlaying;
-        set({ isPlaying: nextPlaying });
-        audioEngine.setPlaybackState(nextPlaying ? 'playing' : 'paused');
+        await audioEngine.play();
+        set({ isPlaying: true, isBuffering: false });
+        audioEngine.setPlaybackState('playing');
+        const finalDur = activeTrack.durationSec || parseDurationToSeconds(activeTrack.duration) || get().duration || 0;
+        syncDiscordPresence(activeTrack, true, get().currentTime, finalDur);
       } else {
-        // First play for the active track
         await get().playTrack(activeTrack);
       }
     } catch (err: any) {
@@ -642,6 +645,34 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         'Playback Error',
         err?.message || 'Browser blocked autoplay or stream is unavailable.'
       );
+    }
+  },
+
+  pause: () => {
+    const { isPlaying, activeTrack } = get();
+    if (!isPlaying) return;
+
+    try {
+      audioEngine.pause();
+      set({ isPlaying: false });
+      audioEngine.setPlaybackState('paused');
+      if (activeTrack) {
+        const finalDur = activeTrack.durationSec || parseDurationToSeconds(activeTrack.duration) || get().duration || 0;
+        syncDiscordPresence(activeTrack, false, get().currentTime, finalDur);
+      }
+    } catch (err: any) {
+      console.warn('[Player] Pause error:', err);
+    }
+  },
+
+  togglePlay: async () => {
+    const { isPlaying, activeTrack } = get();
+    if (!activeTrack) return;
+
+    if (isPlaying) {
+      get().pause();
+    } else {
+      await get().play();
     }
   },
 
@@ -920,7 +951,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     audioEngine.seek(time);
     set({ currentTime: time });
     lastPositionSync = time;
-    audioEngine.updateMediaSessionPosition(time, get().duration);
+    audioEngine.updateMediaSessionPosition(time, get().duration, get().isPlaying);
     syncDiscordPresence(get().activeTrack, get().isPlaying, time, get().duration);
   },
 
@@ -1020,7 +1051,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       // Sync SMTC position throttled (~1s interval)
       if (Math.abs(current - lastPositionSync) >= 1) {
         lastPositionSync = current;
-        audioEngine.updateMediaSessionPosition(current, dur);
+        audioEngine.updateMediaSessionPosition(current, dur, get().isPlaying);
       }
 
       // Sync Discord Presence throttled (~5s interval)
@@ -1120,8 +1151,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
                       artworkUrl: nextTrack.artworkUrl,
                     },
                     {
-                      onPlay: () => get().togglePlay(),
-                      onPause: () => get().togglePlay(),
+                      onPlay: () => get().play(),
+                      onPause: () => get().pause(),
                       onNext: () => get().nextTrack(),
                       onPrev: () => get().prevTrack(),
                       onSeek: (time) => get().seek(time),
@@ -1170,6 +1201,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           set({ currentTime: target.currentTime });
           lastDiscordSync = target.currentTime;
           syncDiscordPresence(get().activeTrack, get().isPlaying, target.currentTime, get().duration);
+          audioEngine.updateMediaSessionPosition(target.currentTime, get().duration, get().isPlaying);
         }
       }
     };
@@ -1315,25 +1347,43 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       });
     }
 
-    // Register Electron media key listener
+    // Register Electron media key and player command listeners
     let removeMediaKeyListener: (() => void) | undefined;
+    let removePlayerCommandListener: (() => void) | undefined;
     if (window.electronAPI) {
-      removeMediaKeyListener = window.electronAPI.onMediaKey((key: string) => {
-        switch (key) {
-          case 'MediaPlayPause':
-          case 'play-pause':
-            get().togglePlay();
-            break;
-          case 'MediaNextTrack':
-          case 'next':
-            get().nextTrack();
-            break;
-          case 'MediaPreviousTrack':
-          case 'prev':
-            get().prevTrack();
-            break;
-        }
-      });
+      if (window.electronAPI.onMediaKey) {
+        removeMediaKeyListener = window.electronAPI.onMediaKey((key: string) => {
+          switch (key) {
+            case 'MediaPlayPause':
+            case 'play-pause':
+              get().togglePlay();
+              break;
+            case 'MediaNextTrack':
+            case 'next':
+              get().nextTrack();
+              break;
+            case 'MediaPreviousTrack':
+            case 'prev':
+              get().prevTrack();
+              break;
+          }
+        });
+      }
+      if (window.electronAPI.onPlayerCommand) {
+        removePlayerCommandListener = window.electronAPI.onPlayerCommand((cmd) => {
+          switch (cmd) {
+            case 'toggle-play':
+              get().togglePlay();
+              break;
+            case 'next':
+              get().nextTrack();
+              break;
+            case 'prev':
+              get().prevTrack();
+              break;
+          }
+        });
+      }
     }
 
     return () => {
@@ -1347,6 +1397,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       audioEngine.removeEventListener('canplay', onCanPlay);
       audioEngine.removeEventListener('error', onError);
       removeMediaKeyListener?.();
+      removePlayerCommandListener?.();
       removeAuthSessionListener?.();
     };
   },
@@ -1365,8 +1416,8 @@ if (typeof window !== 'undefined' && initialSavedTrack) {
           artworkUrl: initialSavedTrack.artworkUrl,
         },
         {
-          onPlay: () => usePlayerStore.getState().togglePlay(),
-          onPause: () => usePlayerStore.getState().togglePlay(),
+          onPlay: () => usePlayerStore.getState().play(),
+          onPause: () => usePlayerStore.getState().pause(),
           onNext: () => usePlayerStore.getState().nextTrack(),
           onPrev: () => usePlayerStore.getState().prevTrack(),
           onSeek: (time) => usePlayerStore.getState().seek(time),

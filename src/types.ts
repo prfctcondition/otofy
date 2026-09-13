@@ -410,6 +410,7 @@ declare global {
       isMaximized?: () => Promise<boolean>;
       onWindowState?: (callback: (isMaximized: boolean) => void) => () => void;
       onMediaKey: (callback: (key: string) => void) => () => void;
+      onPlayerCommand?: (callback: (command: 'toggle-play' | 'next' | 'prev') => void) => () => void;
       getUserProfile?: () => Promise<{ username: string; avatarUrl?: string | null }>;
       quitApp?: () => Promise<void>;
       relaunchApp?: () => Promise<void>;

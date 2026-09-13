@@ -135,15 +135,24 @@ function createTray() {
       { type: 'separator' },
       {
         label: 'Play / Pause',
-        click: () => mainWindow?.webContents.send('media-key', 'play-pause'),
+        click: () => {
+          mainWindow?.webContents.send('player:toggle-play');
+          mainWindow?.webContents.send('media-key', 'play-pause');
+        },
       },
       {
         label: 'Next Track',
-        click: () => mainWindow?.webContents.send('media-key', 'next'),
+        click: () => {
+          mainWindow?.webContents.send('player:next');
+          mainWindow?.webContents.send('media-key', 'next');
+        },
       },
       {
         label: 'Previous Track',
-        click: () => mainWindow?.webContents.send('media-key', 'prev'),
+        click: () => {
+          mainWindow?.webContents.send('player:prev');
+          mainWindow?.webContents.send('media-key', 'prev');
+        },
       },
       { type: 'separator' },
       {
@@ -180,6 +189,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
     },
     titleBarStyle: 'hidden',
     frame: false,
@@ -1225,15 +1235,18 @@ app.whenReady().then(() => {
     createTray();
   }
 
-  // Register global shortcuts
+  // Register global shortcuts (active even when minimized or hidden to tray)
   try {
     globalShortcut.register('MediaPlayPause', () => {
+      mainWindow?.webContents.send('player:toggle-play');
       mainWindow?.webContents.send('media-key', 'play-pause');
     });
     globalShortcut.register('MediaNextTrack', () => {
+      mainWindow?.webContents.send('player:next');
       mainWindow?.webContents.send('media-key', 'next');
     });
     globalShortcut.register('MediaPreviousTrack', () => {
+      mainWindow?.webContents.send('player:prev');
       mainWindow?.webContents.send('media-key', 'prev');
     });
   } catch (err) {

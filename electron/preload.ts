@@ -118,6 +118,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('media-key', handler);
     return () => ipcRenderer.removeListener('media-key', handler);
   },
+  onPlayerCommand: (callback: (command: 'toggle-play' | 'next' | 'prev') => void) => {
+    const playHandler = () => callback('toggle-play');
+    const nextHandler = () => callback('next');
+    const prevHandler = () => callback('prev');
+    ipcRenderer.on('player:toggle-play', playHandler);
+    ipcRenderer.on('player:next', nextHandler);
+    ipcRenderer.on('player:prev', prevHandler);
+    return () => {
+      ipcRenderer.removeListener('player:toggle-play', playHandler);
+      ipcRenderer.removeListener('player:next', nextHandler);
+      ipcRenderer.removeListener('player:prev', prevHandler);
+    };
+  },
   getUserProfile: () => ipcRenderer.invoke('app:get-user-profile'),
   quitApp: () => ipcRenderer.invoke('app:quit'),
   relaunchApp: () => ipcRenderer.invoke('app:relaunch'),
