@@ -146,7 +146,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               {/* Title label */}
-              <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
+              <span
+                className="flex-1 px-3 text-[13px] font-semibold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors tracking-tight"
+                title={getQuickAccessTitle(item)}
+              >
                 {getQuickAccessTitle(item)}
               </span>
 
@@ -250,8 +253,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               {/* Station Artists Subtitle */}
-              <div className="mt-2.5 px-0.5">
-                <p className="text-xs text-[#64748B] dark:text-white/70 group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
+              <div className="mt-2.5 px-0.5 min-w-0">
+                <p
+                  className="text-xs text-[#64748B] dark:text-white/60 group-hover:text-[#475569] dark:group-hover:text-white/80 leading-snug truncate transition-colors"
+                  title={station.artistsSummary}
+                >
                   {station.artistsSummary}
                 </p>
               </div>
@@ -353,8 +359,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               {/* Subtitle / Description */}
-              <div className="mt-2.5 px-0.5">
-                <p className="text-xs text-[#64748B] dark:text-white/70 group-hover:text-[#475569] dark:group-hover:text-white leading-snug line-clamp-2 transition-colors">
+              <div className="mt-2.5 px-0.5 min-w-0">
+                <p
+                  className="text-xs text-[#64748B] dark:text-white/60 group-hover:text-[#475569] dark:group-hover:text-white/80 leading-snug truncate transition-colors"
+                  title={item.subtitle}
+                >
                   {item.subtitle}
                 </p>
               </div>

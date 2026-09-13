@@ -281,7 +281,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
       <aside
         id="left-library-dock"
         className={`h-full flex flex-col liquid-glass-panel rounded-2xl select-none transition-all duration-300 overflow-hidden relative ${
-          isCollapsed ? 'w-[72px] min-w-[72px]' : 'w-[280px] min-w-[280px]'
+          isCollapsed ? 'w-[72px] min-w-[72px]' : 'w-[288px] min-w-[288px]'
         }`}
       >
         <div className="pointer-events-none absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white/70 dark:from-white/[0.05] to-transparent" />
@@ -346,12 +346,12 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
         {/* Filter Pills & Search in Expanded State */}
         {!isCollapsed && (
           <div className="px-2.5 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-30">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <button
                 onClick={() => setFilterTag(filterTag === 'playlists' ? 'all' : 'playlists')}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'playlists'
-                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
@@ -359,9 +359,9 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'artists' ? 'all' : 'artists')}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'artists'
-                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
@@ -369,9 +369,9 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'albums' ? 'all' : 'albums')}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
                   filterTag === 'albums'
-                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-bold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
+                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
@@ -576,16 +576,16 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         >
                           {pl.id === 'pl-liked' || pl.title === 'Liked Songs' ? t.library.likedSongs : pl.title}
                         </span>
-                        <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
+                        <div className="flex items-center gap-1 text-[11px] leading-tight text-[#64748B] dark:text-white/70 truncate mt-0.5 min-w-0">
                           {pl.isPinned && (
-                            <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5">
+                            <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5 shrink-0">
                               <Pin size={10} className="rotate-45" />
                               {t.library.pinned} ·
                             </span>
                           )}
-                          <span>{pl.type === 'Playlist' ? t.library.playlistSingle : pl.type}</span>
-                          <span>·</span>
-                          <span>{pl.creator === 'You' ? t.library.creatorYou : pl.creator === 'System' ? t.library.creatorSystem : pl.creator}</span>
+                          <span className="shrink-0">{pl.type === 'Playlist' ? t.library.playlistSingle : pl.type}</span>
+                          <span className="shrink-0">·</span>
+                          <span className="truncate">{pl.creator === 'You' ? t.library.creatorYou : pl.creator === 'System' ? t.library.creatorSystem : pl.creator}</span>
                         </div>
                       </div>
 
@@ -653,7 +653,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         <span className="text-sm font-semibold truncate text-[#0F172A] dark:text-white">
                           {art.name}
                         </span>
-                        <span className="text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
+                        <span className="text-[11px] leading-tight text-[#64748B] dark:text-white/70 truncate mt-0.5">
                           {t.library.artistSingle}
                         </span>
                       </div>
@@ -717,9 +717,11 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                         <span className="text-sm font-semibold truncate text-[#0F172A] dark:text-white">
                           {alb.title}
                         </span>
-                        <span className="text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
-                          {t.library.albumSingle} · {alb.artist}
-                        </span>
+                        <div className="flex items-center gap-1 text-[11px] leading-tight text-[#64748B] dark:text-white/70 truncate mt-0.5 min-w-0">
+                          <span className="shrink-0">{t.library.albumSingle}</span>
+                          <span className="shrink-0">·</span>
+                          <span className="truncate">{alb.artist}</span>
+                        </div>
                       </div>
 
                       <button

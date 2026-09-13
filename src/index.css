@@ -10,6 +10,22 @@
 
   :root:lang(ru) {
     --font-sans: Inter, Geist, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv05' 1, 'cv08' 1, 'cv11' 1;
+    letter-spacing: -0.012em;
+  }
+
+  :root:lang(ru) button,
+  :root:lang(ru) input,
+  :root:lang(ru) select,
+  :root:lang(ru) textarea,
+  :root:lang(ru) h1,
+  :root:lang(ru) h2,
+  :root:lang(ru) h3,
+  :root:lang(ru) h4,
+  :root:lang(ru) p,
+  :root:lang(ru) span {
+    font-feature-settings: 'cv05' 1, 'cv08' 1, 'cv11' 1;
+    letter-spacing: -0.012em;
   }
 
   :root:lang(ja) {
