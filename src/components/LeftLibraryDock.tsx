@@ -346,36 +346,39 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
         {/* Filter Pills & Search in Expanded State */}
         {!isCollapsed && (
           <div className="px-2.5 pt-2.5 pb-1.5 flex flex-col gap-2 relative z-30">
-            <div className="flex items-center justify-center gap-1.5 w-full mx-auto overflow-x-auto no-scrollbar scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="grid grid-cols-3 gap-1.5 w-full">
               <button
                 onClick={() => setFilterTag(filterTag === 'playlists' ? 'all' : 'playlists')}
-                className={`flex items-center justify-center text-center px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
+                title={t.library.playlists}
+                className={`w-full text-center flex items-center justify-center py-1.5 px-1 rounded-full text-xs font-medium tracking-tight truncate transition-all ${
                   filterTag === 'playlists'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                {t.library.playlists}
+                <span className="truncate">{t.library.playlists}</span>
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'artists' ? 'all' : 'artists')}
-                className={`flex items-center justify-center text-center px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
+                title={t.library.artists}
+                className={`w-full text-center flex items-center justify-center py-1.5 px-1 rounded-full text-xs font-medium tracking-tight truncate transition-all ${
                   filterTag === 'artists'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                {t.library.artists}
+                <span className="truncate">{t.library.artists}</span>
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'albums' ? 'all' : 'albums')}
-                className={`flex items-center justify-center text-center px-2.5 py-1 rounded-full text-[11px] font-medium tracking-tight whitespace-nowrap transition-all shrink-0 ${
+                title={t.library.albums}
+                className={`w-full text-center flex items-center justify-center py-1.5 px-1 rounded-full text-xs font-medium tracking-tight truncate transition-all ${
                   filterTag === 'albums'
                     ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black font-semibold shadow-[0_4px_14px_rgba(15,23,42,0.25)] border border-[#0F172A] dark:border-white'
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                {t.library.albums}
+                <span className="truncate">{t.library.albums}</span>
               </button>
             </div>
 
