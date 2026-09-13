@@ -171,4 +171,74 @@ export function splitArtists(artistString?: string, explicitArtists?: string[]):
   return result.length > 0 ? result : [artistString.trim()];
 }
 
-export default { cleanArtistAndTitle, splitArtists, KNOWN_ARTISTS_WITH_COMMA };
+export function extractCanonicalTrackId(id: string | undefined | null): string {
+  if (!id) return '';
+  if (id.startsWith('sc-') || id.startsWith('dm-sc-') || id.includes('-sc-')) {
+    const scMatch = id.match(/(\d+)$/);
+    if (scMatch) return scMatch[1];
+  }
+  const ytMatch = id.match(/([a-zA-Z0-9_-]{11})$/);
+  if (ytMatch) return ytMatch[1];
+
+  return id
+    .replace(/^dm-(?:yt-|sc-)?\d+-\d+-/, '')
+    .replace(/^dm-(?:yt-|sc-)?\d+-/, '')
+    .replace(/^artist-(?:yt|sc)-[^-]+-\d+-/, '')
+    .replace(/^album-(?:yt|sc)-\d+-/, '')
+    .replace(/^(?:sc-|yt-|dm-)/, '')
+    .trim();
+}
+
+export interface MinimalTrackInfo {
+  id?: string;
+  title?: string;
+  artist?: string;
+  sourceId?: string;
+  durationSec?: number;
+}
+
+export function areTracksDuplicate(a: Record<string, any>, b: Record<string, any>): boolean {
+  if (!a || !b) return false;
+  if (a.id && b.id && a.id === b.id) return true;
+
+  if (a.sourceId && b.sourceId && a.sourceId === b.sourceId) return true;
+
+  const cidA = extractCanonicalTrackId(a.sourceId || a.id);
+  const cidB = extractCanonicalTrackId(b.sourceId || b.id);
+  if (cidA && cidB && cidA === cidB) return true;
+
+  const { title: tA, artist: aA } = cleanArtistAndTitle(a.title || '', a.artist || '');
+  const { title: tB, artist: aB } = cleanArtistAndTitle(b.title || '', b.artist || '');
+
+  const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+  const normTA = norm(tA);
+  const normTB = norm(tB);
+  const normAA = norm(aA);
+  const normAB = norm(aB);
+
+  if (normTA.length >= 2 && normTA === normTB && normAA.length >= 2 && normAA === normAB) {
+    if (
+      typeof a.durationSec === 'number' &&
+      a.durationSec > 0 &&
+      typeof b.durationSec === 'number' &&
+      b.durationSec > 0
+    ) {
+      return Math.abs(a.durationSec - b.durationSec) <= 6;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+export function filterUniqueTracks<T extends Record<string, any>>(tracks: T[]): T[] {
+  const result: T[] = [];
+  for (const track of tracks) {
+    if (!result.some((existing) => areTracksDuplicate(existing, track))) {
+      result.push(track);
+    }
+  }
+  return result;
+}
+
+export default { cleanArtistAndTitle, splitArtists, KNOWN_ARTISTS_WITH_COMMA, extractCanonicalTrackId, areTracksDuplicate, filterUniqueTracks };

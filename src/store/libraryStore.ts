@@ -13,6 +13,7 @@ import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
 import { useDownloadStore } from './downloadStore';
 import { useToastStore } from './toastStore';
+import { areTracksDuplicate, filterUniqueTracks } from '../utils/trackUtils';
 
 export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
   {
@@ -173,7 +174,7 @@ interface LibraryActions {
   clearListeningHistory: () => Promise<void>;
   refreshHistoryTracks: () => Promise<void>;
   setTracklistSort: (sortBy: 'custom' | 'dateAdded' | 'title' | 'artist' | 'duration' | 'popularity', order?: 'asc' | 'desc') => void;
-  reorderCurrentPlaylistTracks: (sourceId: string, targetId: string, position?: 'above' | 'below') => Promise<void>;
+  reorderCurrentPlaylistTracks: (sourceIds: string | string[], targetId: string, position?: 'above' | 'below') => Promise<void>;
   setLibrarySortBy: (sortBy: 'recents' | 'recentlyAdded' | 'alphabetical') => void;
   createPlaylistFromTracks: (title: string, tracks: Track[]) => Promise<Playlist>;
   renamePlaylist: (id: string, newTitle: string) => Promise<void>;
@@ -619,10 +620,11 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       description: viewingPlaylist.description,
     });
 
-    for (const track of currentPlaylistTracks) {
+    const uniqueTracks = filterUniqueTracks(currentPlaylistTracks);
+    for (const track of uniqueTracks) {
       await repo.putTrack(track);
     }
-    await repo.addTracksToPlaylist(saved.id, currentPlaylistTracks.map((t) => t.id));
+    await repo.addTracksToPlaylist(saved.id, uniqueTracks.map((t) => t.id));
 
     const updated = await repo.getPlaylists();
     set({
@@ -813,25 +815,33 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     set({ tracklistSortBy: sortBy, tracklistSortOrder: nextOrder });
   },
 
-  reorderCurrentPlaylistTracks: async (sourceId: string, targetId: string, position: 'above' | 'below' = 'above') => {
+  reorderCurrentPlaylistTracks: async (sourceIds: string | string[], targetId: string, position: 'above' | 'below' = 'above') => {
     const currentTracks = get().currentPlaylistTracks;
     const selectedPlaylistId = get().selectedPlaylistId;
-    if (!selectedPlaylistId || !sourceId || !targetId || sourceId === targetId) return;
+    if (!selectedPlaylistId || !sourceIds || !targetId) return;
 
     const viewing = get().viewingPlaylist || get().playlists.find((p) => p.id === selectedPlaylistId);
     if (!isUserPlaylist(viewing)) return;
 
-    const sourceIndex = currentTracks.findIndex((t) => t.id === sourceId);
-    const targetIndex = currentTracks.findIndex((t) => t.id === targetId);
-    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+    const idsToMove = Array.isArray(sourceIds) ? sourceIds : [sourceIds];
+    const idsSet = new Set(idsToMove);
+    if (idsSet.size === 0 || idsSet.has(targetId)) return;
 
-    const nextTracks = [...currentTracks];
-    const [movedTrack] = nextTracks.splice(sourceIndex, 1);
-    let newTargetIndex = nextTracks.findIndex((t) => t.id === targetId);
-    if (position === 'below') {
-      newTargetIndex += 1;
-    }
-    nextTracks.splice(newTargetIndex, 0, movedTrack);
+    // Preserve the original order of the moved tracks as they appeared in currentPlaylistTracks
+    const movedTracks = currentTracks.filter((t) => idsSet.has(t.id));
+    if (movedTracks.length === 0) return;
+
+    // Remaining tracks after removing all moved tracks
+    const remainingTracks = currentTracks.filter((t) => !idsSet.has(t.id));
+    const targetIndex = remainingTracks.findIndex((t) => t.id === targetId);
+    if (targetIndex === -1) return;
+
+    const insertIndex = position === 'below' ? targetIndex + 1 : targetIndex;
+    const nextTracks = [
+      ...remainingTracks.slice(0, insertIndex),
+      ...movedTracks,
+      ...remainingTracks.slice(insertIndex),
+    ];
 
     set({ currentPlaylistTracks: nextTracks });
 
@@ -1141,18 +1151,40 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       return true;
     }
 
-    // Normal playlist add
+    // Normal playlist add: check for duplicates first
+    const currentTracks = await repo.getPlaylistTracks(playlistId);
+    if (currentTracks.some((t) => areTracksDuplicate(t, track))) {
+      useToastStore.getState().addToast({
+        type: 'info',
+        title: 'Already in playlist',
+        message: `"${track.title}" is already in this playlist.`,
+        duration: 3500,
+      });
+      return false;
+    }
+
     await repo.putTrack(trackWithDate);
-    await repo.addTrackToPlaylist(playlistId, track.id);
+    const added = await repo.addTrackToPlaylist(playlistId, track.id);
+    if (!added) {
+      useToastStore.getState().addToast({
+        type: 'info',
+        title: 'Already in playlist',
+        message: `"${track.title}" is already in this playlist.`,
+        duration: 3500,
+      });
+      return false;
+    }
+
     if (get().selectedPlaylistId === playlistId) {
       await get().refreshPlaylistTracks();
     }
+    const updatedCount = await repo.getPlaylistTracks(playlistId).then((ts) => ts.length);
     set((s) => ({
       playlists: s.playlists.map((p) =>
         p.id === playlistId
           ? {
               ...p,
-              songCount: p.songCount + 1,
+              songCount: updatedCount,
               removedTrackIds: (p.removedTrackIds || []).filter((id) => id !== track.id && id !== track.sourceId),
             }
           : p

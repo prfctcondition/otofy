@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play,
   Pause,
@@ -33,7 +34,7 @@ interface DenseTrackTableProps {
   hasMoreTracks?: boolean;
   isLoadingMoreTracks?: boolean;
   onLoadMoreTracks?: () => void;
-  onTrackSelect: (track: Track, queue: Track[]) => void;
+  onTrackSelect: (track: Track, currentQueue: Track[]) => void;
   onPlayToggle: () => void;
   onToggleLike: (trackId: string, track?: Track) => void;
   onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
@@ -44,7 +45,7 @@ interface TrackRowProps {
   track: Track;
   index: number;
   isCurrent: boolean;
-  isSelected: boolean;
+  isSelected?: boolean;
   isPlaying: boolean;
   isBuffering: boolean;
   hideTrackNumber?: boolean;
@@ -55,6 +56,7 @@ interface TrackRowProps {
   isDragged?: boolean;
   isDragOver?: boolean;
   dropPosition?: 'above' | 'below' | null;
+  onRowMouseDown?: (e: React.MouseEvent, track: Track, index: number) => void;
   onRowClick: (e: React.MouseEvent, track: Track, index: number) => void;
   onDoubleClick: (track: Track) => void;
   onPlayToggle: () => void;
@@ -63,11 +65,6 @@ interface TrackRowProps {
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
   onOpenContextMenu: (e: React.MouseEvent, track: Track) => void;
   onOpenConflictModal: (track: Track) => void;
-  onDragStart?: (e: React.DragEvent, track: Track) => void;
-  onDragOver?: (e: React.DragEvent, track: Track) => void;
-  onDragLeave?: (e: React.DragEvent, track: Track) => void;
-  onDrop?: (e: React.DragEvent, track: Track) => void;
-  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 const formatPopularity = (track: Track): string => {
@@ -237,11 +234,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   onSelectAlbum,
   onOpenContextMenu,
   onOpenConflictModal,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onDragEnd,
+  onRowMouseDown,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
@@ -251,12 +244,9 @@ const TrackRow = React.memo<TrackRowProps>(({
   return (
     <div
       id={`track-row-${track.id}`}
-      draggable={isReorderable}
-      onDragStart={(e) => onDragStart?.(e, track)}
-      onDragOver={(e) => onDragOver?.(e, track)}
-      onDragLeave={(e) => onDragLeave?.(e, track)}
-      onDrop={(e) => onDrop?.(e, track)}
-      onDragEnd={(e) => onDragEnd?.(e)}
+      data-track-row-id={track.id}
+      draggable={false}
+      onMouseDown={(e) => onRowMouseDown?.(e, track, index)}
       onClick={(e) => onRowClick(e, track, index)}
       onDoubleClick={() => onDoubleClick(track)}
       onContextMenu={(e) => onOpenContextMenu(e, track)}
@@ -576,12 +566,261 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   );
   const isReorderable = Boolean(isUserPlaylist(activePlaylist) && tracklistSortBy === 'custom' && !isLoading);
 
-  const [draggedTrackId, setDraggedTrackId] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [draggedTrackIds, setDraggedTrackIds] = useState<Set<string>>(new Set());
+  const draggedTrackIdsRef = useRef<Set<string>>(new Set());
   const [dragOverTrackId, setDragOverTrackId] = useState<string | null>(null);
+  const dragOverTrackIdRef = useRef<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null);
+  const dropPositionRef = useRef<'above' | 'below' | null>(null);
+  const [leadTrack, setLeadTrack] = useState<Track | null>(null);
+  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+
+  const dragPendingRef = useRef<{
+    startX: number;
+    startY: number;
+    track: Track;
+    index: number;
+    didDrag: boolean;
+  } | null>(null);
+
+  const justDraggedRef = useRef<boolean>(false);
+  const autoScrollSpeedRef = useRef<number>(0);
+  const rafIdRef = useRef<number | null>(null);
+  const lastMousePosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const tracksRef = useRef<Track[]>(tracks);
+  tracksRef.current = tracks;
+
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
+  const selectedTrackIdsRef = useRef<Set<string>>(new Set());
+  selectedTrackIdsRef.current = selectedTrackIds;
+
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [conflictTrack, setConflictTrack] = useState<Track | null>(null);
+
+  const getScrollContainer = useCallback((): HTMLElement | null => {
+    return (
+      (tableRef.current?.closest('.overflow-y-auto') as HTMLElement | null) ||
+      (document.querySelector('.overflow-y-auto') as HTMLElement | null)
+    );
+  }, []);
+
+  const updateDropTarget = useCallback((clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const rowEl = el?.closest('[data-track-row-id]') as HTMLElement | null;
+    if (rowEl) {
+      const targetTrackId = rowEl.getAttribute('data-track-row-id');
+      if (targetTrackId && !draggedTrackIdsRef.current.has(targetTrackId)) {
+        const rect = rowEl.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const pos: 'above' | 'below' = clientY < midY ? 'above' : 'below';
+
+        if (dragOverTrackIdRef.current !== targetTrackId || dropPositionRef.current !== pos) {
+          dragOverTrackIdRef.current = targetTrackId;
+          dropPositionRef.current = pos;
+          setDragOverTrackId(targetTrackId);
+          setDropPosition(pos);
+        }
+        return;
+      }
+    } else if (tableRef.current?.contains(el)) {
+      const firstRow = tableRef.current.querySelector('[data-track-row-id]') as HTMLElement | null;
+      if (firstRow) {
+        const firstRect = firstRow.getBoundingClientRect();
+        if (clientY < firstRect.top) {
+          const firstId = firstRow.getAttribute('data-track-row-id');
+          if (firstId && !draggedTrackIdsRef.current.has(firstId)) {
+            if (dragOverTrackIdRef.current !== firstId || dropPositionRef.current !== 'above') {
+              dragOverTrackIdRef.current = firstId;
+              dropPositionRef.current = 'above';
+              setDragOverTrackId(firstId);
+              setDropPosition('above');
+            }
+            return;
+          }
+        }
+      }
+    }
+
+    if (dragOverTrackIdRef.current !== null) {
+      dragOverTrackIdRef.current = null;
+      dropPositionRef.current = null;
+      setDragOverTrackId(null);
+      setDropPosition(null);
+    }
+  }, []);
+
+  const startAutoScrollLoop = useCallback(() => {
+    if (rafIdRef.current !== null) return;
+    const loop = () => {
+      if (!isDraggingRef.current) {
+        rafIdRef.current = null;
+        return;
+      }
+      if (autoScrollSpeedRef.current !== 0) {
+        const scrollContainer = getScrollContainer();
+        if (scrollContainer) {
+          scrollContainer.scrollTop += autoScrollSpeedRef.current;
+          if (lastMousePosRef.current) {
+            updateDropTarget(lastMousePosRef.current.x, lastMousePosRef.current.y);
+          }
+        }
+      }
+      rafIdRef.current = requestAnimationFrame(loop);
+    };
+    rafIdRef.current = requestAnimationFrame(loop);
+  }, [getScrollContainer, updateDropTarget]);
+
+  const stopAutoScrollLoop = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    autoScrollSpeedRef.current = 0;
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+
+      if (dragPendingRef.current && !isDraggingRef.current) {
+        const dist = Math.hypot(
+          e.clientX - dragPendingRef.current.startX,
+          e.clientY - dragPendingRef.current.startY
+        );
+        if (dist >= 5) {
+          dragPendingRef.current.didDrag = true;
+          isDraggingRef.current = true;
+          setIsDragging(true);
+
+          const curTrack = dragPendingRef.current.track;
+          let idsToDrag: string[] = [];
+          if (selectedTrackIdsRef.current.has(curTrack.id)) {
+            idsToDrag = tracks.filter((t) => selectedTrackIdsRef.current.has(t.id)).map((t) => t.id);
+          } else {
+            idsToDrag = [curTrack.id];
+            setSelectedTrackIds(new Set([curTrack.id]));
+            setLastSelectedId(curTrack.id);
+          }
+
+          const idsSet = new Set(idsToDrag);
+          draggedTrackIdsRef.current = idsSet;
+          setDraggedTrackIds(idsSet);
+          setLeadTrack(curTrack);
+
+          document.body.style.cursor = 'grabbing';
+          document.body.style.userSelect = 'none';
+
+          startAutoScrollLoop();
+        }
+      }
+
+      if (isDraggingRef.current) {
+        setGhostPos({ x: e.clientX + 14, y: e.clientY + 14 });
+
+        const scrollContainer = getScrollContainer();
+        if (scrollContainer) {
+          const rect = scrollContainer.getBoundingClientRect();
+          const topDist = e.clientY - rect.top;
+          const bottomDist = rect.bottom - e.clientY;
+          const edgeThreshold = 60;
+
+          if (topDist >= 0 && topDist < edgeThreshold) {
+            const factor = (edgeThreshold - topDist) / edgeThreshold;
+            autoScrollSpeedRef.current = -Math.round(4 + factor * 14);
+          } else if (bottomDist >= 0 && bottomDist < edgeThreshold) {
+            const factor = (edgeThreshold - bottomDist) / edgeThreshold;
+            autoScrollSpeedRef.current = Math.round(4 + factor * 14);
+          } else {
+            autoScrollSpeedRef.current = 0;
+          }
+        }
+
+        updateDropTarget(e.clientX, e.clientY);
+      }
+    };
+
+    const handleGlobalWheel = (e: WheelEvent) => {
+      if (!isDraggingRef.current) return;
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.scrollTop += e.deltaY;
+        updateDropTarget(e.clientX, e.clientY);
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      stopAutoScrollLoop();
+
+      if (isDraggingRef.current) {
+        justDraggedRef.current = true;
+        setTimeout(() => {
+          justDraggedRef.current = false;
+        }, 80);
+
+        const dropTarget = dragOverTrackIdRef.current;
+        const pos = dropPositionRef.current;
+        const ids = tracks.filter((t) => draggedTrackIdsRef.current.has(t.id)).map((t) => t.id);
+
+        if (dropTarget && pos && ids.length > 0 && !draggedTrackIdsRef.current.has(dropTarget)) {
+          reorderCurrentPlaylistTracks(ids, dropTarget, pos);
+        }
+
+        isDraggingRef.current = false;
+        draggedTrackIdsRef.current = new Set();
+        dragOverTrackIdRef.current = null;
+        dropPositionRef.current = null;
+        setIsDragging(false);
+        setDraggedTrackIds(new Set());
+        setDragOverTrackId(null);
+        setDropPosition(null);
+        setLeadTrack(null);
+        setGhostPos(null);
+
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+
+      dragPendingRef.current = null;
+    };
+
+    const handleWindowBlur = () => {
+      if (isDraggingRef.current) {
+        stopAutoScrollLoop();
+        isDraggingRef.current = false;
+        draggedTrackIdsRef.current = new Set();
+        dragOverTrackIdRef.current = null;
+        dropPositionRef.current = null;
+        setIsDragging(false);
+        setDraggedTrackIds(new Set());
+        setDragOverTrackId(null);
+        setDropPosition(null);
+        setLeadTrack(null);
+        setGhostPos(null);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        dragPendingRef.current = null;
+      }
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('wheel', handleGlobalWheel);
+      window.removeEventListener('blur', handleWindowBlur);
+      stopAutoScrollLoop();
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [tracks, getScrollContainer, updateDropTarget, startAutoScrollLoop, stopAutoScrollLoop, reorderCurrentPlaylistTracks]);
 
   useEffect(() => {
     if (tracks && tracks.length > 0) {
@@ -621,17 +860,49 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isDraggingRef.current) {
+          stopAutoScrollLoop();
+          isDraggingRef.current = false;
+          draggedTrackIdsRef.current = new Set();
+          dragOverTrackIdRef.current = null;
+          dropPositionRef.current = null;
+          setIsDragging(false);
+          setDraggedTrackIds(new Set());
+          setDragOverTrackId(null);
+          setDropPosition(null);
+          setLeadTrack(null);
+          setGhostPos(null);
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          dragPendingRef.current = null;
+          return;
+        }
         clearSelection();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.code === 'KeyA' || e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'ф')
+      ) {
         const activeEl = document.activeElement;
-        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        if (
+          activeEl &&
+          (activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            (activeEl as HTMLElement).isContentEditable)
+        ) {
+          return;
+        }
         e.preventDefault();
-        setSelectedTrackIds(new Set(tracks.map((t) => t.id)));
+        e.stopPropagation();
+        window.getSelection()?.removeAllRanges();
+        const currentTracks = tracksRef.current;
+        if (currentTracks && currentTracks.length > 0) {
+          setSelectedTrackIds(new Set(currentTracks.map((t) => t.id)));
+        }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tracks, clearSelection]);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [clearSelection, stopAutoScrollLoop]);
 
   const handleContainerClick = (e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey) return;
@@ -647,7 +918,32 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     clearSelection();
   };
 
+  const handleRowMouseDown = (e: React.MouseEvent, track: Track, index: number) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.closest('button') ||
+      target?.closest('a') ||
+      target?.closest('input') ||
+      target?.closest('.track-action-btn')
+    ) {
+      return;
+    }
+
+    if (!isReorderable) return;
+
+    dragPendingRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      track,
+      index,
+      didDrag: false,
+    };
+  };
+
   const handleRowClick = (e: React.MouseEvent, track: Track, index: number) => {
+    if (justDraggedRef.current) return;
+
     if (e.metaKey || e.ctrlKey) {
       // Toggle selection
       setSelectedTrackIds((prev) => {
@@ -682,64 +978,6 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, track: Track) => {
-    if (!isReorderable) return;
-    setDraggedTrackId(track.id);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', track.id);
-  };
-
-  const handleDragOver = (e: React.DragEvent, track: Track) => {
-    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const pos: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
-
-    if (dragOverTrackId !== track.id || dropPosition !== pos) {
-      setDragOverTrackId(track.id);
-      setDropPosition(pos);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent, track: Track) => {
-    const relatedTarget = e.relatedTarget as HTMLElement | null;
-    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-      if (dragOverTrackId === track.id) {
-        setDragOverTrackId(null);
-        setDropPosition(null);
-      }
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent, track: Track) => {
-    e.preventDefault();
-    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) {
-      setDraggedTrackId(null);
-      setDragOverTrackId(null);
-      setDropPosition(null);
-      return;
-    }
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const pos: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
-
-    reorderCurrentPlaylistTracks(draggedTrackId, track.id, pos);
-
-    setDraggedTrackId(null);
-    setDragOverTrackId(null);
-    setDropPosition(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedTrackId(null);
-    setDragOverTrackId(null);
-    setDropPosition(null);
-  };
-
   const handleDoubleClick = (track: Track) => {
     onTrackSelect(track, tracks);
   };
@@ -771,6 +1009,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   return (
     <div
+      ref={tableRef}
       id="dense-track-table"
       onClick={handleContainerClick}
       className="w-full px-6 py-2 select-none"
@@ -829,9 +1068,10 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isAlbumView={isAlbum}
               tracklistSortBy={tracklistSortBy}
               isReorderable={isReorderable}
-              isDragged={draggedTrackId === track.id}
+              isDragged={draggedTrackIds.has(track.id)}
               isDragOver={dragOverTrackId === track.id}
               dropPosition={dragOverTrackId === track.id ? dropPosition : null}
+              onRowMouseDown={handleRowMouseDown}
               onRowClick={handleRowClick}
               onDoubleClick={handleDoubleClick}
               onPlayToggle={onPlayToggle}
@@ -840,11 +1080,6 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               onSelectAlbum={onSelectAlbum}
               onOpenContextMenu={handleOpenContextMenu}
               onOpenConflictModal={setConflictTrack}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
             />
           ))
         )}
@@ -877,6 +1112,29 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         track={conflictTrack}
         onClose={() => setConflictTrack(null)}
       />
+
+      {typeof document !== 'undefined' && isDragging && ghostPos && leadTrack && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: ghostPos.x,
+            top: ghostPos.y,
+            pointerEvents: 'none',
+            zIndex: 999999,
+            transform: 'translate3d(0, 0, 0)',
+          }}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-2xl border select-none bg-[#0F172A] text-white border-slate-700/50 shadow-slate-950/40 dark:bg-black dark:text-white dark:border-white/20 dark:shadow-[0_10px_25px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-100"
+        >
+          <GripVertical size={13} className="text-white/60 shrink-0 -ml-1" />
+          <span className="max-w-[200px] truncate">{leadTrack.title}</span>
+          {draggedTrackIds.size > 1 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-white/20 text-white font-mono shrink-0">
+              +{draggedTrackIds.size - 1}
+            </span>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

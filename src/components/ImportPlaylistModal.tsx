@@ -16,6 +16,7 @@ import {
 import { parseShareCode } from '../services/shareCodeService';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
+import { filterUniqueTracks } from '../utils/trackUtils';
 import type { Track, ShareCodeData } from '../types';
 
 interface ImportPlaylistModalProps {
@@ -225,19 +226,21 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
     try {
       if (activeTab === 'otofy' && otofyData) {
-        const total = otofyData.tracks.length;
+        const uniqueOtofyTracks = filterUniqueTracks(otofyData.tracks);
+        const total = uniqueOtofyTracks.length;
         setDirectImportProgress({ current: 0, total, currentTrackTitle: 'Creating playlist...' });
 
         const newPl = await createPlaylist({
           title: otofyData.title,
-          creator: otofyData.creator || 'Imported User',
-          gradientFrom: '#334155',
+          creator: otofyData.creator || 'Otofy User',
+          artworkUrl: otofyData.artworkUrl,
+          gradientFrom: '#1E293B',
           gradientTo: '#0F172A',
           iconName: 'disc',
         });
 
         for (let i = 0; i < total; i++) {
-          const item = otofyData.tracks[i];
+          const item = uniqueOtofyTracks[i];
           setDirectImportProgress({
             current: i + 1,
             total,
@@ -274,11 +277,12 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         }
 
         setSuccess(true);
-        setSuccessMessage(`Imported ${otofyData.tracks.length} tracks successfully!`);
+        setSuccessMessage(`Imported ${total} tracks successfully!`);
         await selectPlaylist(newPl.id);
         setTimeout(handleClose, 1200);
       } else if ((activeTab === 'yt' || activeTab === 'sc') && remoteData) {
-        const total = remoteData.tracks.length;
+        const uniqueRemoteTracks = filterUniqueTracks<Track>(remoteData.tracks);
+        const total = uniqueRemoteTracks.length;
         setDirectImportProgress({ current: 0, total, currentTrackTitle: 'Creating playlist...' });
 
         const newPl = await createPlaylist({
@@ -291,7 +295,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         });
 
         for (let i = 0; i < total; i++) {
-          const t = remoteData.tracks[i];
+          const t = uniqueRemoteTracks[i];
           setDirectImportProgress({
             current: i + 1,
             total,
@@ -313,7 +317,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         }
 
         setSuccess(true);
-        setSuccessMessage(`Imported ${remoteData.tracks.length} tracks successfully!`);
+        setSuccessMessage(`Imported ${total} tracks successfully!`);
         await selectPlaylist(newPl.id);
         setTimeout(handleClose, 1200);
       }
@@ -379,17 +383,19 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         iconName: 'sparkles',
       });
 
+      const uniqueMatched = filterUniqueTracks(matchedTracks);
+
       // Add matched tracks into playlist
-      for (const track of matchedTracks) {
+      for (const track of uniqueMatched) {
         await addTrackToPlaylist(newPl.id, track);
       }
 
       setSuccess(true);
-      const unresolvedCount = matchedTracks.filter((t) => t.unresolved).length;
-      const matchedCount = matchedTracks.length - unresolvedCount;
+      const unresolvedCount = uniqueMatched.filter((t) => t.unresolved).length;
+      const matchedCount = uniqueMatched.length - unresolvedCount;
 
       setSuccessMessage(
-        `Imported ${matchedTracks.length} tracks (${matchedCount} matched, ${unresolvedCount} need review)`
+        `Imported ${uniqueMatched.length} tracks (${matchedCount} matched, ${unresolvedCount} need review)`
       );
 
       if (unresolvedCount > 0) {

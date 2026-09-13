@@ -2,7 +2,7 @@ import db from './database';
 import type { DbTrack, DbPlaylist, DbPlaylistTrack } from './database';
 import type { Track, Playlist } from '../types';
 
-import { cleanArtistAndTitle } from '../utils/trackUtils';
+import { cleanArtistAndTitle, areTracksDuplicate, type MinimalTrackInfo } from '../utils/trackUtils';
 
 function dbTrackToTrack(dt: DbTrack): Track {
   return {
@@ -129,20 +129,46 @@ export const repo = {
     const tracks = await db.tracks.where('id').anyOf(trackIds).toArray();
     // Maintain order
     const trackMap = new Map(tracks.map(t => [t.id, t]));
-    return pts
-      .map((pt) => {
-        const t = trackMap.get(pt.trackId);
-        if (!t) return undefined;
-        const track = dbTrackToTrack(t);
-        if (playlistId === 'pl-liked') {
-          track.isLiked = true;
+    const uniqueTracks: Track[] = [];
+    const duplicatePtIds: number[] = [];
+
+    for (const pt of pts) {
+      const t = trackMap.get(pt.trackId);
+      if (!t) continue;
+      const track = dbTrackToTrack(t);
+      if (playlistId === 'pl-liked') {
+        track.isLiked = true;
+      }
+      if (pt.addedAt && typeof pt.addedAt === 'number') {
+        track.dateAdded = new Date(pt.addedAt).toISOString();
+      }
+
+      if (uniqueTracks.some((ut) => areTracksDuplicate(ut, track))) {
+        if (pt.id !== undefined) duplicatePtIds.push(pt.id);
+        continue;
+      }
+
+      uniqueTracks.push(track);
+    }
+
+    if (duplicatePtIds.length > 0) {
+      (async () => {
+        try {
+          await db.playlistTracks.bulkDelete(duplicatePtIds);
+          const remaining = await db.playlistTracks.where('playlistId').equals(playlistId).sortBy('position');
+          for (let i = 0; i < remaining.length; i++) {
+            if (remaining[i].position !== i && remaining[i].id !== undefined) {
+              await db.playlistTracks.update(remaining[i].id!, { position: i });
+            }
+          }
+          await db.playlists.update(playlistId, { songCount: uniqueTracks.length });
+        } catch (e) {
+          console.warn('[Repository] Self-healing deduplication error:', e);
         }
-        if (pt.addedAt && typeof pt.addedAt === 'number') {
-          track.dateAdded = new Date(pt.addedAt).toISOString();
-        }
-        return track;
-      })
-      .filter((t): t is Track => t !== undefined);
+      })();
+    }
+
+    return uniqueTracks;
   },
 
   async getPlaylistIdsForTrack(trackId: string): Promise<string[]> {
@@ -276,19 +302,32 @@ export const repo = {
     return dbTrackToTrack(resolvedDbTrack);
   },
 
-  async addTrackToPlaylist(playlistId: string, trackId: string): Promise<void> {
-    const existing = await db.playlistTracks
+  async addTrackToPlaylist(playlistId: string, trackId: string): Promise<boolean> {
+    const existingPts = await db.playlistTracks
       .where('playlistId')
       .equals(playlistId)
-      .and(pt => pt.trackId === trackId)
-      .first();
-    if (existing) {
+      .toArray();
+
+    if (existingPts.some(pt => pt.trackId === trackId)) {
       if (playlistId === 'pl-liked') {
         await db.tracks.update(trackId, { isLiked: true });
       }
-      return;
+      return false;
     }
-    const count = await db.playlistTracks.where('playlistId').equals(playlistId).count();
+
+    const incomingTrack = await db.tracks.get(trackId);
+    if (incomingTrack) {
+      const existingTrackIds = existingPts.map(pt => pt.trackId);
+      const existingTracks = await db.tracks.where('id').anyOf(existingTrackIds).toArray();
+      if (existingTracks.some(et => areTracksDuplicate(et, incomingTrack))) {
+        if (playlistId === 'pl-liked') {
+          await db.tracks.update(trackId, { isLiked: true });
+        }
+        return false;
+      }
+    }
+
+    const count = existingPts.length;
     await db.playlistTracks.add({
       playlistId,
       trackId,
@@ -303,7 +342,7 @@ export const repo = {
     const pl = await db.playlists.get(playlistId);
     let removedTrackIds = pl?.removedTrackIds;
     if (removedTrackIds && removedTrackIds.length > 0) {
-      const track = await db.tracks.get(trackId);
+      const track = incomingTrack || (await db.tracks.get(trackId));
       const set = new Set(removedTrackIds);
       set.delete(trackId);
       if (track?.sourceId) set.delete(track.sourceId);
@@ -318,27 +357,42 @@ export const repo = {
       updatedAt: Date.now(),
       ...(removedTrackIds !== undefined ? { removedTrackIds } : {}),
     });
+    return true;
   },
 
-  async addTracksToPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
-    const existing = await db.playlistTracks.where('playlistId').equals(playlistId).toArray();
-    const existingTrackIds = new Set(existing.map(e => e.trackId));
-    let pos = existing.length;
+  async addTracksToPlaylist(playlistId: string, trackIds: string[]): Promise<number> {
+    const existingPts = await db.playlistTracks.where('playlistId').equals(playlistId).toArray();
+    const existingTrackIds = existingPts.map(e => e.trackId);
+    const existingDbTracks = await db.tracks.where('id').anyOf(existingTrackIds).toArray();
+
+    const allExistingTracks: MinimalTrackInfo[] = [...existingDbTracks];
+    const existingIdSet = new Set(existingTrackIds);
+
+    const incomingDbTracks = await db.tracks.where('id').anyOf(trackIds).toArray();
+    const incomingMap = new Map(incomingDbTracks.map(t => [t.id, t]));
+
+    let pos = existingPts.length;
     const toAdd: DbPlaylistTrack[] = [];
+
     for (const trackId of trackIds) {
-      if (!existingTrackIds.has(trackId)) {
-        existingTrackIds.add(trackId);
-        toAdd.push({
-          playlistId,
-          trackId,
-          position: pos++,
-          addedAt: Date.now(),
-        });
-        if (playlistId === 'pl-liked') {
-          await db.tracks.update(trackId, { isLiked: true });
-        }
+      if (existingIdSet.has(trackId)) continue;
+      const incoming = incomingMap.get(trackId) || { id: trackId };
+      if (allExistingTracks.some(t => areTracksDuplicate(t, incoming))) {
+        continue;
+      }
+      allExistingTracks.push(incoming);
+      existingIdSet.add(trackId);
+      toAdd.push({
+        playlistId,
+        trackId,
+        position: pos++,
+        addedAt: Date.now(),
+      });
+      if (playlistId === 'pl-liked') {
+        await db.tracks.update(trackId, { isLiked: true });
       }
     }
+
     if (toAdd.length > 0) {
       await db.playlistTracks.bulkAdd(toAdd);
     }
@@ -361,6 +415,8 @@ export const repo = {
       updatedAt: Date.now(),
       ...(removedTrackIds !== undefined ? { removedTrackIds } : {}),
     });
+
+    return toAdd.length;
   },
 
   async reorderPlaylistTracks(playlistId: string, orderedTrackIds: string[]): Promise<void> {

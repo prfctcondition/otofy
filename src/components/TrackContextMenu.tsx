@@ -253,20 +253,30 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           .info('Removed from playlist', `Removed ${activeTracks.length} tracks from "${plTitle}".`);
       } else {
         (async () => {
-          let anyAdded = false;
+          let addedCount = 0;
+          let skippedCount = 0;
           for (const t of activeTracks) {
             const res = await onAddToPlaylist(playlistId, t);
-            if (res !== false) anyAdded = true;
+            if (res !== false) {
+              addedCount++;
+            } else {
+              skippedCount++;
+            }
           }
-          if (anyAdded) {
+          if (addedCount > 0) {
             setContainingPlaylistIds((prev) => {
               const next = new Set(prev);
               next.add(playlistId);
               return next;
             });
+            const skippedMsg = skippedCount > 0 ? ` (${skippedCount} duplicates skipped)` : '';
             useToastStore
               .getState()
-              .success('Added to playlist', `Added tracks to "${plTitle}".`);
+              .success('Added to playlist', `Added ${addedCount} tracks to "${plTitle}"${skippedMsg}.`);
+          } else if (skippedCount > 0) {
+            useToastStore
+              .getState()
+              .info('Already in playlist', `Selected tracks are already in "${plTitle}".`);
           }
         })();
       }
