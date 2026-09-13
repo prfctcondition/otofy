@@ -26,6 +26,7 @@ import {
 } from '../data/homeData';
 import { getStoredDailyMixes } from '../services/dailyMixService';
 import type { DailyMixConfig } from '../types';
+import { useTranslation } from '../i18n';
 
 interface HomeScreenProps {
   onSelectCollection: (title: string, playlistId?: string) => void;
@@ -46,7 +47,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPlayMix,
   onShowAll,
 }) => {
+  const { t } = useTranslation();
   const [dynamicMixes, setDynamicMixes] = useState<DailyMixConfig[]>([]);
+
+  const getQuickAccessTitle = (item: QuickAccessItem) => {
+    if (item.id === 'qa-liked') return t.library.likedSongs;
+    if (item.id === 'qa-history') return t.home.history;
+    if (item.id === 'qa-discover') return t.home.discoverWeekly;
+    return item.title;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -138,7 +147,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
               {/* Title label */}
               <span className="flex-1 px-3 text-[13px] font-bold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
-                {item.title}
+                {getQuickAccessTitle(item)}
               </span>
 
               {/* Smooth Hover Play Action Button - MATCHED with bottom player */}
@@ -154,8 +163,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     }
                   }}
                   className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform"
-                  title={`Play ${item.title}`}
-                  aria-label={`Play ${item.title}`}
+                  title={`Play ${getQuickAccessTitle(item)}`}
+                  aria-label={`Play ${getQuickAccessTitle(item)}`}
                 >
                   <Play size={14} className="fill-white dark:fill-black translate-x-0.5" />
                 </button>
@@ -170,10 +179,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="flex items-end justify-between mb-3.5">
           <div>
             <p className="text-xs font-semibold text-[#64748B] dark:text-white/70 tracking-wide mb-1">
-              Non-stop music based on your favorite songs and artists.
+              {t.home.nonStopMusic}
             </p>
             <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
-              Recommended Stations
+              {t.home.recommendedStations}
             </h2>
           </div>
           <button
@@ -181,7 +190,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             onClick={onShowAll}
             className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
           >
-            Show all
+            {t.home.showAll}
           </button>
         </div>
 
@@ -255,14 +264,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <section id="made-for-you-section" className="relative z-10">
         <div className="flex items-center justify-between mb-3.5">
           <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
-            Made For You
+            {t.home.madeForYou}
           </h2>
           <button
             id="show-all-made-for-you-btn"
             onClick={onShowAll}
             className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
           >
-            Show all
+            {t.home.showAll}
           </button>
         </div>
 
@@ -317,7 +326,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black uppercase text-black shrink-0"
                           style={{ backgroundColor: item.badgeColor }}
                         >
-                          Daily Mix
+                          {t.home.dailyMix}
                         </div>
                         <span className="text-xs font-black text-white ml-auto pr-1 shrink-0">
                           {item.mixNumber}

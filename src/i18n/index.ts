@@ -50,3 +50,34 @@ export function useTranslation() {
     supportedLanguages: SUPPORTED_LANGUAGES,
   };
 }
+
+export function formatDurationText(totalSec: number, t: TranslationSchema): string {
+  const hrs = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  if (hrs > 0) {
+    return t.hero.aboutHoursMinutes.replace('{hours}', String(hrs)).replace('{minutes}', String(mins));
+  }
+  return t.hero.aboutMinutes.replace('{minutes}', String(mins || 1));
+}
+
+export function formatArtistStats(params: {
+  tracksCount: number;
+  audience?: string;
+  releaseCount: number;
+  t: TranslationSchema;
+}): string {
+  const parts: string[] = [
+    `${params.tracksCount} ${params.t.hero.officialSongs}`,
+    params.t.library.artistSingle,
+  ];
+  if (params.audience) {
+    const audienceStr = params.audience.trim();
+    const token = audienceStr.split(' ')[0];
+    const cleanAudience = token || audienceStr;
+    parts.push(`${cleanAudience} ${params.t.hero.monthlyAudience}`);
+  }
+  if (params.releaseCount > 0) {
+    parts.push(`${params.releaseCount} ${params.t.hero.releases}`);
+  }
+  return parts.join(' • ');
+}

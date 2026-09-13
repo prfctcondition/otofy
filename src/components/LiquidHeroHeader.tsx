@@ -31,6 +31,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { useDownloadStore } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
+import { useTranslation, formatDurationText, formatArtistStats } from '../i18n';
 
 interface LiquidHeroHeaderProps {
   playlist: Playlist;
@@ -69,6 +70,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   onToggleSaveToLibrary,
   onSelectArtist,
 }) => {
+  const { t } = useTranslation();
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   const isLikedSongs =
     playlist.id === 'pl-liked' ||
@@ -216,16 +218,47 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
       : (trackList.length || playlist.songCount || 0);
     const totalSec = trackList.reduce((sum, t) => sum + (t.durationSec || 0), 0);
     if (totalSec > 0) {
-      const hrs = Math.floor(totalSec / 3600);
-      const mins = Math.floor((totalSec % 3600) / 60);
-      const formatted = hrs > 0 ? `about ${hrs} hr ${mins} min` : `${mins || 1} min`;
-      return { formattedDuration: formatted, totalSongCount: count };
+      return { formattedDuration: formatDurationText(totalSec, t), totalSongCount: count };
     }
     return {
-      formattedDuration: playlist.duration || `${count} songs`,
+      formattedDuration: playlist.duration || `${count} ${t.hero.songsCount}`,
       totalSongCount: count,
     };
-  }, [tracks, playlist.songCount, playlist.duration]);
+  }, [tracks, playlist.songCount, playlist.duration, playlist.type, t]);
+
+  const renderedArtistStats = useMemo(() => {
+    if (playlist.type !== 'Artist') return '';
+    let tracksCount = totalSongCount || (tracks ? tracks.length : 0);
+    if (tracksCount === 0 && playlist.creator) {
+      const match = playlist.creator.match(/([0-9]+)\s+Official/i);
+      if (match) tracksCount = parseInt(match[1], 10);
+    }
+
+    let audience = currentArtistDetails?.subscribers;
+    if (!audience && playlist.creator) {
+      const parts = playlist.creator.split('•');
+      for (const p of parts) {
+        const trimmed = p.trim();
+        if (/([0-9.,KkMmBb]+)/.test(trimmed) && !trimmed.includes('Official') && !trimmed.includes('Releases')) {
+          audience = trimmed;
+          break;
+        }
+      }
+    }
+
+    let releaseCount = (currentArtistDetails?.albums?.length || 0) + (currentArtistDetails?.singles?.length || 0);
+    if (releaseCount === 0 && playlist.creator) {
+      const match = playlist.creator.match(/([0-9]+)\s+Releases/i);
+      if (match) releaseCount = parseInt(match[1], 10);
+    }
+
+    return formatArtistStats({
+      tracksCount,
+      audience,
+      releaseCount,
+      t,
+    });
+  }, [playlist.type, playlist.creator, totalSongCount, tracks, currentArtistDetails, t]);
 
   // Dynamic Spotify / Liked Songs style square artwork rendering
   const renderCoverArtwork = () => {
@@ -371,7 +404,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             {/* Playlist Description or Clickable Artists Subtitle */}
             {playlist.id === 'pl-history' ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
-                Your last 50 played tracks
+                {t.hero.historyDescription}
               </p>
             ) : playlist.description ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
@@ -379,7 +412,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </p>
             ) : artistsList.length > 0 ? (
               <p className="text-sm text-[#475569] dark:text-white/85 font-medium leading-relaxed max-w-2xl mb-3">
-                <span className="text-[#64748B] dark:text-white/70">With </span>
+                <span className="text-[#64748B] dark:text-white/70">{t.hero.withPrefix}</span>
                 {artistsList.slice(0, 5).map((art, idx, arr) => (
                   <React.Fragment key={`${art}-${idx}`}>
                     <span
@@ -393,7 +426,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                   </React.Fragment>
                 ))}
                 {artistsList.length > 5 && (
-                  <span className="text-[#64748B] dark:text-white/70"> and more</span>
+                  <span className="text-[#64748B] dark:text-white/70"> {t.hero.andMore}</span>
                 )}
               </p>
             ) : playlist.creator && playlist.type !== 'Artist' ? (
@@ -406,7 +439,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
             <div className="flex items-center flex-wrap gap-2 text-xs text-[#64748B] dark:text-white/80 font-normal">
               {playlist.type === 'Artist' ? (
                 <span className="font-bold text-[#0F172A] dark:text-white">
-                  {playlist.creator}
+                  {renderedArtistStats || playlist.creator}
                 </span>
               ) : (
                 <div className="flex items-center gap-1.5">
@@ -421,10 +454,10 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               {playlist.type !== 'Artist' && (
                 <>
                   <span>·</span>
-                  <span>Public Playlist</span>
+                  <span>{playlist.type === 'Album' ? t.library.albumSingle : t.hero.publicPlaylist}</span>
                   <span>·</span>
                   <span className="font-semibold text-[#0F172A] dark:text-white">
-                    {totalSongCount} songs, {formattedDuration}
+                    {totalSongCount} {t.hero.songsCount}, {formattedDuration}
                   </span>
                 </>
               )}
@@ -494,63 +527,63 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 title={
                   playlist.type === 'Artist'
                     ? isArtistFollowed
-                      ? 'Following artist (click to unfollow)'
-                      : 'Follow artist'
+                      ? t.hero.followingArtist
+                      : t.hero.followArtist
                     : playlist.type === 'Album'
                     ? isAlbumSaved
-                      ? 'In My Albums (click to remove)'
-                      : 'Save to My Albums'
+                      ? t.hero.inAlbums
+                      : t.hero.saveToAlbums
                     : isSavedInLibrary
-                    ? 'In My Playlists (click to remove)'
-                    : 'Save to My Playlists'
+                    ? t.hero.inPlaylists
+                    : t.hero.saveToPlaylists
                 }
                 aria-label={
                   playlist.type === 'Artist'
                     ? isArtistFollowed
-                      ? 'Following'
-                      : 'Follow artist'
+                      ? t.hero.followingArtist
+                      : t.hero.followArtist
                     : playlist.type === 'Album'
                     ? isAlbumSaved
-                      ? 'Saved'
-                      : 'Save to My Albums'
+                      ? t.hero.inAlbums
+                      : t.hero.saveToAlbums
                     : isSavedInLibrary
-                    ? 'In My Playlists'
-                    : 'Save to My Playlists'
+                    ? t.hero.inPlaylists
+                    : t.hero.saveToPlaylists
                 }
               >
                 {playlist.type === 'Artist' ? (
                   isArtistFollowed ? (
                     <>
                       <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
-                      <span>Following</span>
+                      <span>{t.hero.followingArtist}</span>
                     </>
                   ) : (
                     <>
                       <UserPlus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
-                      <span>Follow artist</span>
+                      <span>{t.hero.followArtist}</span>
                     </>
                   )
                 ) : playlist.type === 'Album' ? (
                   isAlbumSaved ? (
                     <>
                       <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
-                      <span>Saved</span>
+                      <span>{t.hero.inAlbums}</span>
                     </>
                   ) : (
                     <>
                       <Plus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
-                      <span>Save to My Albums</span>
+                      <span>{t.hero.saveToAlbums}</span>
                     </>
                   )
                 ) : isSavedInLibrary ? (
                   <>
                     <Check size={16} strokeWidth={2.5} className="text-white dark:text-black" />
-                    <span>In My Playlists</span>
+                    <span>{t.hero.inPlaylists}</span>
                   </>
                 ) : (
                   <>
                     <Plus size={16} strokeWidth={2.5} className="text-[#0F172A] dark:text-white" />
-                    <span>Save to My Playlists</span>
+                    <span>{t.hero.saveToPlaylists}</span>
                   </>
                 )}
               </button>
@@ -852,7 +885,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                   type="text"
                   value={playlistSearchQuery}
                   onChange={(e) => onPlaylistSearchChange(e.target.value)}
-                  placeholder="Search in playlist"
+                  placeholder={t.library.searchPlaceholder}
                   className="w-full bg-transparent text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
                   autoFocus
                 />
@@ -862,7 +895,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 id="toggle-playlist-search-btn"
                 onClick={onToggleSearch}
                 className="p-2 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                title="Search in this playlist"
+                title={t.library.searchPlaceholder}
               >
                 <Search size={18} />
               </button>
@@ -874,24 +907,24 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 id="playlist-sort-dropdown"
                 onClick={() => setIsSortMenuOpen((v) => !v)}
                 className="flex items-center gap-1.5 text-xs font-medium text-[#334155] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white cursor-pointer px-3 py-1.5 rounded-full bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none transition-all"
-                title="Sort tracks"
+                title={t.hero.sortTracks}
               >
                 <span>
                   {tracklistSortBy === 'custom'
                     ? playlist.type === 'Album'
-                      ? 'Album order'
-                      : 'Custom order'
+                      ? t.hero.albumOrder
+                      : t.hero.customOrder
                     : tracklistSortBy === 'popularity'
-                    ? 'Popularity'
+                    ? t.table.popularity
                     : tracklistSortBy === 'dateAdded'
                     ? playlist.type === 'Artist' || playlist.type === 'Album'
-                      ? 'Year'
-                      : 'Date added'
+                      ? t.table.year
+                      : t.table.dateAdded
                     : tracklistSortBy === 'title'
-                    ? 'Title'
+                    ? t.hero.titleAZ
                     : tracklistSortBy === 'artist'
-                    ? 'Artist'
-                    : 'Duration'}
+                    ? t.library.artistSingle
+                    : t.table.duration}
                 </span>
                 {tracklistSortBy !== 'custom' && (
                   tracklistSortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
@@ -901,16 +934,16 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               {isSortMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-52 bg-white/95 dark:bg-[#111116] backdrop-blur-3xl border border-white/95 dark:border-white/10 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.5)] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3.5 py-1 text-[10px] font-bold text-[#94A3B8] dark:text-white/50 uppercase tracking-wider">
-                    Sort tracks by
+                    {t.hero.sortTracksBy}
                   </div>
                   {[
-                    ...(isUserPlaylist(playlist) ? [{ key: 'custom', label: 'Custom order' }] : []),
-                    ...(playlist.type === 'Album' ? [{ key: 'custom', label: 'Album order' }] : []),
-                    { key: 'popularity', label: 'Popularity' },
-                    { key: 'dateAdded', label: playlist.type === 'Artist' || playlist.type === 'Album' ? 'Year' : 'Date added' },
-                    { key: 'title', label: 'Title (A–Z)' },
-                    { key: 'artist', label: 'Artist' },
-                    { key: 'duration', label: 'Duration' },
+                    ...(isUserPlaylist(playlist) ? [{ key: 'custom', label: t.hero.customOrder }] : []),
+                    ...(playlist.type === 'Album' ? [{ key: 'custom', label: t.hero.albumOrder }] : []),
+                    { key: 'popularity', label: t.table.popularity },
+                    { key: 'dateAdded', label: playlist.type === 'Artist' || playlist.type === 'Album' ? t.table.year : t.table.dateAdded },
+                    { key: 'title', label: t.hero.titleAZ },
+                    { key: 'artist', label: t.library.artistSingle },
+                    { key: 'duration', label: t.table.duration },
                   ].map((opt) => {
                     const isActive = tracklistSortBy === opt.key;
                     return (

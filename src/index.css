@@ -3,9 +3,21 @@
 
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-display: 'Syne', sans-serif;
+    --font-sans: 'Plus Jakarta Sans', Inter, Geist, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC', 'BIZ UDPGothic', 'Hiragino Sans', 'Yu Gothic UI', 'Noto Sans JP', sans-serif;
+    --font-display: 'Syne', var(--font-sans);
     --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  :root:lang(ru) {
+    --font-sans: Inter, Geist, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  :root:lang(ja) {
+    --font-sans: 'BIZ UDPGothic', 'Hiragino Sans', 'Yu Gothic UI', 'Noto Sans JP', Inter, system-ui, -apple-system, sans-serif;
+  }
+
+  :root:lang(zh) {
+    --font-sans: 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC', Inter, system-ui, -apple-system, sans-serif;
   }
   
   body {

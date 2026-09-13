@@ -17,6 +17,16 @@ export interface TranslationSchema {
     restore: string;
     close: string;
   };
+  home: {
+    nonStopMusic: string;
+    recommendedStations: string;
+    madeForYou: string;
+    showAll: string;
+    discoverWeekly: string;
+    history: string;
+    historySubtitle: string;
+    dailyMix: string;
+  };
   library: {
     title: string;
     playlists: string;
@@ -35,6 +45,36 @@ export interface TranslationSchema {
     cachedSongs: string;
     noPlaylists: string;
     tracksCount: string;
+    likedSongs: string;
+    pinned: string;
+    playlistSingle: string;
+    artistSingle: string;
+    albumSingle: string;
+    creatorYou: string;
+    creatorSystem: string;
+  };
+  hero: {
+    publicPlaylist: string;
+    songsCount: string;
+    aboutHoursMinutes: string;
+    aboutMinutes: string;
+    officialSongs: string;
+    monthlyAudience: string;
+    releases: string;
+    followArtist: string;
+    followingArtist: string;
+    saveToAlbums: string;
+    inAlbums: string;
+    saveToPlaylists: string;
+    inPlaylists: string;
+    customOrder: string;
+    albumOrder: string;
+    sortTracksBy: string;
+    sortTracks: string;
+    titleAZ: string;
+    withPrefix: string;
+    andMore: string;
+    historyDescription: string;
   };
   table: {
     trackNumber: string;

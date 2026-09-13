@@ -554,7 +554,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                       ? 'bg-white/85 dark:bg-white/15 border border-white dark:border-white/20 shadow-[0_4px_14px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none text-[#0F172A] dark:text-white'
                       : 'hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-transparent'
                   }`}
-                  title={`${pl.title} · ${pl.type} (${pl.songCount} songs)`}
+                  title={`${pl.id === 'pl-liked' || pl.title === 'Liked Songs' ? t.library.likedSongs : pl.title} · ${pl.type === 'Playlist' ? t.library.playlistSingle : pl.type}`}
                 >
                   <PlaceholderArtwork
                     icon={pl.iconName}
@@ -574,18 +574,18 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                             isSelected ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#0F172A] dark:text-white'
                           }`}
                         >
-                          {pl.title}
+                          {pl.id === 'pl-liked' || pl.title === 'Liked Songs' ? t.library.likedSongs : pl.title}
                         </span>
                         <div className="flex items-center gap-1 text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
                           {pl.isPinned && (
                             <span className="text-[#0F172A] dark:text-white font-medium flex items-center gap-0.5">
                               <Pin size={10} className="rotate-45" />
-                              Pinned ·
+                              {t.library.pinned} ·
                             </span>
                           )}
-                          <span>{pl.type}</span>
+                          <span>{pl.type === 'Playlist' ? t.library.playlistSingle : pl.type}</span>
                           <span>·</span>
-                          <span>{pl.creator}</span>
+                          <span>{pl.creator === 'You' ? t.library.creatorYou : pl.creator === 'System' ? t.library.creatorSystem : pl.creator}</span>
                         </div>
                       </div>
 
@@ -627,7 +627,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                       ? 'justify-center w-12 h-12 p-0 mx-auto rounded-xl'
                       : 'gap-3 p-2 rounded-xl w-full'
                   } cursor-pointer transition-all duration-150 hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-transparent`}
-                  title={`${art.name} · Artist`}
+                  title={`${art.name} · ${t.library.artistSingle}`}
                 >
                   {art.avatarUrl ? (
                     <img
@@ -654,7 +654,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                           {art.name}
                         </span>
                         <span className="text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
-                          Artist
+                          {t.library.artistSingle}
                         </span>
                       </div>
 
@@ -691,7 +691,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                       ? 'justify-center w-12 h-12 p-0 mx-auto rounded-xl'
                       : 'gap-3 p-2 rounded-xl w-full'
                   } cursor-pointer transition-all duration-150 hover:bg-white/45 dark:hover:bg-white/[0.07] hover:border hover:border-white/75 dark:hover:border-white/10 text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-transparent`}
-                  title={`${alb.title} · Album · ${alb.artist}`}
+                  title={`${alb.title} · ${t.library.albumSingle} · ${alb.artist}`}
                 >
                   {alb.artworkUrl ? (
                     <img
@@ -718,7 +718,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                           {alb.title}
                         </span>
                         <span className="text-xs text-[#64748B] dark:text-white/70 truncate mt-0.5">
-                          Album · {alb.artist}
+                          {t.library.albumSingle} · {alb.artist}
                         </span>
                       </div>
 

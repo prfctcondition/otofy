@@ -98,6 +98,11 @@ export default function App() {
   }, [libraryStore.isLyricsModalOpen]);
 
   const isCompactLayout = windowWidth < 1100;
+  const currentLanguage = useSettingsStore((s) => s.language);
+
+  useEffect(() => {
+    document.documentElement.lang = currentLanguage;
+  }, [currentLanguage]);
 
   const trackMenu = useContextMenuStore((s) => s.trackMenu);
   const playlistMenu = useContextMenuStore((s) => s.playlistMenu);
