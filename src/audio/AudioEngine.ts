@@ -25,36 +25,35 @@ function getInitialSavedVolume(): number {
 }
 
 function formatHighResArtwork(url?: string): MediaImage[] {
-  if (!url) {
-    const fallback = typeof window !== 'undefined' ? `${window.location.origin}/icon.png` : '/icon.png';
-    return [
-      { src: fallback, sizes: '512x512', type: 'image/png' },
-    ];
-  }
-
-  let highResUrl = url;
-
-  if (highResUrl.includes('googleusercontent.com') || highResUrl.includes('ggpht.com')) {
-    if (/=w\d+-h\d+/.test(highResUrl)) {
-      highResUrl = highResUrl.replace(/=w\d+-h\d+[^?#]+/, '=w512-h512-l90-rj');
-    } else if (/=s\d+/.test(highResUrl)) {
-      highResUrl = highResUrl.replace(/=s\d+[^?#]+/, '=s512-c');
+  if (!url || typeof url !== 'string') {
+    if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+      const fallback = `${window.location.origin}/icon.png`;
+      return [
+        { src: fallback, sizes: '512x512' },
+        { src: fallback, sizes: '192x192' },
+      ];
     }
-  } else if (highResUrl.includes('ytimg.com')) {
-    highResUrl = highResUrl.replace(/\/(?:hq|mq|sd|default)\.jpg/, '/maxresdefault.jpg');
-  } else if (highResUrl.includes('sndcdn.com')) {
-    highResUrl = highResUrl.replace(/-(?:large|t\d+x\d+|badge|small|tiny)\.jpg/, '-t500x500.jpg');
+    return [];
   }
 
-  const mimeType = highResUrl.endsWith('.png') ? 'image/png' : 'image/jpeg';
+  let cleanUrl = url.trim();
+  if (!cleanUrl) return [];
+  if (cleanUrl.startsWith('//')) {
+    cleanUrl = 'https:' + cleanUrl;
+  }
+
+  // Ensure SoundCloud thumbnails use 500x500 high-res image if available
+  if (cleanUrl.includes('sndcdn.com')) {
+    cleanUrl = cleanUrl.replace(/-(?:large|badge|small|tiny)\.jpg/, '-t500x500.jpg');
+  }
 
   return [
-    { src: highResUrl, sizes: '512x512', type: mimeType },
-    { src: highResUrl, sizes: '384x384', type: mimeType },
-    { src: highResUrl, sizes: '256x256', type: mimeType },
-    { src: highResUrl, sizes: '192x192', type: mimeType },
-    { src: highResUrl, sizes: '128x128', type: mimeType },
-    { src: highResUrl, sizes: '96x96', type: mimeType },
+    { src: cleanUrl, sizes: '512x512' },
+    { src: cleanUrl, sizes: '384x384' },
+    { src: cleanUrl, sizes: '256x256' },
+    { src: cleanUrl, sizes: '192x192' },
+    { src: cleanUrl, sizes: '128x128' },
+    { src: cleanUrl, sizes: '96x96' },
   ];
 }
 

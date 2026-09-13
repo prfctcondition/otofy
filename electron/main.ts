@@ -19,6 +19,11 @@ import discordRpc from './services/discordRpcService.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+app.name = 'Otofy';
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.otofy.desktop');
+}
+
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
@@ -80,7 +85,7 @@ if (initialConfig.hardwareAcceleration === false) {
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
 // Enable native Windows System Media Transport Controls (SMTC) & hardware media keys
-app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling');
+app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling,MediaSessionService');
 
 // Register custom protocol for local audio streaming with Range support & Web Audio API graph
 protocol.registerSchemesAsPrivileged([
@@ -1235,23 +1240,8 @@ app.whenReady().then(() => {
     createTray();
   }
 
-  // Register global shortcuts (active even when minimized or hidden to tray)
-  try {
-    globalShortcut.register('MediaPlayPause', () => {
-      mainWindow?.webContents.send('player:toggle-play');
-      mainWindow?.webContents.send('media-key', 'play-pause');
-    });
-    globalShortcut.register('MediaNextTrack', () => {
-      mainWindow?.webContents.send('player:next');
-      mainWindow?.webContents.send('media-key', 'next');
-    });
-    globalShortcut.register('MediaPreviousTrack', () => {
-      mainWindow?.webContents.send('player:prev');
-      mainWindow?.webContents.send('media-key', 'prev');
-    });
-  } catch (err) {
-    console.warn('Failed to register global shortcuts:', err);
-  }
+  // Hardware media keys are natively handled by Chromium HardwareMediaKeyHandling and Windows SMTC.
+  // Registering globalShortcut for MediaPlayPause overrides and suppresses native Windows 11 SMTC overlay.
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
