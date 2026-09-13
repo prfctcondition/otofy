@@ -591,6 +591,9 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   const rafIdRef = useRef<number | null>(null);
   const lastMousePosRef = useRef<{ x: number; y: number } | null>(null);
 
+  const tracksRef = useRef<Track[]>(tracks);
+  tracksRef.current = tracks;
+
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const selectedTrackIdsRef = useRef<Set<string>>(new Set());
   selectedTrackIdsRef.current = selectedTrackIds;
@@ -875,16 +878,31 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
           return;
         }
         clearSelection();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.code === 'KeyA' || e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'ф')
+      ) {
         const activeEl = document.activeElement;
-        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        if (
+          activeEl &&
+          (activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            (activeEl as HTMLElement).isContentEditable)
+        ) {
+          return;
+        }
         e.preventDefault();
-        setSelectedTrackIds(new Set(tracks.map((t) => t.id)));
+        e.stopPropagation();
+        window.getSelection()?.removeAllRanges();
+        const currentTracks = tracksRef.current;
+        if (currentTracks && currentTracks.length > 0) {
+          setSelectedTrackIds(new Set(currentTracks.map((t) => t.id)));
+        }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tracks, clearSelection, stopAutoScrollLoop]);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [clearSelection, stopAutoScrollLoop]);
 
   const handleContainerClick = (e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey) return;
