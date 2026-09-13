@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Play,
   Pause,
@@ -576,12 +576,28 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   );
   const isReorderable = Boolean(isUserPlaylist(activePlaylist) && tracklistSortBy === 'custom' && !isLoading);
 
-  const [draggedTrackId, setDraggedTrackId] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const [draggedTrackIds, setDraggedTrackIds] = useState<Set<string>>(new Set());
   const [dragOverTrackId, setDragOverTrackId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null);
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [conflictTrack, setConflictTrack] = useState<Track | null>(null);
+
+  // Enable mouse wheel scrolling of playlist while dragging tracks
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (!isDraggingRef.current) return;
+      const scrollContainer = tableRef.current?.closest('.overflow-y-auto') as HTMLElement | null;
+      if (scrollContainer) {
+        scrollContainer.scrollTop += e.deltaY;
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
 
   useEffect(() => {
     if (tracks && tracks.length > 0) {
@@ -684,13 +700,62 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   const handleDragStart = (e: React.DragEvent, track: Track) => {
     if (!isReorderable) return;
-    setDraggedTrackId(track.id);
+
+    let idsToDrag: string[] = [];
+    if (selectedTrackIds.has(track.id)) {
+      idsToDrag = tracks.filter((t) => selectedTrackIds.has(t.id)).map((t) => t.id);
+    } else {
+      idsToDrag = [track.id];
+      setSelectedTrackIds(new Set([track.id]));
+      setLastSelectedId(track.id);
+    }
+
+    setDraggedTrackIds(new Set(idsToDrag));
+    isDraggingRef.current = true;
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', track.id);
+    e.dataTransfer.setData('text/plain', JSON.stringify(idsToDrag));
+
+    if (idsToDrag.length > 1) {
+      const ghost = document.createElement('div');
+      ghost.style.position = 'absolute';
+      ghost.style.top = '-9999px';
+      ghost.style.left = '-9999px';
+      ghost.style.padding = '6px 14px';
+      ghost.style.borderRadius = '9999px';
+      ghost.style.display = 'flex';
+      ghost.style.alignItems = 'center';
+      ghost.style.gap = '8px';
+      ghost.style.fontSize = '12px';
+      ghost.style.fontWeight = 'bold';
+      ghost.style.pointerEvents = 'none';
+      ghost.style.zIndex = '999999';
+
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        ghost.style.backgroundColor = '#000000';
+        ghost.style.color = '#FFFFFF';
+        ghost.style.border = '1px solid rgba(255, 255, 255, 0.25)';
+        ghost.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.9)';
+      } else {
+        ghost.style.backgroundColor = '#0F172A';
+        ghost.style.color = '#FFFFFF';
+        ghost.style.border = '1px solid rgba(15, 23, 42, 0.2)';
+        ghost.style.boxShadow = '0 10px 25px rgba(15, 23, 42, 0.35)';
+      }
+
+      ghost.textContent = `${track.title} • +${idsToDrag.length - 1}`;
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 15, 15);
+      setTimeout(() => {
+        if (document.body.contains(ghost)) {
+          document.body.removeChild(ghost);
+        }
+      }, 0);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, track: Track) => {
-    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) return;
+    if (!isReorderable || draggedTrackIds.size === 0 || draggedTrackIds.has(track.id)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 
@@ -716,10 +781,11 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   const handleDrop = (e: React.DragEvent, track: Track) => {
     e.preventDefault();
-    if (!isReorderable || !draggedTrackId || draggedTrackId === track.id) {
-      setDraggedTrackId(null);
+    if (!isReorderable || draggedTrackIds.size === 0 || draggedTrackIds.has(track.id)) {
+      setDraggedTrackIds(new Set());
       setDragOverTrackId(null);
       setDropPosition(null);
+      isDraggingRef.current = false;
       return;
     }
 
@@ -727,17 +793,20 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     const midY = rect.top + rect.height / 2;
     const pos: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
 
-    reorderCurrentPlaylistTracks(draggedTrackId, track.id, pos);
+    const orderedIds = tracks.filter((t) => draggedTrackIds.has(t.id)).map((t) => t.id);
+    reorderCurrentPlaylistTracks(orderedIds, track.id, pos);
 
-    setDraggedTrackId(null);
+    setDraggedTrackIds(new Set());
     setDragOverTrackId(null);
     setDropPosition(null);
+    isDraggingRef.current = false;
   };
 
   const handleDragEnd = () => {
-    setDraggedTrackId(null);
+    setDraggedTrackIds(new Set());
     setDragOverTrackId(null);
     setDropPosition(null);
+    isDraggingRef.current = false;
   };
 
   const handleDoubleClick = (track: Track) => {
@@ -771,6 +840,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
 
   return (
     <div
+      ref={tableRef}
       id="dense-track-table"
       onClick={handleContainerClick}
       className="w-full px-6 py-2 select-none"
@@ -829,7 +899,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
               isAlbumView={isAlbum}
               tracklistSortBy={tracklistSortBy}
               isReorderable={isReorderable}
-              isDragged={draggedTrackId === track.id}
+              isDragged={draggedTrackIds.has(track.id)}
               isDragOver={dragOverTrackId === track.id}
               dropPosition={dragOverTrackId === track.id ? dropPosition : null}
               onRowClick={handleRowClick}
