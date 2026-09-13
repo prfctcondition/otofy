@@ -1171,8 +1171,6 @@ export default function App() {
       <TopNavbar
         viewportMode={viewportMode}
         onToggleViewport={libraryStore.setViewportMode}
-        isRightPanelOpen={isLyricsModalOpen}
-        onToggleRightPanel={libraryStore.toggleLyricsModal}
         searchQuery={globalSearch}
         onSearchChange={libraryStore.setGlobalSearch}
         currentView={currentView}

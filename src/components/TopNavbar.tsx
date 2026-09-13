@@ -4,8 +4,7 @@ import {
   ChevronRight,
   Home,
   Search,
-  PanelRight,
-  PanelRightClose,
+  Languages,
   Cloud,
   X,
   Minus,
@@ -18,13 +17,13 @@ import { ViewportMode } from '../types';
 import { useSearchStore } from '../store/searchStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useThemeStore } from '../store/themeStore';
+import { useTranslation } from '../i18n';
+import { LanguageDropdown } from './LanguageDropdown';
 import { UserProfileDropdown } from './UserProfileDropdown';
 
 interface TopNavbarProps {
   viewportMode: ViewportMode;
   onToggleViewport: (mode: ViewportMode) => void;
-  isRightPanelOpen: boolean;
-  onToggleRightPanel: () => void;
   currentView: 'home' | 'playlist';
   onNavigateHome: () => void;
   onNavigateBack: () => void;
@@ -38,8 +37,6 @@ interface TopNavbarProps {
 export const TopNavbar: React.FC<TopNavbarProps> = ({
   viewportMode,
   onToggleViewport,
-  isRightPanelOpen,
-  onToggleRightPanel,
   currentView,
   onNavigateHome,
   onNavigateBack,
@@ -49,6 +46,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   searchQuery,
   onSearchChange,
 }) => {
+  const { t } = useTranslation();
   const searchStore = useSearchStore();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -56,6 +54,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('User');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false);
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState<boolean>(false);
 
   const isElectron = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
@@ -141,8 +140,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
                 : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
-            title="Go back"
-            aria-label="Back"
+            title={t.nav.back}
+            aria-label={t.nav.back}
           >
             <ChevronLeft size={20} />
           </button>
@@ -155,8 +154,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
                 : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
-            title="Go forward"
-            aria-label="Forward"
+            title={t.nav.forward}
+            aria-label={t.nav.forward}
           >
             <ChevronRight size={20} />
           </button>
@@ -170,8 +169,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
               : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
           }`}
-          title="Home"
-          aria-label="Home"
+          title={t.nav.home}
+          aria-label={t.nav.home}
         >
           <Home size={18} />
         </button>
@@ -186,7 +185,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             value={searchQuery}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
-            placeholder="What do you want to play?"
+            placeholder={t.nav.searchPlaceholder}
             className="w-full bg-transparent text-sm text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
           />
           {searchQuery && (
@@ -197,8 +196,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 searchStore.clearResults();
               }}
               className="p-1 rounded-full text-[#94A3B8] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
-              title="Clear search"
-              aria-label="Clear search"
+              title={t.nav.clearSearch}
+              aria-label={t.nav.clearSearch}
             >
               <X size={15} />
             </button>
@@ -212,7 +211,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           id="theme-toggle-btn"
           onClick={toggleTheme}
           className="relative inline-flex items-center justify-center gap-1 w-14 h-7 p-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 transition-all duration-200 cursor-pointer select-none"
-          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+          title={theme === 'dark' ? t.nav.themeLight : t.nav.themeDark}
           aria-label="Toggle Theme"
         >
           {/* Sliding indicator */}
@@ -244,34 +243,39 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           id="account-sync-btn"
           onClick={() => useLibraryStore.getState().toggleSyncModal()}
           className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-          title="Account Sync (YouTube Music / SoundCloud)"
-          aria-label="Account Sync"
+          title={t.nav.accountSync}
+          aria-label={t.nav.accountSync}
         >
           <Cloud size={18} />
         </button>
 
-        {viewportMode === 'desktop' && (
+        <div className="relative">
           <button
-            id="toggle-right-sidebar-btn"
-            onClick={onToggleRightPanel}
+            id="language-selector-btn"
+            onClick={() => setIsLanguageMenuOpen((v) => !v)}
             className={`p-2 rounded-full transition-colors cursor-pointer ${
-              isRightPanelOpen
+              isLanguageMenuOpen
                 ? 'text-[#0F172A] dark:text-white font-bold bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
                 : 'text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
             }`}
-            title={isRightPanelOpen ? 'Hide Now Playing panel' : 'Show Now Playing panel'}
-            aria-label="Toggle Now Playing"
+            title={t.nav.selectLanguage}
+            aria-label={t.nav.selectLanguage}
           >
-            {isRightPanelOpen ? <PanelRightClose size={18} /> : <PanelRight size={18} />}
+            <Languages size={18} />
           </button>
-        )}
+
+          <LanguageDropdown
+            isOpen={isLanguageMenuOpen}
+            onClose={() => setIsLanguageMenuOpen(false)}
+          />
+        </div>
 
         <div className="relative">
           <div
             id="user-profile-avatar-btn"
             onClick={() => setIsProfileMenuOpen((v) => !v)}
             className="w-8 h-8 rounded-full bg-gradient-to-tr from-neutral-300 via-neutral-100 to-neutral-400 dark:from-neutral-700 dark:via-neutral-400 dark:to-neutral-600 p-0.5 cursor-pointer hover:scale-105 transition-transform shadow-[0_1px_6px_rgba(0,0,0,0.15)] shrink-0 overflow-hidden"
-            title={`Profile (${userName})`}
+            title={`${t.nav.profile} (${userName})`}
           >
             {userAvatar ? (
               <img
@@ -303,8 +307,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               id="window-minimize-btn"
               onClick={handleMinimize}
               className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
-              title="Minimize"
-              aria-label="Minimize"
+              title={t.nav.minimize}
+              aria-label={t.nav.minimize}
             >
               <Minus size={15} />
             </button>
@@ -312,8 +316,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               id="window-maximize-btn"
               onClick={handleMaximize}
               className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
-              title={isMaximized ? 'Restore' : 'Maximize'}
-              aria-label={isMaximized ? 'Restore' : 'Maximize'}
+              title={isMaximized ? t.nav.restore : t.nav.maximize}
+              aria-label={isMaximized ? t.nav.restore : t.nav.maximize}
             >
               {isMaximized ? <Copy size={13} /> : <Square size={13} />}
             </button>
@@ -321,8 +325,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               id="window-close-btn"
               onClick={handleClose}
               className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-white hover:bg-rose-500 active:bg-rose-600 transition-colors"
-              title="Close"
-              aria-label="Close"
+              title={t.nav.close}
+              aria-label={t.nav.close}
             >
               <X size={15} />
             </button>

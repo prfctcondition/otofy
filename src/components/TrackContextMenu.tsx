@@ -22,6 +22,7 @@ import repo from '../db/repository';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 import { usePlayerStore, cleanTrackId } from '../store/playerStore';
 import { useToastStore } from '../store/toastStore';
+import { useTranslation } from '../i18n';
 
 const getTrackCanonicalUrl = (track: Track): string => {
   if (track.source === 'SC') {
@@ -100,6 +101,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   onToggleLike,
   onSelectArtist,
 }) => {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const [showPlaylistsSubmenu, setShowPlaylistsSubmenu] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -357,7 +359,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
         <Play size={15} className="text-[#0F172A] dark:text-white fill-[#0F172A] dark:fill-white" />
-        <span>{isMulti ? `Play selection (${activeTracks.length})` : 'Play now'}</span>
+        <span>{isMulti ? `${t.menu.playSelection} (${activeTracks.length})` : t.menu.playNow}</span>
       </button>
 
       {/* Start Radio (Single track only) */}
@@ -370,7 +372,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
           <Radio size={15} className="text-[#0F172A] dark:text-white" />
-          <span>Start Radio</span>
+          <span>{t.menu.startRadio}</span>
         </button>
       )}
 
@@ -399,10 +401,10 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         />
         <span>
           {isMulti
-            ? `Save ${activeTracks.length} tracks to Liked Songs`
+            ? `${t.menu.saveToLiked} (${activeTracks.length})`
             : track.isLiked || isCurrentLikedSongs
-            ? 'Remove from Liked Songs'
-            : 'Save to Liked Songs'}
+            ? t.menu.removeFromLiked
+            : t.menu.saveToLiked}
         </span>
       </button>
 
@@ -423,7 +425,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
         >
           <Trash2 size={15} />
-          <span>{isMulti ? `Remove ${activeTracks.length} tracks from this playlist` : 'Remove from this playlist'}</span>
+          <span>{isMulti ? `${t.menu.removeFromPlaylist} (${activeTracks.length})` : t.menu.removeFromPlaylist}</span>
         </button>
       )}
 
@@ -441,7 +443,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         >
           <div className="flex items-center gap-2.5">
             <Plus size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>{isMulti ? `Add ${activeTracks.length} tracks to playlist` : 'Add to playlist'}</span>
+            <span>{isMulti ? `${t.menu.addToPlaylist} (${activeTracks.length})` : t.menu.addToPlaylist}</span>
           </div>
           <ChevronRight size={14} className="text-[#94A3B8] dark:text-white/40" />
         </button>
@@ -454,7 +456,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             } w-52 py-1.5 rounded-2xl bg-white/95 dark:bg-black backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] max-h-56 overflow-y-auto z-50`}
           >
             <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-white/50">
-              Playlists
+              {t.menu.playlistsHeader}
             </div>
             {likedPlaylist && (
               <button
@@ -472,7 +474,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             )}
             {userPlaylists.length === 0 && !likedPlaylist ? (
               <div className="px-3 py-2 text-[11px] text-[#94A3B8] dark:text-white/50 italic">
-                No playlists yet
+                {t.menu.noPlaylistsYet}
               </div>
             ) : (
               userPlaylists.map((pl) => {
@@ -504,7 +506,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#0F172A] dark:text-white font-semibold cursor-pointer"
       >
         <FolderPlus size={15} className="text-[#0F172A] dark:text-white" />
-        <span>{isMulti ? `Create playlist with ${activeTracks.length} tracks` : 'Create playlist with this track'}</span>
+        <span>{isMulti ? `${t.menu.createPlaylistWithSelection} (${activeTracks.length})` : t.menu.createPlaylistWithTrack}</span>
       </button>
 
       <div className="h-px bg-black/[0.06] dark:bg-white/10 my-1" />
@@ -522,7 +524,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
           <Download size={15} className="text-[#64748B] dark:text-white/70" />
-          <span>Download {activeTracks.length} tracks (MP3 320 kbps)</span>
+          <span>{t.menu.downloadSelection} ({activeTracks.length})</span>
         </button>
       ) : dlStatus.status === 'completed' ? (
         <>
@@ -535,7 +537,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <Check size={15} />
-              <span>Show downloaded file</span>
+              <span>{t.menu.showDownloadedFile}</span>
             </div>
           </button>
           <button
@@ -546,7 +548,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
           >
             <Trash2 size={15} />
-            <span>Remove from downloads</span>
+            <span>{t.menu.removeFromDownloads}</span>
           </button>
         </>
       ) : dlStatus.status === 'downloading' ? (
@@ -565,7 +567,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-amber-500 transition-colors text-left cursor-pointer"
           >
             <Pause size={14} />
-            <span>Pause download</span>
+            <span>{t.menu.pauseDownload}</span>
           </button>
           <button
             onClick={() => {
@@ -575,7 +577,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
           >
             <X size={14} />
-            <span>Cancel download</span>
+            <span>{t.menu.cancelDownload}</span>
           </button>
         </>
       ) : dlStatus.status === 'queued' ? (
@@ -583,7 +585,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           <div className="w-full flex items-center justify-between px-3 py-2 text-[#64748B] dark:text-white/70 font-semibold text-[11px]">
             <div className="flex items-center gap-2">
               <Clock size={14} className="animate-pulse shrink-0" />
-              <span>In download queue</span>
+              <span>{t.menu.downloadQueue}</span>
             </div>
           </div>
           <button
@@ -594,7 +596,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-amber-500 transition-colors text-left cursor-pointer"
           >
             <Pause size={14} />
-            <span>Pause download</span>
+            <span>{t.menu.pauseDownload}</span>
           </button>
           <button
             onClick={() => {
@@ -604,7 +606,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
           >
             <X size={14} />
-            <span>Cancel download</span>
+            <span>{t.menu.cancelDownload}</span>
           </button>
         </>
       ) : dlStatus.status === 'paused' ? (
@@ -623,7 +625,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-[#0F172A] dark:text-white font-medium transition-colors text-left cursor-pointer"
           >
             <Play size={14} fill="currentColor" />
-            <span>Resume download</span>
+            <span>{t.menu.resumeDownload}</span>
           </button>
           <button
             onClick={() => {
@@ -633,7 +635,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
           >
             <X size={14} />
-            <span>Cancel download</span>
+            <span>{t.menu.cancelDownload}</span>
           </button>
         </>
       ) : (
@@ -645,7 +647,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
           <Download size={15} className="text-[#64748B] dark:text-white/70" />
-          <span>Download MP3 (320 kbps)</span>
+          <span>{t.menu.downloadMp3}</span>
         </button>
       )}
 
@@ -666,7 +668,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
           >
             <User size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>View artist ({track.artist})</span>
+            <span>{t.menu.viewArtist} ({track.artist})</span>
           </button>
         )}
 
@@ -687,7 +689,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
           <ExternalLink size={15} className="text-[#64748B] dark:text-white/70" />
-          <span>Open link in browser</span>
+          <span>{t.menu.openInBrowser}</span>
         </button>
       )}
 
@@ -700,12 +702,12 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           {copied ? (
             <>
               <Check size={15} className="text-[#0F172A] dark:text-white" />
-              <span className="text-[#0F172A] dark:text-white font-bold">Copied to clipboard!</span>
+              <span className="text-[#0F172A] dark:text-white font-bold">{t.menu.copied}</span>
             </>
           ) : (
             <>
               <Share2 size={15} className="text-[#64748B] dark:text-white/70" />
-              <span>Copy track details</span>
+              <span>{t.menu.copyDetails}</span>
             </>
           )}
         </button>

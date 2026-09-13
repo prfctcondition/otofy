@@ -4,6 +4,17 @@ import audioEngine from '../audio/AudioEngine';
 
 export type StreamingQuality = 'low' | 'normal' | 'high';
 export type AutoLaunchMode = 'no' | 'yes' | 'minimized';
+export type SupportedLanguage = 'en' | 'ru' | 'es' | 'zh' | 'fr' | 'ja' | 'de' | 'pt';
+
+function getInitialLanguage(): SupportedLanguage {
+  if (typeof navigator !== 'undefined' && navigator.language) {
+    const code = navigator.language.toLowerCase().slice(0, 2);
+    if (['ru', 'es', 'zh', 'fr', 'ja', 'de', 'pt'].includes(code)) {
+      return code as SupportedLanguage;
+    }
+  }
+  return 'en';
+}
 
 export interface SettingsState {
   // 1. Autoplay
@@ -30,6 +41,9 @@ export interface SettingsState {
   // 6. System / Performance
   hardwareAcceleration: boolean;
 
+  // 7. Localization
+  language: SupportedLanguage;
+
   // Actions
   setAutoplay: (autoplay: boolean) => void;
   setStreamingQuality: (streamingQuality: StreamingQuality) => void;
@@ -43,6 +57,7 @@ export interface SettingsState {
   setCloseToTray: (closeToTray: boolean) => Promise<void>;
   setDownloadsPath: (downloadsPath: string) => void;
   setHardwareAcceleration: (hardwareAcceleration: boolean) => Promise<void>;
+  setLanguage: (language: SupportedLanguage) => void;
   initFromSystem: () => Promise<void>;
 }
 
@@ -61,6 +76,9 @@ export const useSettingsStore = create<SettingsState>()(
       closeToTray: false,
       downloadsPath: '',
       hardwareAcceleration: true,
+      language: getInitialLanguage(),
+
+      setLanguage: (language) => set({ language }),
 
       setAutoplay: (autoplay) => set({ autoplay }),
 

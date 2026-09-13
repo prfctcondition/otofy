@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Settings, Sliders, LogOut, ShieldCheck } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 interface UserProfileDropdownProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   userName,
   userAvatar,
 }) => {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           <div className="flex items-center gap-1 mt-0.5">
             <ShieldCheck size={11} className="text-[#0F172A] dark:text-white shrink-0" />
             <span className="text-[10px] text-[#64748B] dark:text-white/60 font-medium truncate">
-              Otofy Desktop
+              {t.profile.otofyDesktop}
             </span>
           </div>
         </div>
@@ -102,7 +104,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
         >
           <Settings size={15} className="text-[#64748B] dark:text-white/70" />
-          <span>Settings</span>
+          <span>{t.profile.settings}</span>
         </button>
 
         {onOpenEqualizer && (
@@ -115,7 +117,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
           >
             <Sliders size={15} className="text-[#64748B] dark:text-white/70" />
-            <span>Equalizer</span>
+            <span>{t.profile.equalizer}</span>
           </button>
         )}
       </div>
@@ -130,7 +132,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
         >
           <LogOut size={15} className="text-red-500 dark:text-rose-400" />
-          <span>Quit Otofy</span>
+          <span>{t.profile.quit}</span>
         </button>
       </div>
     </div>

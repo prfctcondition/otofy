@@ -20,6 +20,7 @@ import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
 import { fuzzyMatch } from '../utils/fuzzySearch';
+import { useTranslation } from '../i18n';
 
 interface LeftLibraryDockProps {
   playlists: Playlist[];
@@ -82,6 +83,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   onSelectArtist,
   onSelectAlbum,
 }) => {
+  const { t } = useTranslation();
   const [filterTag, setFilterTag] = useState<'all' | 'playlists' | 'artists' | 'albums'>('all');
   const [searchFilter, setSearchFilter] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -125,11 +127,11 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
     if (dlIdx === -1) {
       list.push({
         id: 'pl-downloads',
-        title: 'Downloads',
+        title: t.library.downloads,
         type: 'Playlist',
         creator: 'System',
         songCount: downloadedCount,
-        duration: `${downloadedCount} tracks`,
+        duration: `${downloadedCount} ${t.library.tracksCount}`,
         isPinned: true,
         iconName: 'download',
         gradientFrom: '#10B981',
@@ -139,19 +141,20 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
     } else {
       list[dlIdx] = {
         ...list[dlIdx],
+        title: t.library.downloads,
         songCount: downloadedCount,
-        duration: `${downloadedCount} tracks`,
+        duration: `${downloadedCount} ${t.library.tracksCount}`,
       };
     }
 
     if (!isOnline && !list.some((p) => p.id === 'pl-cached')) {
       list.push({
         id: 'pl-cached',
-        title: 'Cached Songs',
+        title: t.library.cachedSongs,
         type: 'Playlist',
         creator: 'System',
         songCount: cachedTracks.length,
-        duration: `${cachedTracks.length} tracks`,
+        duration: `${cachedTracks.length} ${t.library.tracksCount}`,
         isPinned: true,
         iconName: 'music',
         gradientFrom: '#06B6D4',
@@ -160,7 +163,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
       });
     }
     return list;
-  }, [playlists, isOnline, cachedTracks.length, downloadedCount]);
+  }, [playlists, isOnline, cachedTracks.length, downloadedCount, t]);
 
   const unifiedItems: LibraryItem[] = React.useMemo(() => {
     const items: LibraryItem[] = [];
@@ -295,14 +298,14 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
             className={`flex items-center ${
               isCollapsed ? 'justify-center w-11 h-11 p-0' : 'gap-3'
             } text-[#0F172A] dark:text-white hover:opacity-80 transition-opacity group`}
-            title={isCollapsed ? 'Expand library dock' : 'Collapse library dock'}
+            title={isCollapsed ? t.library.expand : t.library.collapse}
           >
             <div className="p-1.5 rounded-lg group-hover:bg-white/50 dark:group-hover:bg-white/10 transition-colors flex items-center justify-center">
               <Library size={20} className="text-[#0F172A] dark:text-white group-hover:scale-105 transition-transform" />
             </div>
             {!isCollapsed && (
               <span className="font-bold text-sm tracking-tight text-[#0F172A] dark:text-white">
-                Your Library
+                {t.library.title}
               </span>
             )}
           </button>
@@ -313,8 +316,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 id="import-playlist-btn"
                 onClick={onImportCode}
                 className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white transition-colors"
-                title="Import playlist code"
-                aria-label="Import code"
+                title={t.library.importCode}
+                aria-label={t.library.importCode}
               >
                 <Download size={17} />
               </button>
@@ -322,8 +325,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 id="create-playlist-btn"
                 onClick={onCreatePlaylist}
                 className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white transition-colors"
-                title="Create playlist"
-                aria-label="Create playlist"
+                title={t.library.createPlaylist}
+                aria-label={t.library.createPlaylist}
               >
                 <Plus size={18} />
               </button>
@@ -331,8 +334,8 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 id="collapse-arrow-btn"
                 onClick={onToggleCollapse}
                 className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white transition-colors"
-                title="Collapse Your Library"
-                aria-label="Collapse"
+                title={t.library.collapse}
+                aria-label={t.library.collapse}
               >
                 <ArrowLeft size={16} />
               </button>
@@ -352,7 +355,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                Playlists
+                {t.library.playlists}
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'artists' ? 'all' : 'artists')}
@@ -362,7 +365,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                Artists
+                {t.library.artists}
               </button>
               <button
                 onClick={() => setFilterTag(filterTag === 'albums' ? 'all' : 'albums')}
@@ -372,7 +375,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     : 'bg-white/65 dark:bg-white/[0.08] hover:bg-white/85 dark:hover:bg-white/[0.14] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-white/95 dark:border-white/10 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
-                Albums
+                {t.library.albums}
               </button>
             </div>
 
@@ -384,7 +387,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    placeholder="Search in Your Library"
+                    placeholder={t.library.searchPlaceholder}
                     className="w-full bg-transparent text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
                     autoFocus
                     onBlur={() => {
@@ -396,7 +399,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 <button
                   onClick={() => setIsSearchActive(true)}
                   className="p-1 rounded-full hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                  title="Search in Your Library"
+                  title={t.library.searchPlaceholder}
                 >
                   <Search size={15} />
                 </button>
@@ -410,10 +413,10 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   >
                     <span>
                       {librarySortBy === 'alphabetical'
-                        ? 'Alphabetical'
+                        ? t.library.alphabetical
                         : librarySortBy === 'recentlyAdded'
-                        ? 'Recently Added'
-                        : 'Recents'}
+                        ? t.library.recentlyAdded
+                        : t.library.recents}
                     </span>
                     <ListFilter size={13} />
                   </button>
@@ -421,7 +424,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                   {isSortMenuOpen && (
                     <div className="absolute right-0 top-full mt-1 w-44 rounded-xl bg-white dark:bg-neutral-900 border border-slate-200/90 dark:border-neutral-700 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                       <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white/40">
-                        Sort by
+                        {t.library.sortBy}
                       </div>
                       <button
                         onClick={() => {
@@ -434,7 +437,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                             : 'text-slate-600 dark:text-white/70 hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
                         }`}
                       >
-                        <span>Recents</span>
+                        <span>{t.library.recents}</span>
                         {librarySortBy === 'recents' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                       <button
@@ -448,7 +451,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                             : 'text-slate-600 dark:text-white/70 hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
                         }`}
                       >
-                        <span>Recently Added</span>
+                        <span>{t.library.recentlyAdded}</span>
                         {librarySortBy === 'recentlyAdded' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                       <button
@@ -462,7 +465,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                             : 'text-slate-600 dark:text-white/70 hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
                         }`}
                       >
-                        <span>Alphabetical</span>
+                        <span>{t.library.alphabetical}</span>
                         {librarySortBy === 'alphabetical' && <Check size={13} className="text-[#0F172A] dark:text-white" />}
                       </button>
                     </div>

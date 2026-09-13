@@ -21,6 +21,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
+import { useTranslation } from '../i18n';
 
 interface DenseTrackTableProps {
   tracks: Track[];
@@ -236,6 +237,7 @@ const TrackRow = React.memo<TrackRowProps>(({
   onOpenConflictModal,
   onRowMouseDown,
 }) => {
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
   const startDownload = useDownloadStore((s) => s.startDownload);
@@ -291,7 +293,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               }
             }}
             className="w-7 h-7 rounded-full flex items-center justify-center text-[#0F172A] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-            title={isCurrent && isPlaying ? 'Pause' : 'Play'}
+            title={isCurrent && isPlaying ? t.player.pause : t.player.play}
           >
             {isCurrent && isPlaying ? (
               <Pause size={14} fill="currentColor" />
@@ -404,7 +406,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               ? 'text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
               : 'opacity-0'
           }`}
-          title={track.isLiked ? 'Remove from Liked' : 'Save to Liked Songs'}
+          title={track.isLiked ? t.player.unlike : t.player.like}
         >
           <Heart
             size={15}
@@ -543,6 +545,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   onSelectArtist,
   onSelectAlbum,
 }) => {
+  const { t } = useTranslation();
   const selectedPlaylistId = useLibraryStore((s) => s.selectedPlaylistId);
   const viewingPlaylist = useLibraryStore((s) => s.viewingPlaylist);
   const playlists = useLibraryStore((s) => s.playlists);
@@ -1016,19 +1019,19 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     >
       <div className="grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.08] text-[11px] font-bold text-[#94A3B8] dark:text-white/70 uppercase tracking-wider">
         <div className="w-9 shrink-0 flex items-center justify-center">
-          {hideTrackNumber ? '' : '#'}
+          {hideTrackNumber ? '' : (t.table.trackNumber || '#')}
         </div>
-        <div className="min-w-0 flex items-center">Title</div>
-        <div className="hidden md:flex items-center min-w-0">Album</div>
+        <div className="min-w-0 flex items-center">{t.table.title}</div>
+        <div className="hidden md:flex items-center min-w-0">{t.table.album}</div>
         <div className="hidden lg:flex items-center min-w-0">
           {tracklistSortBy === 'popularity'
-            ? 'Popularity'
+            ? t.table.popularity
             : (isArtist || isAlbum)
-            ? 'Year'
-            : 'Date Added'}
+            ? t.table.year
+            : t.table.dateAdded}
         </div>
         <div className="flex items-center justify-end pr-1 text-right">
-          <span className="w-9 flex justify-end mr-6" title="Duration">
+          <span className="w-9 flex justify-end mr-6" title={t.table.duration}>
             <Clock size={14} />
           </span>
         </div>
