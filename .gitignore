@@ -11,3 +11,4 @@ dist-builder/
 .env
 .env.local
 metadata.json
+otofy-mobile/

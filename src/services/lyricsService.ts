@@ -18,30 +18,62 @@ export interface LyricsResult {
 // In-memory cache for fast repeated lookups
 const lyricsCache = new Map<string, LyricsResult | null>();
 
-/**
- * Clean track title by removing noise like (Official Video), [HQ], etc.
- */
-export function cleanTitle(title: string): string {
-  if (!title) return '';
-  return title
-    .replace(/\[[^\]]*\]/g, '') // remove [Official Video], [HD], etc.
-    .replace(
-      /\((official|music\s*video|audio|lyrics|slowed|reverb|remix|hd|4k|prod\.|feat\.|ft\.)[^)]*\)/gi,
-      ''
-    )
-    .replace(/\s+/g, ' ')
-    .trim();
+// Clean track artist by removing noise like Topic, VEVO, Official, etc.
+export function cleanArtist(artist: string): string {
+  if (!artist) return '';
+  let cleaned = artist.trim();
+  cleaned = cleaned.replace(/\s{0,}[-–—]?\s{0,}Topic$/i, '');
+  cleaned = cleaned.replace(/[-_\s]{0,}VEVO$/i, '');
+  cleaned = cleaned.replace(/\s{0,}[-–—]?\s{0,}Official(\s{1,}Channel)?$/i, '');
+  cleaned = cleaned.replace(/\s{1,}(feat\.?|ft\.?|featuring)\s{1,}.+$/i, '');
+  return cleaned.replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Smart extraction of artist and title, handling "Artist - Title" strings
- * and filtering out placeholder artist names like "Song" or "Video".
- */
+// Clean track title by removing noise like (Official Music Video), [4K Upgrade], ft., etc.
+export function cleanTitle(title: string): string {
+  if (!title) return '';
+  let cleaned = title;
+
+  // 1. Remove bracketed noise: [4K Upgrade], [Official Video], [HD], etc.
+  cleaned = cleaned.replace(/\[[^\]]{0,}\]/g, ' ');
+
+  // 2. Remove parenthesized video and audio noise
+  cleaned = cleaned.replace(
+    /\(\s{0,}(official(\s{1,}music)?\s{1,}video|official\s{1,}audio|music\s{1,}video|audio|lyrics?(\s{1,}video)?|visualizer|clip(\s{1,}official)?|4k(\s{1,}upgrade)?|hd|hq|uhd|remaster(ed)?|prod\.[^)]{0,})\s{0,}\)/gi,
+    ' '
+  );
+
+  // 3. Remove parenthesized featuring: (feat. ...), (ft. ...), (featuring ...)
+  cleaned = cleaned.replace(
+    /\(\s{0,}(feat\.?|ft\.?|featuring)\s{1,}[^)]{0,}\)/gi,
+    ' '
+  );
+
+  // 4. Remove unbracketed featuring at the end: ft. Artist, feat. Artist, featuring Artist
+  cleaned = cleaned.replace(
+    /\s{1,}(feat\.?|ft\.?|featuring)\s{1,}[^–—\-|/]{1,}/gi,
+    ' '
+  );
+
+  // 5. Remove trailing noise phrases: 4K Upgrade, Official Music Video, Official Video, Official Audio
+  cleaned = cleaned.replace(
+    /\s{0,}[-–—|/]?\s{0,}(4k\s{1,}upgrade|official\s{1,}music\s{1,}video|official\s{1,}video|official\s{1,}audio|music\s{1,}video|video\s{1,}clip)\s{0,}$/gi,
+    ''
+  );
+
+  // 6. Remove Topic and Vevo suffixes from title if present
+  cleaned = cleaned.replace(/\s{0,}[-–—|/]?\s{0,}(Topic|Vevo)\b/gi, '');
+
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
+
+// Smart extraction of artist and title, handling "Artist - Title" strings
+// and filtering out placeholder artist names like "Song" or "Video".
 export function extractArtistAndTitle(
   rawTitle: string,
   rawArtist: string
 ): { title: string; artist: string } {
-  let artist = (rawArtist || '').trim();
+  let artist = cleanArtist(rawArtist || '');
   let title = cleanTitle(rawTitle || '');
 
   const invalidArtists = [
@@ -54,6 +86,10 @@ export function extractArtistAndTitle(
     'various artists',
     'track',
     'audio',
+    'undefined',
+    'null',
+    'topic',
+    'vevo',
   ];
 
   if (invalidArtists.includes(artist.toLowerCase())) {
@@ -61,17 +97,33 @@ export function extractArtistAndTitle(
   }
 
   // If title has "Artist - Song Title", split them
-  if (title.includes(' - ')) {
-    const parts = title.split(' - ');
-    if (parts.length >= 2) {
-      if (!artist) {
-        artist = parts[0].trim();
+  const separators = [' - ', ' – ', ' — '];
+  for (const sep of separators) {
+    if (title.includes(sep)) {
+      const parts = title.split(sep);
+      if (parts.length >= 2) {
+        if (!artist) {
+          artist = cleanArtist(parts[0]);
+        }
+        title = cleanTitle(parts.slice(1).join(sep));
+        break;
       }
-      title = parts.slice(1).join(' - ').trim();
     }
   }
 
-  return { title, artist };
+  // If artist is known and title starts with "Artist - ", strip it
+  if (artist) {
+    const lowerArtist = artist.toLowerCase();
+    for (const sep of separators) {
+      const prefix = `${lowerArtist}${sep.toLowerCase()}`;
+      if (title.toLowerCase().startsWith(prefix)) {
+        title = title.slice(prefix.length).trim();
+        break;
+      }
+    }
+  }
+
+  return { title: cleanTitle(title), artist: cleanArtist(artist) };
 }
 
 /**
@@ -131,9 +183,9 @@ export function isCandidateMatch(
       .trim();
 
   const tT = norm(cleanTitle(targetTitle));
-  const tA = norm(targetArtist);
+  const tA = norm(cleanArtist(targetArtist));
   const cT = norm(cleanTitle(candTitle));
-  const cA = norm(candArtist);
+  const cA = norm(cleanArtist(candArtist));
 
   if (!tT || !cT) return false;
 
@@ -178,9 +230,7 @@ export async function searchLyricsCandidates(query: string): Promise<LyricsResul
   return [];
 }
 
-/**
- * Fetch lyrics from LRCLIB API with smart fallback search and YouTube Music fallback
- */
+// Fetch lyrics from LRCLIB API with smart fallback search and YouTube Music fallback
 export async function getTrackLyrics(
   title: string,
   artist: string,
@@ -197,13 +247,28 @@ export async function getTrackLyrics(
   try {
     // 1. Try exact match endpoint on LRCLIB if we have artist
     if (resolvedArtist) {
+      if (durationSec && durationSec > 0) {
+        const getParamsWithDur = new URLSearchParams({
+          track_name: resolvedTitle,
+          artist_name: resolvedArtist,
+          duration: Math.round(durationSec).toString(),
+        });
+        try {
+          const res = await fetch(`https://lrclib.net/api/get?${getParamsWithDur.toString()}`);
+          if (res.ok) {
+            const data = await res.json();
+            const result = parseCandidate(data);
+            lyricsCache.set(cacheKey, result);
+            return result;
+          }
+        } catch {}
+      }
+
+      // Fallback exact match without duration constraint
       const getParams = new URLSearchParams({
         track_name: resolvedTitle,
         artist_name: resolvedArtist,
       });
-      if (durationSec && durationSec > 0) {
-        getParams.set('duration', Math.round(durationSec).toString());
-      }
 
       try {
         const res = await fetch(`https://lrclib.net/api/get?${getParams.toString()}`);
