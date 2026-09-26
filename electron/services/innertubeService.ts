@@ -1,6 +1,7 @@
 import { Innertube } from 'youtubei.js';
 import { cleanArtistAndTitle } from './trackParser.js';
 import authService from './authService.js';
+import { electronFetch } from './networkService.js';
 
 function extractInnertubeArtist(item: any): string {
   if (Array.isArray(item.artists) && item.artists.length > 0) {
@@ -146,6 +147,7 @@ export async function getInnertube(): Promise<Innertube> {
     try {
       const cookie = authService.getYoutubeCookie();
       const yt = await Innertube.create({
+        fetch: electronFetch,
         ...(cookie ? { cookie } : {}),
       });
       innertubeInstance = yt;

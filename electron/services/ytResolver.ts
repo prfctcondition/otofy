@@ -1,6 +1,7 @@
 import { Innertube, ClientType } from 'youtubei.js';
 import scResolver from './scResolver.js';
 import { cleanArtistAndTitle } from './trackParser.js';
+import { electronFetch } from './networkService.js';
 
 export interface ResolveResult {
   url: string;
@@ -46,6 +47,7 @@ export async function getVisionClient(): Promise<Innertube> {
   if (!visionClientPromise) {
     visionClientPromise = Innertube.create({
       client_type: ClientType.VISIONOS,
+      fetch: electronFetch,
     }).catch((err) => {
       visionClientPromise = null;
       throw err;
@@ -58,6 +60,7 @@ export async function getVrClient(): Promise<Innertube> {
   if (!vrClientPromise) {
     vrClientPromise = Innertube.create({
       client_type: ClientType.ANDROID_VR,
+      fetch: electronFetch,
     }).catch((err) => {
       vrClientPromise = null;
       throw err;
@@ -70,6 +73,7 @@ export async function getIosClient(): Promise<Innertube> {
   if (!iosClientPromise) {
     iosClientPromise = Innertube.create({
       client_type: ClientType.IOS,
+      fetch: electronFetch,
     }).catch((err) => {
       iosClientPromise = null;
       throw err;
@@ -82,6 +86,7 @@ export async function getTvClient(): Promise<Innertube> {
   if (!tvClientPromise) {
     tvClientPromise = Innertube.create({
       client_type: ClientType.TV,
+      fetch: electronFetch,
     }).catch((err) => {
       tvClientPromise = null;
       throw err;

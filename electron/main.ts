@@ -1,9 +1,14 @@
 import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import dns from 'dns';
 import { Readable } from 'stream';
 import { exec } from 'child_process';
 import { fileURLToPath, pathToFileURL } from 'url';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {}
 import ytResolver from './services/ytResolver.js';
 import scResolver from './services/scResolver.js';
 import searchService from './services/searchService.js';
@@ -1190,6 +1195,10 @@ ipcMain.handle('app:get-user-profile', async () => {
 });
 
 app.whenReady().then(() => {
+  session.defaultSession.setProxy({ mode: 'system' }).catch((err) => {
+    console.warn('[main] Failed to set system proxy mode:', err);
+  });
+
   // Normalize request headers strictly for audio CDNs (strip file:// origin, attach standard desktop browser headers)
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const requestHeaders = { ...details.requestHeaders };

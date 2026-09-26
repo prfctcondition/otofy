@@ -20,9 +20,13 @@ import {
   RefreshCw,
   Cloud,
   User,
+  Globe,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
 import { useLibraryStore } from '../store/libraryStore';
+import { useThemeStore } from '../store/themeStore';
 import useToastStore from '../store/toastStore';
 import { useTranslation } from '../i18n';
 import { invalidateWaveCache } from '../services/waveService';
@@ -34,8 +38,9 @@ interface AudioDeviceOption {
 }
 
 export const SettingsScreen: React.FC = () => {
-  const { t, language } = useTranslation();
+  const { t, language, setLanguage, supportedLanguages } = useTranslation();
   const settings = useSettingsStore();
+  const { theme, setTheme } = useThemeStore();
   const navigateBack = useLibraryStore((s) => s.navigateBack);
 
   const [cacheSize, setCacheSize] = useState<string>('Calculating...');
@@ -64,7 +69,7 @@ export const SettingsScreen: React.FC = () => {
               deviceId: d.deviceId,
               label: d.label || `Speaker / Headphone ${index + 1}`,
             }));
-          setAudioDevices(outputs.length > 0 ? outputs : [{ deviceId: 'default', label: 'Default System Output' }]);
+          setAudioDevices(outputs.length > 0 ? outputs : [{ deviceId: 'default', label: t.settings?.playback?.defaultDevice || 'Default System Output' }]);
         }
       } catch (err) {
         console.warn('Failed to enumerate audio devices:', err);
@@ -87,7 +92,7 @@ export const SettingsScreen: React.FC = () => {
         if (ver) setAppVersion(ver);
       }).catch(() => {});
     }
-  }, []);
+  }, [t.settings?.playback?.defaultDevice]);
 
   const handleClearCache = async () => {
     setIsClearingCache(true);
@@ -96,7 +101,10 @@ export const SettingsScreen: React.FC = () => {
         await window.electronAPI.clearCache();
       }
       setCacheSize('0 MB');
-      useToastStore.getState().success('Cache Cleared', 'Temporary files and network cache have been removed.');
+      useToastStore.getState().success(
+        t.settings?.storage?.cacheClearedToast || 'Cache Cleared',
+        t.settings?.storage?.cacheClearedToastDesc || 'Temporary files and network cache have been removed.'
+      );
     } catch (err: any) {
       useToastStore.getState().error('Error', err?.message || 'Failed to clear cache.');
     } finally {
@@ -109,7 +117,10 @@ export const SettingsScreen: React.FC = () => {
       const selected = await window.electronAPI.selectDownloadsFolder();
       if (selected) {
         settings.setDownloadsPath(selected);
-        useToastStore.getState().success('Downloads Folder Updated', selected);
+        useToastStore.getState().success(
+          t.settings?.storage?.folderUpdatedToast || 'Downloads Folder Updated',
+          selected
+        );
       }
     }
   };
@@ -143,7 +154,10 @@ export const SettingsScreen: React.FC = () => {
         if (res.hasUpdate) {
           useLibraryStore.getState().openUpdateModal(res);
         } else {
-          useToastStore.getState().success('Up to Date', `You are running the latest version of Otofy (${res.currentVersion}).`);
+          useToastStore.getState().success(
+            t.settings?.updates?.upToDateToast || 'Up to Date',
+            (t.settings?.updates?.upToDateToastDesc || 'You are running the latest version of Otofy ({version}).').replace('{version}', res.currentVersion)
+          );
         }
       } else {
         setUpdateInfo({
@@ -151,7 +165,7 @@ export const SettingsScreen: React.FC = () => {
           canAutoInstall: false,
           currentVersion: `${appVersion} (Web)`,
           latestVersion: appVersion,
-          releaseNotes: 'Running in browser preview mode.',
+          releaseNotes: t.settings?.updates?.browserPreviewNotes || 'Running in browser preview mode.',
         });
       }
     } catch (err: any) {
@@ -190,37 +204,112 @@ export const SettingsScreen: React.FC = () => {
       id="settings-screen"
       className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 select-none text-[#0F172A] dark:text-white"
     >
-      {/* Top Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
           id="settings-back-btn"
           onClick={navigateBack}
           className="p-2.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-          title="Go back"
+          title={t.settings?.backBtnTitle || 'Go back'}
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight drop-shadow-xs">Settings</h1>
+          <h1 className="text-3xl lg:text-4xl font-black tracking-tight drop-shadow-xs">
+            {t.settings?.headerTitle || 'Settings'}
+          </h1>
           <p className="text-xs text-[#64748B] dark:text-white/60 font-medium mt-1">
-            Configure playback, audio engine, startup behavior, and local storage.
+            {t.settings?.headerSubtitle || 'Configure playback, audio engine, startup behavior, and local storage.'}
           </p>
         </div>
       </div>
 
       <div className="max-w-4xl space-y-8 pb-16">
-        {/* SECTION 0: Account & Cloud Sync */}
+        <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-4">
+            <Globe size={18} className="text-[#0F172A] dark:text-white" />
+            <h2 className="text-base font-bold">
+              {t.settings?.appearance?.sectionTitle || 'Appearance & Language'}
+            </h2>
+          </div>
+
+          <div className="space-y-4 divide-y divide-black/5 dark:divide-white/10">
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.appearance?.languageTitle || 'Interface Language'}
+                </span>
+                <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                  {t.settings?.appearance?.languageDesc || 'Choose your preferred language for all interface elements and tooltips.'}
+                </p>
+              </div>
+              <select
+                id="select-interface-language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
+              >
+                {supportedLanguages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.nativeName} ({lang.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 pt-4">
+              <div className="max-w-xl">
+                <span className="text-sm font-semibold block">
+                  {t.settings?.appearance?.themeTitle || 'Visual Theme'}
+                </span>
+                <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                  {t.settings?.appearance?.themeDesc || 'Crystal liquid glass light theme or deep obsidian OLED dark theme.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 bg-black/5 dark:bg-white/10 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-white text-black shadow-xs'
+                      : 'text-slate-600 dark:text-white/60 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <Sun size={13} className={theme === 'light' ? 'text-amber-500' : ''} />
+                  <span>{t.settings?.appearance?.themeLight || 'Light Theme'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-[#181820] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-white/60 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <Moon size={13} className={theme === 'dark' ? 'text-sky-400' : ''} />
+                  <span>{t.settings?.appearance?.themeDark || 'Dark Theme'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Cloud size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Account & Cloud Sync</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.cloud?.sectionTitle || 'Account & Cloud Sync'}
+            </h2>
           </div>
 
           <div className="flex items-center justify-between gap-4 py-3">
             <div className="max-w-xl">
-              <span className="text-sm font-semibold block">Connected services & library synchronization</span>
+              <span className="text-sm font-semibold block">
+                {t.settings?.cloud?.rowTitle || 'Connected services & library synchronization'}
+              </span>
               <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                Connect your YouTube Music or SoundCloud accounts to seamlessly sync personal playlists, liked songs, and lift network rate limits.
+                {t.settings?.cloud?.rowDesc || 'Connect your YouTube Music or SoundCloud accounts to seamlessly sync personal playlists, liked songs, and lift network rate limits.'}
               </p>
             </div>
             <button
@@ -228,7 +317,7 @@ export const SettingsScreen: React.FC = () => {
               className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
             >
               <Cloud size={14} />
-              <span>Manage Accounts</span>
+              <span>{t.settings?.cloud?.manageBtn || 'Manage Accounts'}</span>
             </button>
           </div>
         </section>
@@ -311,19 +400,21 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 1: Autoplay */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Radio size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Autoplay</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.autoplay?.sectionTitle || 'Autoplay'}
+            </h2>
           </div>
 
           <div className="flex items-center justify-between gap-4 py-3">
             <div className="max-w-xl">
-              <span className="text-sm font-semibold block">Autoplay similar tracks</span>
+              <span className="text-sm font-semibold block">
+                {t.settings?.autoplay?.rowTitle || 'Autoplay similar tracks'}
+              </span>
               <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                Enjoy non-stop listening. When your queue reaches the end, Otofy will automatically load and continue
-                playing similar music.
+                {t.settings?.autoplay?.rowDesc || 'Enjoy non-stop listening. When your queue reaches the end, Otofy will automatically load and continue playing similar music.'}
               </p>
             </div>
             <button
@@ -342,20 +433,22 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 2: Audio Quality */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Audio Quality</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.audioQuality?.sectionTitle || 'Audio Quality'}
+            </h2>
           </div>
 
           <div className="space-y-4 divide-y divide-black/5 dark:divide-white/10">
-            {/* Streaming Quality */}
             <div className="flex items-center justify-between gap-4 pt-1">
               <div>
-                <span className="text-sm font-semibold block">Streaming quality</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.audioQuality?.streamingQuality || 'Streaming quality'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Select the audio stream quality. Higher bitrates provide studio clarity but consume more bandwidth.
+                  {t.settings?.audioQuality?.streamingQualityDesc || 'Select the audio stream quality. Higher bitrates provide studio clarity but consume more bandwidth.'}
                 </p>
               </div>
               <select
@@ -364,18 +457,19 @@ export const SettingsScreen: React.FC = () => {
                 onChange={(e) => settings.setStreamingQuality(e.target.value as StreamingQuality)}
                 className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
               >
-                <option value="low">Low (128 kbps)</option>
-                <option value="normal">Normal (160 kbps)</option>
-                <option value="high">High (320 kbps / Best)</option>
+                <option value="low">{t.settings?.audioQuality?.qualityLow || 'Low (128 kbps)'}</option>
+                <option value="normal">{t.settings?.audioQuality?.qualityNormal || 'Normal (160 kbps)'}</option>
+                <option value="high">{t.settings?.audioQuality?.qualityHigh || 'High (320 kbps / Best)'}</option>
               </select>
             </div>
 
-            {/* Auto Adjust Quality */}
             <div className="flex items-center justify-between gap-4 pt-4">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Auto-adjust quality</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.audioQuality?.autoAdjust || 'Auto-adjust quality'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Automatically downscale streaming quality during network slowdowns or extended buffer delays.
+                  {t.settings?.audioQuality?.autoAdjustDesc || 'Automatically downscale streaming quality during network slowdowns or extended buffer delays.'}
                 </p>
               </div>
               <button
@@ -395,21 +489,23 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 3: Playback & Web Audio */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Volume2 size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Playback</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.playback?.sectionTitle || 'Playback'}
+            </h2>
           </div>
 
           <div className="space-y-4 divide-y divide-black/5 dark:divide-white/10">
-            {/* Crossfade Songs */}
             <div className="pt-1">
               <div className="flex items-center justify-between gap-4">
                 <div className="max-w-xl">
-                  <span className="text-sm font-semibold block">Crossfade songs</span>
+                  <span className="text-sm font-semibold block">
+                    {t.settings?.playback?.crossfade || 'Crossfade songs'}
+                  </span>
                   <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                    Seamlessly transition between songs using the Dual Deck (A/B) Web Audio engine.
+                    {t.settings?.playback?.crossfadeDesc || 'Seamlessly transition between songs using the Dual Deck (A/B) Web Audio engine.'}
                   </p>
                 </div>
                 <button
@@ -430,7 +526,9 @@ export const SettingsScreen: React.FC = () => {
               {settings.crossfadeEnabled && (
                 <div className="mt-4 pl-4 border-l-2 border-black/20 dark:border-white/30 space-y-2 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-[#64748B] dark:text-white/70">Crossfade transition duration:</span>
+                    <span className="text-[#64748B] dark:text-white/70">
+                      {t.settings?.playback?.crossfadeDuration || 'Crossfade transition duration:'}
+                    </span>
                     <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
                       {settings.crossfadeDuration}s
                     </span>
@@ -448,12 +546,13 @@ export const SettingsScreen: React.FC = () => {
               )}
             </div>
 
-            {/* Normalize Volume */}
             <div className="flex items-center justify-between gap-4 pt-4">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Normalize volume</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.playback?.normalizeVolume || 'Normalize volume'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Set the same loudness level for all tracks using the studio-grade dynamic compressor.
+                  {t.settings?.playback?.normalizeVolumeDesc || 'Set the same loudness level for all tracks using the studio-grade dynamic compressor.'}
                 </p>
               </div>
               <button
@@ -471,12 +570,13 @@ export const SettingsScreen: React.FC = () => {
               </button>
             </div>
 
-            {/* Mono Audio */}
             <div className="flex items-center justify-between gap-4 pt-4">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Mono audio</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.playback?.monoAudio || 'Mono audio'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Combine stereo left and right channels into a single mono output for single-speaker listening.
+                  {t.settings?.playback?.monoAudioDesc || 'Combine stereo left and right channels into a single mono output for single-speaker listening.'}
                 </p>
               </div>
               <button
@@ -494,12 +594,13 @@ export const SettingsScreen: React.FC = () => {
               </button>
             </div>
 
-            {/* Audio Output Device */}
             <div className="flex items-center justify-between gap-4 pt-4">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Audio output device</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.playback?.outputDevice || 'Audio output device'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Select specific speakers, headphones, or external audio interfaces.
+                  {t.settings?.playback?.outputDeviceDesc || 'Select specific speakers, headphones, or external audio interfaces.'}
                 </p>
               </div>
               <select
@@ -518,20 +619,22 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 4: Startup and Window Behaviour */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Monitor size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Startup and Window Behaviour</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.startup?.sectionTitle || 'Startup and Window Behaviour'}
+            </h2>
           </div>
 
           <div className="space-y-4 divide-y divide-black/5 dark:divide-white/10">
-            {/* Open automatically at login */}
             <div className="flex items-center justify-between gap-4 pt-1">
               <div>
-                <span className="text-sm font-semibold block">Open Otofy automatically at computer login</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.startup?.autoLaunch || 'Open Otofy automatically at computer login'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Launch the application automatically when Windows starts.
+                  {t.settings?.startup?.autoLaunchDesc || 'Launch the application automatically when Windows starts.'}
                 </p>
               </div>
               <select
@@ -540,19 +643,19 @@ export const SettingsScreen: React.FC = () => {
                 onChange={(e) => settings.setAutoLaunch(e.target.value as AutoLaunchMode)}
                 className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
               >
-                <option value="no">No (disabled)</option>
-                <option value="yes">Yes (open window)</option>
-                <option value="minimized">Minimized (start in tray)</option>
+                <option value="no">{t.settings?.startup?.autoLaunchNo || 'No (disabled)'}</option>
+                <option value="yes">{t.settings?.startup?.autoLaunchYes || 'Yes (open window)'}</option>
+                <option value="minimized">{t.settings?.startup?.autoLaunchMinimized || 'Minimized (start in tray)'}</option>
               </select>
             </div>
 
-            {/* Close button minimize to tray */}
             <div className="flex items-center justify-between gap-4 pt-4">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Close button minimizes to tray</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.startup?.closeToTray || 'Close button minimizes to tray'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Clicking the close button ('X') hides the window to the system tray. The minimize button ('-') continues
-                  to minimize to the taskbar.
+                  {t.settings?.startup?.closeToTrayDesc || "Clicking the close button ('X') hides the window to the system tray. The minimize button ('-') continues to minimize to the taskbar."}
                 </p>
               </div>
               <button
@@ -572,20 +675,22 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 5: Storage & Downloads */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <FolderDown size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Storage & Downloads</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.storage?.sectionTitle || 'Storage & Downloads'}
+            </h2>
           </div>
 
           <div className="space-y-4 divide-y divide-black/5 dark:divide-white/10">
-            {/* Cache Row */}
             <div className="flex items-center justify-between gap-4 pt-1">
               <div>
-                <span className="text-sm font-semibold block">Local cache</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.storage?.localCache || 'Local cache'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Temporary audio streams, artwork previews, and cached metadata.
+                  {t.settings?.storage?.localCacheDesc || 'Temporary audio streams, artwork previews, and cached metadata.'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -597,18 +702,23 @@ export const SettingsScreen: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-50 dark:bg-rose-500/10 text-red-600 dark:text-rose-400 hover:bg-red-100 dark:hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   <Trash2 size={13} />
-                  <span>{isClearingCache ? 'Clearing...' : 'Clear cache'}</span>
+                  <span>
+                    {isClearingCache
+                      ? (t.settings?.storage?.clearing || 'Clearing...')
+                      : (t.settings?.storage?.clearCache || 'Clear cache')}
+                  </span>
                 </button>
               </div>
             </div>
 
-            {/* Downloads Location */}
             <div className="pt-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-semibold block">Downloads location</span>
+                  <span className="text-sm font-semibold block">
+                    {t.settings?.storage?.downloadsLocation || 'Downloads location'}
+                  </span>
                   <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                    Default folder for future offline downloads.
+                    {t.settings?.storage?.downloadsLocationDesc || 'Default folder for future offline downloads.'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -616,10 +726,10 @@ export const SettingsScreen: React.FC = () => {
                     id="open-downloads-folder-btn"
                     onClick={handleOpenDownloadsFolder}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    title="Open in Windows Explorer"
+                    title={t.settings?.storage?.openInExplorer || 'Open in Explorer'}
                   >
                     <FolderOpen size={13} />
-                    <span>Open in Explorer</span>
+                    <span>{t.settings?.storage?.openInExplorer || 'Open in Explorer'}</span>
                   </button>
                   <button
                     id="change-downloads-folder-btn"
@@ -627,7 +737,7 @@ export const SettingsScreen: React.FC = () => {
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <FolderSync size={13} />
-                    <span>Change</span>
+                    <span>{t.settings?.storage?.changeFolder || 'Change'}</span>
                   </button>
                 </div>
               </div>
@@ -638,19 +748,21 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 6: System & Performance */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Cpu size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">System & Performance</h2>
+            <h2 className="text-base font-bold">
+              {t.settings?.performance?.sectionTitle || 'System & Performance'}
+            </h2>
           </div>
 
           <div className="flex items-center justify-between gap-4 py-1">
             <div className="max-w-xl">
-              <span className="text-sm font-semibold block">Hardware acceleration</span>
+              <span className="text-sm font-semibold block">
+                {t.settings?.performance?.hardwareAcceleration || 'Hardware acceleration'}
+              </span>
               <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                Utilize GPU rendering for buttery smooth animations and liquid glass UI effects. Requires restarting the
-                app to apply.
+                {t.settings?.performance?.hardwareAccelerationDesc || 'Utilize GPU rendering for buttery smooth animations and liquid glass UI effects. Requires restarting the app to apply.'}
               </p>
             </div>
             <button
@@ -669,12 +781,13 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 7: App Updates */}
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <DownloadCloud size={18} className="text-[#0F172A] dark:text-white" />
-              <h2 className="text-base font-bold">App Updates</h2>
+              <h2 className="text-base font-bold">
+                {t.settings?.updates?.sectionTitle || 'App Updates'}
+              </h2>
             </div>
             <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
               v{appVersion}
@@ -684,9 +797,11 @@ export const SettingsScreen: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4 py-1">
               <div className="max-w-xl">
-                <span className="text-sm font-semibold block">Check for updates</span>
+                <span className="text-sm font-semibold block">
+                  {t.settings?.updates?.checkForUpdates || 'Check for updates'}
+                </span>
                 <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-                  Check GitHub releases for new features, audio improvements, and official installer upgrades.
+                  {t.settings?.updates?.checkForUpdatesDesc || 'Check GitHub releases for new features, audio improvements, and official installer upgrades.'}
                 </p>
               </div>
               <button
@@ -696,23 +811,26 @@ export const SettingsScreen: React.FC = () => {
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
               >
                 <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin' : ''} />
-                <span>{isCheckingUpdate ? 'Checking...' : 'Check now'}</span>
+                <span>
+                  {isCheckingUpdate
+                    ? (t.settings?.updates?.checking || 'Checking...')
+                    : (t.settings?.updates?.checkNow || 'Check now')}
+                </span>
               </button>
             </div>
 
-            {/* Update available banner */}
             {updateInfo && updateInfo.hasUpdate && (
               <div className="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 space-y-3 animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse" />
                     <span className="text-xs font-bold text-sky-950 dark:text-sky-200">
-                      Update {updateInfo.latestVersion} available
+                      {(t.settings?.updates?.updateAvailable || 'Update {version} available').replace('{version}', updateInfo.latestVersion)}
                     </span>
                   </div>
                   {updateInfo.fileSize && (
                     <span className="text-[11px] font-mono text-sky-700 dark:text-sky-300">
-                      {(updateInfo.fileSize / (1024 * 1024)).toFixed(1)} MB
+                      {(updateInfo.fileSize / 1048576).toFixed(1)} MB
                     </span>
                   )}
                 </div>
@@ -726,7 +844,7 @@ export const SettingsScreen: React.FC = () => {
                 {isDownloadingUpdate && updateProgress && (
                   <div className="space-y-1.5 pt-1">
                     <div className="flex justify-between text-[11px] font-bold text-sky-900 dark:text-sky-200">
-                      <span>Downloading official installer...</span>
+                      <span>{t.settings?.updates?.downloadingInstaller || 'Downloading official installer...'}</span>
                       <span>{updateProgress.percent}%</span>
                     </div>
                     <div className="w-full bg-sky-200 dark:bg-sky-900 rounded-full h-2 overflow-hidden">
@@ -746,7 +864,11 @@ export const SettingsScreen: React.FC = () => {
                       className="px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       <DownloadCloud size={14} />
-                      <span>{isDownloadingUpdate ? 'Downloading installer...' : 'Install & Restart'}</span>
+                      <span>
+                        {isDownloadingUpdate
+                          ? (t.settings?.updates?.downloading || 'Downloading installer...')
+                          : (t.settings?.updates?.installAndRestart || 'Install & Restart')}
+                      </span>
                     </button>
                   ) : null}
 
@@ -757,7 +879,7 @@ export const SettingsScreen: React.FC = () => {
                       rel="noreferrer"
                       className="px-3.5 py-2 bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-xl text-xs font-semibold transition-all border border-slate-200 dark:border-white/15 flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>View on GitHub</span>
+                      <span>{t.settings?.updates?.viewOnGithub || 'View on GitHub'}</span>
                       <ExternalLink size={13} />
                     </a>
                   )}
@@ -765,41 +887,43 @@ export const SettingsScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Up to date message */}
             {updateInfo && !updateInfo.hasUpdate && !updateInfo.error && (
               <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 flex items-center gap-2.5 text-[#0F172A] dark:text-white text-xs font-medium animate-in fade-in">
                 <CheckCircle2 size={16} className="shrink-0 text-[#0F172A] dark:text-white" />
-                <span>Otofy is up to date ({updateInfo.currentVersion}).</span>
+                <span>
+                  {(t.settings?.updates?.upToDateBanner || 'Otofy is up to date ({version}).').replace('{version}', updateInfo.currentVersion)}
+                </span>
               </div>
             )}
           </div>
         </section>
       </div>
 
-      {/* Restart Prompt Modal */}
       {showRestartModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white/95 dark:bg-[#111116] backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-amber-500">
               <AlertTriangle size={24} />
-              <h3 className="text-base font-bold text-[#0F172A] dark:text-white">Restart Required</h3>
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-white">
+                {t.settings?.restartModal?.title || 'Restart Required'}
+              </h3>
             </div>
             <p className="text-xs text-[#475569] dark:text-white/70 leading-relaxed">
-              Hardware acceleration settings will take effect after restarting Otofy. Would you like to restart now?
+              {t.settings?.restartModal?.message || 'Hardware acceleration settings will take effect after restarting Otofy. Would you like to restart now?'}
             </p>
             <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setShowRestartModal(false)}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#64748B] dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
-                Later
+                {t.settings?.restartModal?.later || 'Later'}
               </button>
               <button
                 onClick={handleRelaunch}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw size={14} />
-                <span>Restart Now</span>
+                <span>{t.settings?.restartModal?.restartNow || 'Restart Now'}</span>
               </button>
             </div>
           </div>

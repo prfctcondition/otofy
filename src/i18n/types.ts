@@ -247,6 +247,105 @@ export interface TranslationSchema {
     configureBtn: string;
     resetBtn: string;
   };
+  settings: {
+    headerTitle: string;
+    headerSubtitle: string;
+    backBtnTitle: string;
+    appearance: {
+      sectionTitle: string;
+      languageTitle: string;
+      languageDesc: string;
+      themeTitle: string;
+      themeDesc: string;
+      themeLight: string;
+      themeDark: string;
+    };
+    cloud: {
+      sectionTitle: string;
+      rowTitle: string;
+      rowDesc: string;
+      manageBtn: string;
+    };
+    autoplay: {
+      sectionTitle: string;
+      rowTitle: string;
+      rowDesc: string;
+    };
+    audioQuality: {
+      sectionTitle: string;
+      streamingQuality: string;
+      streamingQualityDesc: string;
+      qualityLow: string;
+      qualityNormal: string;
+      qualityHigh: string;
+      autoAdjust: string;
+      autoAdjustDesc: string;
+    };
+    playback: {
+      sectionTitle: string;
+      crossfade: string;
+      crossfadeDesc: string;
+      crossfadeDuration: string;
+      normalizeVolume: string;
+      normalizeVolumeDesc: string;
+      monoAudio: string;
+      monoAudioDesc: string;
+      outputDevice: string;
+      outputDeviceDesc: string;
+      defaultDevice: string;
+    };
+    startup: {
+      sectionTitle: string;
+      autoLaunch: string;
+      autoLaunchDesc: string;
+      autoLaunchNo: string;
+      autoLaunchYes: string;
+      autoLaunchMinimized: string;
+      closeToTray: string;
+      closeToTrayDesc: string;
+    };
+    storage: {
+      sectionTitle: string;
+      localCache: string;
+      localCacheDesc: string;
+      clearCache: string;
+      clearing: string;
+      cacheClearedToast: string;
+      cacheClearedToastDesc: string;
+      downloadsLocation: string;
+      downloadsLocationDesc: string;
+      openInExplorer: string;
+      changeFolder: string;
+      folderUpdatedToast: string;
+    };
+    performance: {
+      sectionTitle: string;
+      hardwareAcceleration: string;
+      hardwareAccelerationDesc: string;
+    };
+    updates: {
+      sectionTitle: string;
+      checkForUpdates: string;
+      checkForUpdatesDesc: string;
+      checkNow: string;
+      checking: string;
+      upToDateToast: string;
+      upToDateToastDesc: string;
+      upToDateBanner: string;
+      updateAvailable: string;
+      downloadingInstaller: string;
+      installAndRestart: string;
+      downloading: string;
+      viewOnGithub: string;
+      browserPreviewNotes: string;
+    };
+    restartModal: {
+      title: string;
+      message: string;
+      later: string;
+      restartNow: string;
+    };
+  };
 }
 
 export interface GenreTranslation {
