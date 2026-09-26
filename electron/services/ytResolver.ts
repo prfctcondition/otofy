@@ -124,7 +124,7 @@ async function verifyStreamUrl(url: string): Promise<boolean> {
       method: 'GET',
       signal: controller.signal,
       headers: {
-        Range: 'bytes=0-',
+        Range: 'bytes=0-1',
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
         Referer: 'https://www.youtube.com/',
@@ -190,10 +190,10 @@ export function isStrictAlternativeMatch(
     return false;
   }
 
-  // 4. Strict duration check: |cand - orig| <= 3s (if original duration is known and > 10s)
+  // 4. Strict duration check: |cand - orig| <= 12s (if original duration is known and > 10s)
   if (originalDurationSec && originalDurationSec > 10 && candidate.durationSec > 0) {
     const diff = Math.abs(candidate.durationSec - originalDurationSec);
-    if (diff > 3) {
+    if (diff > 12) {
       return false;
     }
   }
@@ -220,10 +220,7 @@ export async function extractFromVideoId(
   let isBotChallenge = false;
 
   const checkStatus = (status?: string, reason?: string) => {
-    if (status === 'LOGIN_REQUIRED') {
-      isBotChallenge = true;
-    }
-    if (reason && /bot|sign in to confirm|unusual traffic/i.test(reason)) {
+    if (reason && /bot|sign in to confirm you'?re not a bot|unusual traffic|automated queries/i.test(reason)) {
       isBotChallenge = true;
     }
   };
@@ -231,7 +228,16 @@ export async function extractFromVideoId(
   // 1. VisionOS (Direct audio formats with open range and full stream support without 1MB CDN cap)
   try {
     const yt = await getVisionClient();
-    const info = await yt.getBasicInfo(vId);
+    let info: any;
+    try {
+      info = await yt.getBasicInfo(vId);
+    } catch (parseErr: any) {
+      if (parseErr?.message?.includes('not found') || parseErr?.message?.includes('PlayerErrorCommand')) {
+        info = await yt.getBasicInfo(vId);
+      } else {
+        throw parseErr;
+      }
+    }
     checkStatus(info.playability_status?.status, info.playability_status?.reason);
     if (!info.playability_status || info.playability_status.status === 'OK') {
       const audioFormat = info.chooseFormat({ type: 'audio', quality: 'best' });

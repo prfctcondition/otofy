@@ -163,7 +163,7 @@ export interface TranslationSchema {
     savedToastBody: string;
     genres: Record<string, GenreTranslation>;
   };
-  wave?: {
+  wave: {
     title: string;
     badge: string;
     subtitle: string;
@@ -174,7 +174,7 @@ export interface TranslationSchema {
     stationStarted: string;
     artistsCount: string;
   };
-  onboarding?: {
+  onboarding: {
     headerBadge: string;
     title: string;
     subtitle: string;
@@ -186,7 +186,7 @@ export interface TranslationSchema {
     searching: string;
     allGenres: string;
   };
-  moods?: {
+  moods: {
     title: string;
     allMoods: string;
     searchPlaceholder: string;
@@ -194,7 +194,7 @@ export interface TranslationSchema {
     stationStarted: string;
     noTracksFound: string;
   };
-  suggested?: {
+  suggested: {
     title: string;
     basedOn: string;
     defaultSubtitle: string;
@@ -205,7 +205,7 @@ export interface TranslationSchema {
     added: string;
     addToPlaylist: string;
   };
-  settingsPersonalization?: {
+  settingsPersonalization: {
     sectionTitle: string;
     rowTitle: string;
     rowSubtitleConfigured: string;

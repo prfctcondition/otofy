@@ -60,12 +60,21 @@ interface PlayerActions {
 
 export const cleanTrackId = (id: string): string => {
   if (!id) return '';
+  if (id.startsWith('wave-') || id.startsWith('track-') || id.startsWith('local-')) {
+    return '';
+  }
   if (id.startsWith('sc-') || id.startsWith('dm-sc-') || id.includes('-sc-')) {
     const scMatch = id.match(/(\d+)$/);
     if (scMatch) return scMatch[1];
   }
-  const ytMatch = id.match(/([a-zA-Z0-9_-]{11})$/);
+  if (/^[a-zA-Z0-9_-]{11}$/.test(id)) {
+    return id;
+  }
+  const ytMatch = id.match(/^(?:yt-|dm-yt-\d+-|artist-yt-[^-]+-\d+-|album-yt-\d+-)([a-zA-Z0-9_-]{11})$/);
   if (ytMatch) return ytMatch[1];
+
+  const ytUrlMatch = id.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (ytUrlMatch) return ytUrlMatch[1];
 
   return id
     .replace(/^dm-(?:yt-|sc-)?\d+-\d+-/, '')
@@ -243,7 +252,9 @@ const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promis
     }
   }
 
-  const rawId = track.sourceId || track.id;
+  const rawId = (track.sourceId && !track.sourceId.startsWith('wave-') && !track.sourceId.startsWith('track-') && !track.sourceId.startsWith('local-'))
+    ? track.sourceId
+    : (track.id && !track.id.startsWith('wave-') && !track.id.startsWith('track-') && !track.id.startsWith('local-') ? track.id : '');
   const targetId = cleanTrackId(rawId);
   let lastError = '';
 
