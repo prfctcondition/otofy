@@ -284,7 +284,7 @@ export const en: TranslationSchema = {
     headerBadge: 'Otofy Personalization',
     title: 'Choose 3 or more favorite artists',
     subtitle: 'This immediately activates and calibrates your personal "My Wave" endless station on the Home screen.',
-    searchPlaceholder: 'Search any artist or band worldwide...',
+    searchPlaceholder: 'Search artists or bands...',
     selectedCount: 'Selected: {count} of 3 minimum',
     readyToLaunch: 'Ready to launch',
     startListening: 'Start Listening',

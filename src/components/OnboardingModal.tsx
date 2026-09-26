@@ -323,8 +323,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
           )}
 
-          <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
+          <div className="mt-2 flex flex-col gap-2.5">
+            <div className="relative w-full">
               <Search
                 size={16}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40"
@@ -333,7 +333,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 type="text"
                 placeholder={
                   t.onboarding?.searchPlaceholder ||
-                  'Search any artist or band worldwide...'
+                  'Search artists or bands...'
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

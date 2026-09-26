@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ViewportMode, Track, Playlist, ArtistDetails, SourceType } from './types';
+import { ViewportMode, Track, Playlist, ArtistDetails, SourceType, IconType } from './types';
 import { TopNavbar } from './components/TopNavbar';
 import { LeftLibraryDock } from './components/LeftLibraryDock';
 import { LiquidHeroHeader } from './components/LiquidHeroHeader';
@@ -14,7 +14,8 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { WaveGeneratingModal } from './components/WaveGeneratingModal';
 import { SuggestedTracksSection } from './components/SuggestedTracksSection';
 import { SettingsScreen } from './components/SettingsScreen';
-import { StationItem, MadeForYouItem } from './data/homeData';
+import { StationItem, MadeForYouItem, QuickAccessItem } from './data/homeData';
+import { apiGetGenreTracks } from './services/musicApiService';
 
 import { usePlayerStore } from './store/playerStore';
 import { useLibraryStore } from './store/libraryStore';
@@ -504,49 +505,130 @@ export default function App() {
     libraryStore.setCurrentView(currentView === 'home' ? 'playlist' : 'home');
   };
 
-  const handleSelectCollection = async (title: string, playlistId?: string) => {
+  const handleSelectCollection = async (itemOrTitle: QuickAccessItem | string, playlistId?: string) => {
     searchStore.clearResults();
     libraryStore.setSelectedFilter('All');
 
-    if (playlistId === 'pl-history' || title.toLowerCase() === 'history') {
+    const isObj = typeof itemOrTitle === 'object' && itemOrTitle !== null;
+    const item = isObj ? (itemOrTitle as QuickAccessItem) : null;
+    const title = isObj ? item!.title : (itemOrTitle as string);
+    const pId = playlistId || (item ? item.playlistId : undefined);
+
+    if (pId === 'pl-history' || (item && item.id === 'qa-history') || title.toLowerCase() === 'history') {
       await libraryStore.selectPlaylist('pl-history');
       return;
     }
 
-    if (playlistId && (playlistId.startsWith('pl-') || playlists.some((p) => p.id === playlistId))) {
-      await libraryStore.selectPlaylist(playlistId);
+    if (pId === 'pl-liked' || (item && item.id === 'qa-liked') || title.toLowerCase() === 'liked songs') {
+      await libraryStore.selectPlaylist('pl-liked');
+      return;
+    }
+
+    if (pId && (pId.startsWith('pl-') || playlists.some((p) => p.id === pId))) {
+      await libraryStore.selectPlaylist(pId);
+      return;
+    }
+
+    if (item && item.genreQuery) {
+      const safeIcon: IconType = item.icon === 'disc' ? 'disc' : 'music';
+      libraryStore.setCustomPlaylistView(item.title, [], {
+        creator: 'Otofy',
+        description: 'Electronic music selection',
+        iconName: safeIcon,
+        gradientFrom: item.gradientFrom || '#0F172A',
+        gradientTo: item.gradientTo || '#020617',
+      });
+      libraryStore.setIsLoadingTracks(true);
+      try {
+        const tracks = await apiGetGenreTracks(item.genreQuery);
+        libraryStore.setCustomPlaylistView(item.title, tracks, {
+          creator: 'Otofy',
+          description: tracks.length > 0 ? `${tracks.length} tracks` : 'Curated electronic selection',
+          iconName: safeIcon,
+          gradientFrom: item.gradientFrom || '#0F172A',
+          gradientTo: item.gradientTo || '#020617',
+        });
+      } catch (err) {
+        console.warn('[App] Quick access genreQuery error:', err);
+      } finally {
+        libraryStore.setIsLoadingTracks(false);
+      }
       return;
     }
 
     const mixes = await getStoredDailyMixes();
-    const tLower = title.toLowerCase();
-    const matchMix =
-      mixes.find((m) => {
-        const mTitle = m.title.toLowerCase();
-        const mGenre = m.genre.toLowerCase();
-        return (
-          mTitle.includes(tLower) ||
-          tLower.includes(mTitle) ||
-          mGenre.includes(tLower) ||
-          tLower.includes(mGenre)
-        );
-      }) ||
-      (tLower.includes('phonk') ? mixes.find((m) => m.mixNumber === 1) : undefined) ||
-      (tLower.includes('lo-fi') || tLower.includes('chill') ? mixes.find((m) => m.mixNumber === 2) : undefined) ||
-      (tLower.includes('synth') || tLower.includes('80s') ? mixes.find((m) => m.mixNumber === 3) : undefined) ||
-      (tLower.includes('cloud') || tLower.includes('underground') ? mixes.find((m) => m.mixNumber === 4) : undefined) ||
-      (tLower.includes('ambient') ? mixes.find((m) => m.mixNumber === 5) : undefined) ||
-      (tLower.includes('discover') ? mixes.find((m) => m.mixNumber === 0) : undefined) ||
-      mixes[0];
+    let matchMix = undefined;
+
+    if (item && item.mixNumber !== undefined) {
+      matchMix = mixes.find((m) => m.mixNumber === item.mixNumber);
+    }
+
+    if (!matchMix) {
+      const tLower = title.toLowerCase();
+      if (tLower.includes('gems') || tLower.includes('electronic')) {
+        libraryStore.setCustomPlaylistView('Electronic Gems', [], {
+          creator: 'Otofy',
+          description: 'Electronic music selection',
+          iconName: 'disc',
+          gradientFrom: '#0F172A',
+          gradientTo: '#020617',
+        });
+        libraryStore.setIsLoadingTracks(true);
+        try {
+          const tracks = await apiGetGenreTracks('Electronic Gems');
+          libraryStore.setCustomPlaylistView('Electronic Gems', tracks, {
+            creator: 'Otofy',
+            description: tracks.length > 0 ? `${tracks.length} tracks` : 'Curated electronic selection',
+            iconName: 'disc',
+            gradientFrom: '#0F172A',
+            gradientTo: '#020617',
+          });
+        } catch (err) {
+          console.warn('[App] Gems fallback error:', err);
+        } finally {
+          libraryStore.setIsLoadingTracks(false);
+        }
+        return;
+      }
+
+      matchMix =
+        mixes.find((m) => {
+          const mTitle = m.title.toLowerCase();
+          const mGenre = m.genre.toLowerCase();
+          return (
+            mTitle.includes(tLower) ||
+            tLower.includes(mTitle) ||
+            mGenre.includes(tLower) ||
+            tLower.includes(mGenre)
+          );
+        }) ||
+        (tLower.includes('phonk') || tLower.includes('mix 1') ? mixes.find((m) => m.mixNumber === 1) : undefined) ||
+        (tLower.includes('lo-fi') || tLower.includes('chill') || tLower.includes('mix 2') ? mixes.find((m) => m.mixNumber === 2) : undefined) ||
+        (tLower.includes('synth') || tLower.includes('80s') || tLower.includes('mix 3') ? mixes.find((m) => m.mixNumber === 3) : undefined) ||
+        (tLower.includes('hip-hop') || tLower.includes('rap') || tLower.includes('cloud') || tLower.includes('mix 4') ? mixes.find((m) => m.mixNumber === 4) : undefined) ||
+        (tLower.includes('ambient') || tLower.includes('mix 5') ? mixes.find((m) => m.mixNumber === 5) : undefined) ||
+        (tLower.includes('discover') || tLower.includes('mix 0') ? mixes.find((m) => m.mixNumber === 0) : undefined) ||
+        mixes[0];
+    }
 
     if (matchMix) {
-      const mixTracks = await getDailyMixTracks(matchMix);
-      const meta = computeMixMeta(mixTracks, matchMix.mixNumber, matchMix.genre);
-      libraryStore.setCustomPlaylistView(meta.title, mixTracks, {
+      libraryStore.setCustomPlaylistView(matchMix.title, [], {
         creator: 'Otofy',
-        description: meta.subtitle,
+        description: matchMix.genre,
         iconName: 'sparkles',
       });
+      libraryStore.setIsLoadingTracks(true);
+      try {
+        const mixTracks = await getDailyMixTracks(matchMix);
+        const meta = computeMixMeta(mixTracks, matchMix.mixNumber, matchMix.genre);
+        libraryStore.setCustomPlaylistView(meta.title, mixTracks, {
+          creator: 'Otofy',
+          description: meta.subtitle,
+          iconName: 'sparkles',
+        });
+      } finally {
+        libraryStore.setIsLoadingTracks(false);
+      }
     } else {
       await libraryStore.selectPlaylist('pl-liked');
     }
@@ -702,8 +784,8 @@ export default function App() {
     }
   };
 
-  const handlePlayCollection = async (title: string, playlistId?: string) => {
-    await handleSelectCollection(title, playlistId);
+  const handlePlayCollection = async (itemOrTitle: QuickAccessItem | string, playlistId?: string) => {
+    await handleSelectCollection(itemOrTitle, playlistId);
     const freshTracks = useLibraryStore.getState().currentPlaylistTracks;
     const freshId = useLibraryStore.getState().selectedPlaylistId;
     if (freshTracks.length > 0) {

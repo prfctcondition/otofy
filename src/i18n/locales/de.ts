@@ -284,7 +284,7 @@ export const de: TranslationSchema = {
     headerBadge: 'Otofy Personalisierung',
     title: 'Wählen Sie 3 oder mehr Lieblingskünstler',
     subtitle: 'Dies aktiviert und kalibriert sofort Ihre persönliche Station "Meine Welle" auf der Startseite.',
-    searchPlaceholder: 'Beliebige Künstler oder Bands weltweit suchen...',
+    searchPlaceholder: 'Künstler suchen...',
     selectedCount: 'Ausgewählt: {count} von mindestens 3',
     readyToLaunch: 'Startklar',
     startListening: 'Jetzt anhören',

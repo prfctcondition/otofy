@@ -284,7 +284,7 @@ export const pt: TranslationSchema = {
     headerBadge: 'Personalização Otofy',
     title: 'Escolha 3 ou mais artistas favoritos',
     subtitle: 'Isso ativa e calibra imediatamente sua estação pessoal "Minha Onda" na Tela Inicial.',
-    searchPlaceholder: 'Pesquise qualquer artista ou banda no mundo...',
+    searchPlaceholder: 'Buscar artistas...',
     selectedCount: 'Selecionados: {count} de 3 no mínimo',
     readyToLaunch: 'Pronto para iniciar',
     startListening: 'Começar a ouvir',

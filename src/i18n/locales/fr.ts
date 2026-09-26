@@ -284,7 +284,7 @@ export const fr: TranslationSchema = {
     headerBadge: 'Personnalisation Otofy',
     title: 'Choisissez 3 artistes favoris ou plus',
     subtitle: 'Cela active et calibre immédiatement votre station personnelle "Mon Onde" sur l\'écran d\'accueil.',
-    searchPlaceholder: 'Rechercher un artiste ou un groupe dans le monde entier...',
+    searchPlaceholder: 'Rechercher des artistes...',
     selectedCount: 'Sélectionnés : {count} sur 3 minimum',
     readyToLaunch: 'Prêt à lancer',
     startListening: 'Commencer l\'écoute',

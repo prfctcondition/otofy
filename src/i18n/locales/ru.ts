@@ -284,7 +284,7 @@ export const ru: TranslationSchema = {
     headerBadge: 'Персонализация Otofy',
     title: 'Выберите от 3 любимых исполнителей',
     subtitle: 'Это позволит сразу активировать и откалибровать вашу персональную станцию «Моя волна» на Главном экране.',
-    searchPlaceholder: 'Поиск любого исполнителя или группы в мире...',
+    searchPlaceholder: 'Поиск исполнителей...',
     selectedCount: 'Выбрано: {count} из 3 минимум',
     readyToLaunch: 'Готово к запуску',
     startListening: 'Начать слушать',

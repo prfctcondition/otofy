@@ -284,7 +284,7 @@ export const ja: TranslationSchema = {
     headerBadge: 'Otofy パーソナライズ',
     title: 'お気に入りのアーティストを3組以上選択',
     subtitle: 'ホーム画面のパーソナルステーション「マイウェーブ」が即座に最適化されます。',
-    searchPlaceholder: '世界中のアーティストやバンドを検索...',
+    searchPlaceholder: 'アーティストを検索...',
     selectedCount: '選択中: {count} / 最小3組',
     readyToLaunch: '準備完了',
     startListening: '聴き始める',

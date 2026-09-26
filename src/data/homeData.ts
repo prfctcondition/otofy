@@ -7,6 +7,8 @@ export interface QuickAccessItem {
   gradientFrom: string;
   gradientTo: string;
   playlistId?: string;
+  mixNumber?: number;
+  genreQuery?: string;
 }
 
 export interface StationItem {
@@ -53,6 +55,8 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'sparkles',
     gradientFrom: '#18181B',
     gradientTo: '#581C87',
+    mixNumber: 0,
+    genreQuery: 'Discover Weekly',
   },
   {
     id: 'qa-history',
@@ -72,6 +76,8 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'zap',
     gradientFrom: '#06B6D4',
     gradientTo: '#0E7490',
+    mixNumber: 1,
+    genreQuery: 'Phonk',
   },
   {
     id: 'qa-lofi',
@@ -81,6 +87,8 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'headphones',
     gradientFrom: '#F59E0B',
     gradientTo: '#B45309',
+    mixNumber: 2,
+    genreQuery: 'Lo-Fi Chill',
   },
   {
     id: 'qa-synth',
@@ -90,6 +98,8 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'waves',
     gradientFrom: '#F97316',
     gradientTo: '#C2410C',
+    mixNumber: 3,
+    genreQuery: 'Synthwave',
   },
   {
     id: 'qa-rap',
@@ -99,6 +109,8 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'flame',
     gradientFrom: '#EC4899',
     gradientTo: '#BE185D',
+    mixNumber: 4,
+    genreQuery: 'Hip-Hop',
   },
   {
     id: 'qa-gems',
@@ -108,6 +120,7 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     icon: 'disc',
     gradientFrom: '#8B5CF6',
     gradientTo: '#6D28D9',
+    genreQuery: 'Electronic Gems',
   },
 ];
 

@@ -58,8 +58,8 @@ const DEFAULT_MOOD_PILLS_EN: MoodOrGenreItem[] = [
 ];
 
 interface HomeScreenProps {
-  onSelectCollection: (title: string, playlistId?: string) => void;
-  onPlayCollection?: (title: string, playlistId?: string) => void;
+  onSelectCollection: (itemOrTitle: QuickAccessItem | string, playlistId?: string) => void;
+  onPlayCollection?: (itemOrTitle: QuickAccessItem | string, playlistId?: string) => void;
   onOpenStation: (station: StationItem) => void;
   onPlayStation: (station: StationItem) => void;
   onOpenMix: (mix: MadeForYouItem) => void;
@@ -337,22 +337,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div
               key={item.id}
               id={`quick-access-${item.id}`}
-              onClick={() => onSelectCollection(item.title, item.playlistId)}
+              onClick={() => onSelectCollection(item, item.playlistId)}
               className="group relative h-14 rounded-lg bg-white/45 dark:bg-white/[0.05] hover:bg-white/80 dark:hover:bg-white/[0.10] active:bg-white/90 dark:active:bg-white/[0.15] backdrop-blur-xl border border-white/85 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] flex items-center overflow-hidden cursor-pointer transition-all duration-200"
             >
-              {/* Left Artwork Thumbnail */}
               <div
                 className="w-14 h-14 shrink-0 flex items-center justify-center shadow-inner relative overflow-hidden"
                 style={{
                   background: `linear-gradient(135deg, ${item.gradientFrom}, ${item.gradientTo})`,
                 }}
               >
-                {/* Visual texture overlay */}
                 <div className="absolute inset-0 bg-black/10 mix-blend-overlay" />
                 <div className="relative z-10">{renderQuickAccessIcon(item)}</div>
               </div>
 
-              {/* Title label */}
               <span
                 className="flex-1 px-3 text-[13px] font-semibold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors tracking-tight"
                 title={getQuickAccessTitle(item)}
@@ -360,16 +357,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {getQuickAccessTitle(item)}
               </span>
 
-              {/* Smooth Hover Play Action Button - MATCHED with bottom player */}
               <div className="pr-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
                 <button
                   id={`play-qa-${item.id}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onPlayCollection) {
-                      onPlayCollection(item.title, item.playlistId);
+                      onPlayCollection(item, item.playlistId);
                     } else {
-                      onSelectCollection(item.title, item.playlistId);
+                      onSelectCollection(item, item.playlistId);
                     }
                   }}
                   className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform"

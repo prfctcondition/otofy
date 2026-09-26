@@ -3,6 +3,7 @@ import type { StationItem } from '../data/homeData';
 import repo from '../db/repository';
 import db from '../db/database';
 import { cleanArtistAndTitle } from '../utils/trackUtils';
+import { apiGetGenreTracks } from './musicApiService';
 
 export interface GenrePreset {
   genre: string;
@@ -528,19 +529,11 @@ export function computeMixMeta(
     };
   }
 
-  let title = `Daily Mix ${mixNumber}`;
-  let subtitle = `${fallbackGenre} mix`;
-
-  if (topArtists.length >= 2) {
-    title = `${topArtists[0]} & ${topArtists[1]} Mix`;
-    subtitle = `${topArtists.join(', ')} and more.`;
-  } else if (topArtists.length === 1) {
-    title = `${topArtists[0]} Mix`;
-    subtitle = `${topArtists[0]} and similar artists.`;
-  } else if (fallbackGenre) {
-    title = `${fallbackGenre} Mix`;
-    subtitle = `Best of ${fallbackGenre}.`;
-  }
+  const title = `Daily Mix ${mixNumber} • ${fallbackGenre}`;
+  const subtitle =
+    topArtists.length > 0
+      ? `${topArtists.join(', ')} and more.`
+      : `Best of ${fallbackGenre}.`;
 
   return { title, subtitle };
 }
@@ -596,16 +589,34 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
     const userArtist = topUserArtists[i % Math.max(1, topUserArtists.length)];
     const personalizedQuery = userArtist ? `${userArtist} radio` : null;
 
-    const queriesToFetch = [
-      ...(personalizedQuery ? [personalizedQuery] : []),
-      dailyQuery,
-      ...(preset.searchQueries || []),
-    ];
+    const primaryQuery = preset.genre || preset.title;
+    let mixTracks = await apiGetGenreTracks(primaryQuery);
 
-    let mixTracks = await fetchGenreTracksBatch(queriesToFetch);
+    if (mixTracks.length < 25 && preset.searchQueries && preset.searchQueries[0]) {
+      const more = await apiGetGenreTracks(preset.searchQueries[0]);
+      const existing = new Set(mixTracks.map((t) => `${t.artist.toLowerCase()} - ${t.title.toLowerCase()}`));
+      for (const m of more) {
+        const k = `${m.artist.toLowerCase()} - ${m.title.toLowerCase()}`;
+        if (!existing.has(k)) {
+          existing.add(k);
+          mixTracks.push(m);
+        }
+      }
+    }
 
-    // If fewer than 40 tracks, supplement with preset fallback tracks
-    if (mixTracks.length < 40) {
+    if (mixTracks.length < 25 && personalizedQuery) {
+      const personalTracks = await apiGetGenreTracks(personalizedQuery);
+      const existing = new Set(mixTracks.map((t) => `${t.artist.toLowerCase()} - ${t.title.toLowerCase()}`));
+      for (const pt of personalTracks) {
+        const k = `${pt.artist.toLowerCase()} - ${pt.title.toLowerCase()}`;
+        if (!existing.has(k)) {
+          existing.add(k);
+          mixTracks.push(pt);
+        }
+      }
+    }
+
+    if (mixTracks.length < 25) {
       const fbTracks = preset.fallbackTracks.map((fb, idx) => ({
         id: `dm-${preset.mixNumber}-${idx}-${fb.sourceId}`,
         number: mixTracks.length + idx + 1,
@@ -680,7 +691,7 @@ export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Trac
   // 1. In-memory fast cache hit (0ms)
   if (dailyMixTracksCache.has(mixConfig.id)) {
     const cached = dailyMixTracksCache.get(mixConfig.id)!;
-    if (cached.length >= 40) {
+    if (cached.length >= 25) {
       return cached;
     }
   }
@@ -692,12 +703,10 @@ export async function getDailyMixTracks(mixConfig: DailyMixConfig): Promise<Trac
     tracks = await repo.getTracksByIds(trackIds);
   }
 
-  // 3. If fewer than 40 tracks were retrieved, fetch fresh full set of 40-50 tracks
-  if (tracks.length < 40) {
-    const dailyQ = getDailyQueryForMix(mixConfig.mixNumber) || mixConfig.genre || 'chart';
-    const preset = GENRE_PRESETS.find((p) => p.mixNumber === mixConfig.mixNumber);
-    const queriesToFetch = [dailyQ, ...(preset?.searchQueries || [])];
-    const freshTracks = await fetchGenreTracksBatch(queriesToFetch);
+  // 3. If fewer than 25 tracks were retrieved, fetch fresh set via apiGetGenreTracks
+  if (tracks.length < 25) {
+    const genreQuery = mixConfig.genre || (mixConfig.mixNumber === 0 ? 'Discover Weekly' : `Mix ${mixConfig.mixNumber}`);
+    const freshTracks = await apiGetGenreTracks(genreQuery);
     if (freshTracks.length > 0) {
       for (const t of freshTracks) {
         await repo.putTrack(t);
@@ -726,11 +735,12 @@ export async function getStationTracks(station: StationItem): Promise<Track[]> {
     }
   }
 
-  const query = station.searchQuery || `${station.title} music`;
-  let stationTracks = await fetchGenreTracks(query);
+  // Exact same genre engine as Moods & Genres
+  const query = station.title || station.searchQuery;
+  let stationTracks = await apiGetGenreTracks(query);
 
-  if (stationTracks.length < 40) {
-    const more = await fetchGenreTracks(station.title);
+  if (stationTracks.length < 20 && station.searchQuery && station.searchQuery !== station.title) {
+    const more = await apiGetGenreTracks(station.searchQuery);
     const existingTitles = new Set(stationTracks.map((t) => t.title.toLowerCase()));
     for (const m of more) {
       if (!existingTitles.has(m.title.toLowerCase())) {
@@ -741,12 +751,12 @@ export async function getStationTracks(station: StationItem): Promise<Track[]> {
 
   stationTracks = stationTracks.map((t, idx) => ({
     ...t,
-    id: `st-${station.id}-${idx}-${t.id}`,
+    id: `st-${station.id}-${idx}-${t.id || t.sourceId}`,
     number: idx + 1,
     album: `${station.title} Radio`,
     iconName: 'radio' as const,
-    gradientFrom: '#047857',
-    gradientTo: '#064E3B',
+    gradientFrom: '#1E293B',
+    gradientTo: '#0F172A',
   }));
 
   for (const t of stationTracks) {

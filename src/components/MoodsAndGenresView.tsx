@@ -185,31 +185,38 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
   return (
     <div
       id="moods-and-genres-view"
-      className="flex-1 overflow-y-auto px-6 py-6 pb-24 relative select-none bg-black text-white"
+      className="flex-1 overflow-y-auto px-6 py-6 pb-24 relative select-none bg-transparent text-[#0F172A] dark:text-white"
     >
+      <div
+        className="pointer-events-none absolute inset-0 z-0 dark:block hidden"
+        style={{
+          background: 'linear-gradient(180deg, #181822 0%, #0d0d14 30%, #060609 65%, #000000 100%)',
+        }}
+      />
+
       <div className="relative z-10 flex flex-col gap-4 mb-8">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+              className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white transition-colors cursor-pointer"
               title={t.moods?.back || t.nav.back}
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A] dark:text-white">
               {t.moods?.title || 'Moods & Genres'}
             </h1>
           </div>
 
           <div className="relative w-64 max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40" />
             <input
               type="text"
               placeholder={t.moods?.searchPlaceholder || 'Filter moods & genres...'}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-full bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.16] border border-white/10 text-xs text-white placeholder:text-white/40 focus:outline-none transition-all"
+              className="w-full h-9 pl-9 pr-3 rounded-full bg-black/[0.04] hover:bg-black/[0.07] focus:bg-white dark:bg-white/[0.08] dark:hover:bg-white/[0.12] dark:focus:bg-white/[0.16] border border-black/10 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none transition-all shadow-xs"
             />
           </div>
         </div>
@@ -218,7 +225,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
       <div className="relative z-10 flex flex-col gap-9">
         {filteredSections.map((sec, secIdx) => (
           <section key={sec.title || secIdx} className="flex flex-col gap-3.5">
-            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white/95">
+            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#0F172A] dark:text-white/95">
               {sec.title}
             </h2>
 
@@ -229,23 +236,23 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
                   <div
                     key={item.id}
                     onClick={() => handlePlayCategory(item)}
-                    className="group relative h-12 rounded-xl bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/[0.08] hover:border-white/20 transition-all duration-150 cursor-pointer flex items-center px-3 gap-3 overflow-hidden shadow-xs hover:shadow-md"
+                    className="group relative h-12 rounded-xl bg-white/70 hover:bg-white dark:bg-[#1C1C1E]/90 dark:hover:bg-[#2C2C2E] border border-black/[0.06] hover:border-black/15 dark:border-white/[0.08] dark:hover:border-white/20 transition-all duration-150 cursor-pointer flex items-center px-3 gap-3 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md"
                   >
                     <div
                       className="w-1.5 h-6 rounded-full shrink-0 shadow-xs transition-transform group-hover:scale-y-110"
                       style={{ backgroundColor: item.stripeColor }}
                     />
 
-                    <span className="text-xs sm:text-sm font-semibold text-white/90 group-hover:text-white truncate flex-1">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800 group-hover:text-slate-950 dark:text-white/90 dark:group-hover:text-white truncate flex-1">
                       {item.title}
                     </span>
 
                     <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isLoadingThis ? (
-                        <Loader2 size={16} className="animate-spin text-white" />
+                        <Loader2 size={16} className="animate-spin text-[#0F172A] dark:text-white" />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
-                          <Play size={12} fill="black" className="translate-x-0.5" />
+                        <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
+                          <Play size={12} className="fill-white dark:fill-black text-[#0F172A] dark:text-white translate-x-0.5" />
                         </div>
                       )}
                     </div>

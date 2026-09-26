@@ -284,7 +284,7 @@ export const zh: TranslationSchema = {
     headerBadge: 'Otofy 个性化',
     title: '选择至少 3 位喜爱的音乐人',
     subtitle: '这将立即校准并激活主页上的专属“我的电波”电台。',
-    searchPlaceholder: '搜索全球任意歌手或乐队...',
+    searchPlaceholder: '搜索歌手或乐队...',
     selectedCount: '已选：{count} 位（至少 3 位）',
     readyToLaunch: '准备就绪',
     startListening: '开始收听',
