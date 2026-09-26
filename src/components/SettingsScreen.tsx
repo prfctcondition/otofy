@@ -48,7 +48,7 @@ export const SettingsScreen: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
   const [appVersion, setAppVersion] = useState<string>(
-    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.2'
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.3'
   );
 
   // Fetch cache size and audio output devices
