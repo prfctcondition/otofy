@@ -53,7 +53,7 @@ export const SettingsScreen: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
   const [appVersion, setAppVersion] = useState<string>(
-    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.4'
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.5'
   );
 
   // Fetch cache size and audio output devices
@@ -265,17 +265,17 @@ export const SettingsScreen: React.FC = () => {
                   {t.settings?.appearance?.themeDesc || 'Crystal liquid glass light theme or deep obsidian OLED dark theme.'}
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-black/5 dark:bg-white/10 p-1 rounded-xl">
+              <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/10 p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setTheme('light')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     theme === 'light'
-                      ? 'bg-white text-black shadow-xs'
+                      ? 'bg-white text-[#0F172A] shadow-xs'
                       : 'text-slate-600 dark:text-white/60 hover:text-black dark:hover:text-white'
                   }`}
                 >
-                  <Sun size={13} className={theme === 'light' ? 'text-amber-500' : ''} />
+                  <Sun size={13} className="shrink-0" />
                   <span>{t.settings?.appearance?.themeLight || 'Light Theme'}</span>
                 </button>
                 <button
@@ -287,7 +287,7 @@ export const SettingsScreen: React.FC = () => {
                       : 'text-slate-600 dark:text-white/60 hover:text-black dark:hover:text-white'
                   }`}
                 >
-                  <Moon size={13} className={theme === 'dark' ? 'text-sky-400' : ''} />
+                  <Moon size={13} className="shrink-0" />
                   <span>{t.settings?.appearance?.themeDark || 'Dark Theme'}</span>
                 </button>
               </div>

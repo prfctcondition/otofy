@@ -346,6 +346,28 @@ export interface TranslationSchema {
       restartNow: string;
     };
   };
+  queueModal: {
+    title: string;
+    activeQueueCount: string;
+    addToPlaylist: string;
+    addQueueCount: string;
+    createNewPlaylist: string;
+    existingPlaylists: string;
+    noPlaylistsYet: string;
+    clearQueue: string;
+    clearQueueTooltip: string;
+    close: string;
+    nowPlaying: string;
+    playing: string;
+    nextInQueue: string;
+    queueEmpty: string;
+    playNow: string;
+    removeFromQueue: string;
+    trackAddedToast: string;
+    trackAddedToastDesc: string;
+    queueAddedToast: string;
+    queueAddedToastDesc: string;
+  };
 }
 
 export interface GenreTranslation {
