@@ -821,7 +821,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('artists')}
               className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-white/60 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
-              {language === 'ru' ? 'Пропустить к артистам' : 'Skip to Artists'}
+              {t.onboarding?.skip || (language === 'ru' ? 'Пропустить к артистам' : 'Skip to Artists')}
             </button>
           ) : currentStep === 'guide' ? (
             <button
@@ -830,7 +830,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>{t.onboarding?.back || (language === 'ru' ? 'Назад: Язык и тема' : 'Back: Language & Theme')}</span>
+              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepAppearance || 'Language & Theme'}` : (language === 'ru' ? 'Назад: Язык и тема' : 'Back: Language & Theme')}</span>
             </button>
           ) : (
             <button
@@ -839,7 +839,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>{t.onboarding?.back || (language === 'ru' ? 'Назад: Возможности' : 'Back: Features')}</span>
+              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'Назад: Возможности' : 'Back: Features')}</span>
             </button>
           )}
 
@@ -849,7 +849,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('guide')}
               className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <span>{t.onboarding?.next || (language === 'ru' ? 'Далее: Возможности' : 'Next: Features')}</span>
+              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'Далее: Возможности' : 'Next: Features')}</span>
               <ArrowRight size={16} />
             </button>
           ) : currentStep === 'guide' ? (
@@ -858,7 +858,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('artists')}
               className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <span>{t.onboarding?.next || (language === 'ru' ? 'Далее: Выбрать артистов' : 'Next: Choose Artists')}</span>
+              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepArtists || 'Artists'}` : (language === 'ru' ? 'Далее: Выбрать артистов' : 'Next: Choose Artists')}</span>
               <ArrowRight size={16} />
             </button>
           ) : (
@@ -907,7 +907,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   onClick={handleSkip}
                   className="px-5 py-2.5 rounded-full text-sm font-semibold bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white/90 cursor-pointer transition-colors"
                 >
-                  {language === 'ru' ? 'Пропустить и слушать' : 'Skip for now'}
+                  {t.onboarding?.skip || (language === 'ru' ? 'Пропустить и слушать' : 'Skip for now')}
                 </button>
               )}
             </div>
@@ -943,11 +943,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     Otofy Desktop
                   </span>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#0F172A] leading-tight">
-                    {language === 'ru' ? 'Добро пожаловать в Otofy' : 'Welcome to Otofy'}
+                    {t.onboarding?.welcomeTitle || (language === 'ru' ? 'Добро пожаловать в Otofy' : 'Welcome to Otofy')}
                   </h1>
                   <p className="text-sm sm:text-base text-slate-500 max-w-md leading-relaxed mt-1">
                     {language === 'ru'
                       ? 'Чистый звук, бесконечная музыка и эстетика жидкого стекла'
+                      : language === 'fr'
+                      ? 'Son pur, musique sans fin et esthétique de verre liquide'
                       : 'Pure sound, endless music, and liquid glass aesthetics'}
                   </p>
                 </div>
@@ -959,12 +961,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     Personal Experience
                   </span>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#0F172A] leading-tight">
-                    {language === 'ru' ? 'Настроим всё под вас' : "Let's personalize your sound"}
+                    {language === 'ru' ? 'Настроим всё под вас' : language === 'fr' ? 'Personnalisons votre expérience' : "Let's personalize your sound"}
                   </h1>
                   <p className="text-sm sm:text-base text-slate-500 max-w-md leading-relaxed mt-1">
-                    {language === 'ru'
+                    {t.onboarding?.welcomeSubtitle || (language === 'ru'
                       ? 'Пара быстрых шагов для выбора темы, языка и калибровки вашей волны'
-                      : 'A few quick steps to choose your theme, language, and personal stream'}
+                      : 'A few quick steps to choose your theme, language, and personal stream')}
                   </p>
                 </div>
               )}
@@ -979,11 +981,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 }}
                 className="px-7 py-3 rounded-full text-sm font-bold flex items-center gap-2 bg-[#0F172A] text-white hover:bg-black shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                <span>{language === 'ru' ? 'Начать настройку' : 'Get Started'}</span>
+                <span>{t.onboarding?.startListening || (language === 'ru' ? 'Начать настройку' : 'Get Started')}</span>
                 <ArrowRight size={16} />
               </button>
               <span className="text-xs text-slate-400 font-medium">
-                {language === 'ru' ? 'или нажмите в любом месте' : 'or click anywhere to continue'}
+                {language === 'ru' ? 'или нажмите в любом месте' : language === 'fr' ? 'ou cliquez n\'importe où pour continuer' : 'or click anywhere to continue'}
               </span>
             </div>
           </div>

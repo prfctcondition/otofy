@@ -222,7 +222,7 @@ class DiscordRpcService {
     const rawTitle = data.title || 'Unknown Track';
 
     const cleanTitle = rawTitle.replace(/^Listening to /i, '').trim();
-    const detailsText = `Listening to ${cleanTitle}`;
+    const detailsText = cleanTitle;
 
     // State: strictly artist name without stream source tag
     const stateText = artistName;
