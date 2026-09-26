@@ -1,4 +1,18 @@
-import { app, net } from 'electron';
+import { createRequire } from 'module';
+
+function getElectronNet(): { net: any; app: any } | null {
+  try {
+    if (process.versions?.electron) {
+      const req = createRequire(import.meta.url);
+      const electron = req('electron');
+      const electronModule = electron?.default || electron;
+      if (electronModule?.net?.fetch) {
+        return { net: electronModule.net, app: electronModule.app };
+      }
+    }
+  } catch {}
+  return null;
+}
 
 export function normalizeHeaders(headers: any): Record<string, string> {
   const result: Record<string, string> = {};
@@ -20,31 +34,38 @@ export function normalizeHeaders(headers: any): Record<string, string> {
 }
 
 export const electronFetch: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  if (!app.isReady()) {
-    await app.whenReady();
+  const electronApis = getElectronNet();
+  if (electronApis) {
+    const { app, net } = electronApis;
+    if (app && !app.isReady()) {
+      await app.whenReady();
+    }
+
+    let url: string;
+    let method = init?.method;
+    let headers = init?.headers;
+    let body = init?.body;
+
+    if (typeof input === 'string') {
+      url = input;
+    } else if (input instanceof URL) {
+      url = input.toString();
+    } else {
+      url = input.url;
+      if (!method) method = input.method;
+      if (!headers) headers = input.headers;
+    }
+
+    const cleanHeaders = normalizeHeaders(headers);
+
+    return net.fetch(url, {
+      ...init,
+      method: method || 'GET',
+      headers: cleanHeaders,
+      body,
+    }) as unknown as Promise<Response>;
   }
 
-  let url: string;
-  let method = init?.method;
-  let headers = init?.headers;
-  let body = init?.body;
-
-  if (typeof input === 'string') {
-    url = input;
-  } else if (input instanceof URL) {
-    url = input.toString();
-  } else {
-    url = input.url;
-    if (!method) method = input.method;
-    if (!headers) headers = input.headers;
-  }
-
-  const cleanHeaders = normalizeHeaders(headers);
-
-  return net.fetch(url, {
-    ...init,
-    method: method || 'GET',
-    headers: cleanHeaders,
-    body,
-  }) as unknown as Promise<Response>;
+  // Fallback for standalone browser or Vite dev/build environment
+  return globalThis.fetch(input, init);
 };
