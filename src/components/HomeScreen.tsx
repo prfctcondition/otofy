@@ -244,33 +244,56 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 dark:from-white/[0.04] to-transparent z-0" />
 
       <section id="my-wave-hero-section" className="relative z-10 mb-8">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-900/40 via-purple-900/30 to-indigo-950/40 backdrop-blur-xl border border-white/10 p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group">
-          <div className="pointer-events-none absolute -top-16 -left-16 w-56 h-56 rounded-full bg-violet-600/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 right-1/4 w-56 h-56 rounded-full bg-cyan-600/15 blur-3xl" />
+        <div className="relative overflow-hidden rounded-2xl bg-white/70 hover:bg-white/80 dark:bg-[#0C0C10]/90 dark:hover:bg-[#111116] backdrop-blur-2xl border border-black/[0.07] dark:border-white/10 p-5 sm:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group transition-all duration-200">
+          <div className="pointer-events-none absolute -top-16 -left-16 w-56 h-56 rounded-full bg-black/[0.02] dark:bg-white/[0.03] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 right-1/4 w-56 h-56 rounded-full bg-black/[0.015] dark:bg-white/[0.02] blur-3xl" />
 
-          <div className="relative z-10 flex items-center gap-4 min-w-0">
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_8px_24px_rgba(124,58,237,0.4)] overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
-              <Waves size={36} className="text-white drop-shadow-md animate-pulse" />
+          <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md dark:shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden transition-transform group-hover:scale-105">
+              <Waves size={30} className="animate-pulse" />
             </div>
 
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/15 text-white/90 border border-white/10">
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-black/[0.05] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:text-white/90 dark:border-white/10">
                   {t.wave?.badge || 'Personal Stream'}
                 </span>
                 {favoriteArtists.length > 0 && (
-                  <span className="text-[11px] text-white/50 font-medium">
-                    {favoriteArtists.length} {t.wave?.artistsCount || 'favorite artists'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex -space-x-1.5 overflow-hidden py-0.5">
+                      {favoriteArtists.slice(0, 3).map((artistName) => {
+                        const avatar = settingsStore.favoriteArtistAvatars?.[artistName];
+                        if (!avatar) return null;
+                        return (
+                          <img
+                            key={artistName}
+                            src={avatar}
+                            alt={artistName}
+                            className="inline-block h-4 w-4 rounded-full ring-1 ring-white dark:ring-black object-cover"
+                            loading="lazy"
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="text-[11px] text-[#64748B] dark:text-white/50 font-medium truncate">
+                      {favoriteArtists.length} {t.wave?.artistsCount || 'favorite artists'}
+                    </span>
+                  </div>
                 )}
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white tracking-tight flex items-center gap-2 truncate">
                 {t.wave?.title || 'My Wave'}
               </h2>
 
-              <p className="text-xs sm:text-sm text-white/70 max-w-xl truncate mt-0.5">
+              <p
+                className="text-xs sm:text-sm text-[#475569] dark:text-white/65 max-w-xl truncate mt-0.5"
+                title={
+                  favoriteArtists.length > 0
+                    ? `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`
+                    : (t.wave?.subtitle || 'Endless music flow tailored to your personal taste')
+                }
+              >
                 {favoriteArtists.length > 0
                   ? `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.slice(0, 4).join(', ')}${favoriteArtists.length > 4 ? (t.wave?.andOthers || ' and others') : ''}`
                   : (t.wave?.subtitle || 'Endless music flow tailored to your personal taste')}
@@ -278,13 +301,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
           </div>
 
-          <div className="relative z-10 flex items-center gap-3 w-full md:w-auto justify-end">
+          <div className="relative z-10 flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
             <button
               onClick={() => settingsStore.setIsOnboardingModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
               title={t.wave?.tune || 'Tune'}
             >
-              <Sparkles size={14} className="text-violet-300" />
+              <Sparkles size={14} className="text-slate-600 dark:text-white/70" />
               <span>{t.wave?.tune || 'Tune'}</span>
             </button>
 
@@ -292,13 +315,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               id="play-my-wave-btn"
               onClick={handleWaveClick}
               disabled={isWaveLoading}
-              className="h-11 px-5 rounded-xl bg-white text-black hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.3)] cursor-pointer shrink-0"
+              className="h-10 sm:h-11 px-5 rounded-xl bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_16px_rgba(15,23,42,0.2)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)] cursor-pointer shrink-0"
               title={t.wave?.listen || 'Listen'}
             >
               {isWaveLoading ? (
-                <Loader2 size={18} className="animate-spin text-black" />
+                <Loader2 size={16} className="animate-spin text-white dark:text-black" />
               ) : (
-                <Play size={18} className="fill-black translate-x-0.5" />
+                <Play size={16} className="fill-white text-white dark:fill-black dark:text-black translate-x-0.5" />
               )}
               <span>{t.wave?.listen || 'Listen'}</span>
             </button>

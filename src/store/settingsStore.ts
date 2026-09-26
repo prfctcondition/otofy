@@ -47,6 +47,7 @@ export interface SettingsState {
   // 8. Onboarding and My Wave
   onboardingCompleted: boolean;
   favoriteArtists: string[];
+  favoriteArtistAvatars: Record<string, string>;
   isOnboardingModalOpen: boolean;
 
   // Actions
@@ -64,7 +65,8 @@ export interface SettingsState {
   setHardwareAcceleration: (hardwareAcceleration: boolean) => Promise<void>;
   setLanguage: (language: SupportedLanguage) => void;
   setOnboardingCompleted: (completed: boolean) => void;
-  setFavoriteArtists: (artists: string[]) => void;
+  setFavoriteArtists: (artists: string[], avatars?: Record<string, string>) => void;
+  setFavoriteArtistAvatar: (artist: string, avatarUrl: string) => void;
   setIsOnboardingModalOpen: (open: boolean) => void;
   resetOnboarding: () => void;
   initFromSystem: () => Promise<void>;
@@ -88,12 +90,32 @@ export const useSettingsStore = create<SettingsState>()(
       language: getInitialLanguage(),
       onboardingCompleted: false,
       favoriteArtists: [],
+      favoriteArtistAvatars: {},
       isOnboardingModalOpen: false,
 
       setOnboardingCompleted: (onboardingCompleted) => set({ onboardingCompleted }),
-      setFavoriteArtists: (favoriteArtists) => set({ favoriteArtists }),
+      setFavoriteArtists: (favoriteArtists, avatars) =>
+        set((state) => ({
+          favoriteArtists,
+          favoriteArtistAvatars: avatars
+            ? { ...state.favoriteArtistAvatars, ...avatars }
+            : state.favoriteArtistAvatars,
+        })),
+      setFavoriteArtistAvatar: (artist, avatarUrl) =>
+        set((state) => ({
+          favoriteArtistAvatars: {
+            ...state.favoriteArtistAvatars,
+            [artist]: avatarUrl,
+          },
+        })),
       setIsOnboardingModalOpen: (isOnboardingModalOpen) => set({ isOnboardingModalOpen }),
-      resetOnboarding: () => set({ onboardingCompleted: false, favoriteArtists: [], isOnboardingModalOpen: true }),
+      resetOnboarding: () =>
+        set({
+          onboardingCompleted: false,
+          favoriteArtists: [],
+          favoriteArtistAvatars: {},
+          isOnboardingModalOpen: true,
+        }),
 
       setLanguage: (language) => set({ language }),
 

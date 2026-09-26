@@ -46,54 +46,54 @@ function getArtistGradient(name: string): string {
 
 const CURATED_ARTISTS: OnboardingArtist[] = [
   // Phonk
-  { name: 'Kordhell', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-red-600 to-rose-950' },
-  { name: 'DVRST', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-amber-600 to-red-950' },
-  { name: 'Ghostface Playa', genre: 'Phonk', genres: ['phonk'], gradient: 'from-purple-700 to-indigo-950' },
-  { name: 'Shadxwbxrn', genre: 'Phonk', genres: ['phonk'], gradient: 'from-orange-600 to-neutral-900' },
-  { name: 'INTERWORLD', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-cyan-600 to-blue-950' },
+  { name: 'Kordhell', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-red-600 to-rose-950', avatarUrl: 'https://yt3.googleusercontent.com/7-4MjHxfx_2QHaTmct11HA42FscZIo_HldDrj3tUFeSjKHzT0hP-G6KUv_t7YDavim_mEPQ4uQ=w544-h544-l90-rjIUWIzKUG' },
+  { name: 'DVRST', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-amber-600 to-red-950', avatarUrl: 'https://yt3.googleusercontent.com/6rrXBMoUBEKwVPKNR4jbo_dafu0L0TQkhbBteyk2IZdLIzzdEz6lxklTOkuSQnNRz__eQQcTZjO53GzB=w544-h544-l90-rj' },
+  { name: 'Ghostface Playa', genre: 'Phonk', genres: ['phonk'], gradient: 'from-purple-700 to-indigo-950', avatarUrl: 'https://yt3.googleusercontent.com/yRmwlYY7ow3Tl0NFQreDJpUTxZ90nNwzyHrvLaWXClOqIeUfKWeT9_tO4nKhgV0MmBzKlLBPWUU=w544-h544-l90-rj' },
+  { name: 'Shadxwbxrn', genre: 'Phonk', genres: ['phonk'], gradient: 'from-orange-600 to-neutral-900', avatarUrl: 'https://yt3.googleusercontent.com/BcZMenqET5GTMLyCLXZRwbysy0DNYXY3zvIw1pAM3jiDq-J86djJjmwzYy1IlaT9mi-jD4h2Yw=w544-h544-l90-rj' },
+  { name: 'INTERWORLD', genre: 'Phonk', genres: ['phonk', 'electronic'], gradient: 'from-cyan-600 to-blue-950', avatarUrl: 'https://yt3.googleusercontent.com/oCvzk0TlYyRPtP_rVg4yPmFKjhOAzF7iOMvGQH9n0bpWv2ZBAlCbjTrml4Z5pXXf1q69lWyauA=w544-h544-l90-rj' },
 
   // Hip-Hop
-  { name: 'The Weeknd', genre: 'R&B / Pop', genres: ['pop', 'hiphop'], gradient: 'from-red-700 to-rose-950' },
-  { name: 'Travis Scott', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-yellow-950' },
-  { name: 'Drake', genre: 'Hip-Hop', genres: ['hiphop', 'pop'], gradient: 'from-blue-600 to-indigo-950' },
-  { name: 'Kendrick Lamar', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-emerald-700 to-teal-950' },
-  { name: 'Kanye West', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-neutral-700 to-stone-950' },
-  { name: 'Eminem', genre: 'Hip-Hop', genres: ['hiphop', 'rock'], gradient: 'from-slate-700 to-zinc-950' },
-  { name: 'Post Malone', genre: 'Hip-Hop / Pop', genres: ['hiphop', 'pop', 'rock'], gradient: 'from-yellow-600 to-amber-950' },
-  { name: 'Juice WRLD', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-fuchsia-700 to-purple-950' },
-  { name: 'Lil Peep', genre: 'Emo Rap', genres: ['hiphop', 'rock', 'indie'], gradient: 'from-pink-600 to-rose-950' },
-  { name: 'Miyagi & Эндшпиль', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-stone-900' },
-  { name: 'Oxxxymiron', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-sky-700 to-slate-900' },
-  { name: 'PHARAOH', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-violet-800 to-neutral-950' },
-  { name: 'SALUKI', genre: 'Hip-Hop', genres: ['hiphop', 'electronic'], gradient: 'from-zinc-700 to-neutral-950' },
+  { name: 'The Weeknd', genre: 'R&B / Pop', genres: ['pop', 'hiphop'], gradient: 'from-red-700 to-rose-950', avatarUrl: 'https://lh3.googleusercontent.com/U-SAmNOu4TynE818gLCfKsuHZ0U5YNEtO9mrjSI9WCCKERs98LzrCal5kajBBTQNwdcisoB2Bn-pHp4=w544-h544-l90-rj' },
+  { name: 'Travis Scott', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-yellow-950', avatarUrl: 'https://yt3.googleusercontent.com/r9k_FpAswxhQnl_cudiaT2ocWFccR6SzEFXgZ9a12iR5eDPSILlIL2EQewyQ-yYSt1JFyH1pqnoBXxs=w544-h544-l90-rj' },
+  { name: 'Drake', genre: 'Hip-Hop', genres: ['hiphop', 'pop'], gradient: 'from-blue-600 to-indigo-950', avatarUrl: 'https://yt3.googleusercontent.com/MxNjcRJ-uK4Xvx7u90IhEFLQM8x9LIGTA9VCKHq5U4Wn2jOgiWaMtg-qz329SIzqnCyhdCCB3MpdAGs=w544-h544-l90-rj' },
+  { name: 'Kendrick Lamar', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-emerald-700 to-teal-950', avatarUrl: 'https://yt3.googleusercontent.com/uB8Magh99SvDyT_mcDYeNYxlVZ_F9WN-cJtAFMHw_Q-_N_8y5-uZiay8-EZSKKloNoWxymBzVehSF4PN=w544-h544-l90-rj' },
+  { name: 'Kanye West', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-neutral-700 to-stone-950', avatarUrl: 'https://lh3.googleusercontent.com/IFlc3sf6sHV3TAZ_5vhyHQiKb9D4AdSlDkiTSgsRiicnzLASXwVr1n22EEg6Vtd2XBlyJslm8xlYiA=w544-h544-l90-rj' },
+  { name: 'Eminem', genre: 'Hip-Hop', genres: ['hiphop', 'rock'], gradient: 'from-slate-700 to-zinc-950', avatarUrl: 'https://lh3.googleusercontent.com/JFI6JZrS-Lco4UdpqDfHY5Wgwy51VXWxmNdI7bCBU5CDlIpN6WWyisZ7MGlpjbrxEGYMFpsqoR_UwcE=w544-h544-l90-rj' },
+  { name: 'Post Malone', genre: 'Hip-Hop / Pop', genres: ['hiphop', 'pop', 'rock'], gradient: 'from-yellow-600 to-amber-950', avatarUrl: 'https://lh3.googleusercontent.com/48LfK4z6o-CCEWgHQnQfg0ltcT9tbZSN0qjSh0FSJsJI5GF48j2-pH219ciG1ML-PI80ZGD4Vz6sjg=w544-h544-l90-rj' },
+  { name: 'Juice WRLD', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-fuchsia-700 to-purple-950', avatarUrl: 'https://yt3.googleusercontent.com/6YKQ7fDb3ISfzNUjpJnXX1FLw9EQ8eK5qHa07VANJtkaGagUtqtHiAOKz2AJ1AoASNacrCeg8pd35ao=w544-h544-l90-rj' },
+  { name: 'Lil Peep', genre: 'Emo Rap', genres: ['hiphop', 'rock', 'indie'], gradient: 'from-pink-600 to-rose-950', avatarUrl: 'https://yt3.googleusercontent.com/TbvXoTXJz8a2xfkJxZsI0riSyrUSibnVHBFxhHTeJefWY-2-60x0VhUPkO89uF3CGOPLalsTTM-OlEeI=w544-h544-l90-rj' },
+  { name: 'Miyagi & Эндшпиль', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-stone-900', avatarUrl: 'https://yt3.googleusercontent.com/wUMilVdi6oF6T4Wgb-tXRmVh11b7bPtXWg3ZbMLS33GicZ6q-4YbuWRUIgsuf47QleZmGfEr9sEw8ShzVQ=w544-h544-l90-rj' },
+  { name: 'Oxxxymiron', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-sky-700 to-slate-900', avatarUrl: 'https://yt3.googleusercontent.com/VQFSi8rivXGVoh_8IOz3TuyZ_ZEgYHtZTHHLHUTwszOEfbjIdr_0PcJY20Zc5U1pprsv4oae8u-mxxU=w544-h544-l90-rj' },
+  { name: 'PHARAOH', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-violet-800 to-neutral-950', avatarUrl: 'https://lh3.googleusercontent.com/jZrLc4z8raQg-YEmh7tO9Y8FUTyEnRNvkLLfSs-BsEB5Do2U_qRM1uXvpAixJnizItPZVrOgnVg9C9g=w544-h544-l90-rj' },
+  { name: 'SALUKI', genre: 'Hip-Hop', genres: ['hiphop', 'electronic'], gradient: 'from-zinc-700 to-neutral-950', avatarUrl: 'https://yt3.googleusercontent.com/iyfGkGXSKiQTIypgBHjls-hluup_Z-OIEWlaj5HJUQfkZKHzYk4CrUGcpbCnKfBAxH9mv_kZzXF8Sw=w544-h544-l90-rj' },
 
   // Rock / Metal
-  { name: 'Linkin Park', genre: 'Rock', genres: ['rock', 'metal'], gradient: 'from-blue-700 to-slate-950' },
-  { name: 'Nirvana', genre: 'Grunge / Rock', genres: ['rock'], gradient: 'from-yellow-600 to-stone-900' },
-  { name: 'Rammstein', genre: 'Industrial Metal', genres: ['rock', 'metal'], gradient: 'from-red-800 to-neutral-950' },
-  { name: 'Deftones', genre: 'Alt Rock', genres: ['rock', 'metal'], gradient: 'from-teal-800 to-slate-950' },
-  { name: 'Arctic Monkeys', genre: 'Indie Rock', genres: ['rock', 'indie'], gradient: 'from-amber-700 to-neutral-900' },
-  { name: 'The Neighbourhood', genre: 'Alt Rock', genres: ['rock', 'indie', 'pop'], gradient: 'from-neutral-600 to-black' },
-  { name: 'Король и Шут', genre: 'Punk Rock', genres: ['rock'], gradient: 'from-red-700 to-black' },
-  { name: 'Кино', genre: 'Post-Punk', genres: ['rock', 'indie'], gradient: 'from-slate-700 to-black' },
-  { name: 'Три дня дождя', genre: 'Rock', genres: ['rock'], gradient: 'from-blue-800 to-slate-950' },
-  { name: 'Bring Me The Horizon', genre: 'Metalcore', genres: ['rock', 'metal'], gradient: 'from-rose-800 to-zinc-950' },
+  { name: 'Linkin Park', genre: 'Rock', genres: ['rock', 'metal'], gradient: 'from-blue-700 to-slate-950', avatarUrl: 'https://lh3.googleusercontent.com/uE72emEZFH3TVtCZoIFYKmnf7vsb42RYQxb4X-lonyqPQuS_mLtKpLfBQ5JdHwUijfQo06BtSB7LoQ=w544-h544-l90-rj' },
+  { name: 'Nirvana', genre: 'Grunge / Rock', genres: ['rock'], gradient: 'from-yellow-600 to-stone-900', avatarUrl: 'https://yt3.googleusercontent.com/yoFwkvvbmM3u7q0VM_HpjCnsaViQx3gWuycm5OsdmRqWBHL4LyIpNQ5kemdcoW7zrGETTutR_5c_xk8=w544-h544-l90-rj' },
+  { name: 'Rammstein', genre: 'Industrial Metal', genres: ['rock', 'metal'], gradient: 'from-red-800 to-neutral-950', avatarUrl: 'https://lh3.googleusercontent.com/5n-50qHOrMGyff90gyOB-6BXtoBTXQlBojztu06xVhk1_PhdFVF4XB_0wzjrWMiLVA0USgv-san0j0k=w544-h544-l90-rj' },
+  { name: 'Deftones', genre: 'Alt Rock', genres: ['rock', 'metal'], gradient: 'from-teal-800 to-slate-950', avatarUrl: 'https://lh3.googleusercontent.com/7eRx2PBSECk4sHidGdOV2QHLS6KYEM7o_xWqNhQ-ZbMzUovN0S6mkVVtMVEXlqctZ5q9fOwB7_2Itgg=w544-h544-l90-rj' },
+  { name: 'Arctic Monkeys', genre: 'Indie Rock', genres: ['rock', 'indie'], gradient: 'from-amber-700 to-neutral-900', avatarUrl: 'https://yt3.googleusercontent.com/kbPRnnOmWPXIb35ygxKvXt2a_745AVUkAUeFMqOUxbKx8T_I0f1JUfK3G43-_xUldK16-KrU2cj43i0=w544-h544-l90-rj' },
+  { name: 'The Neighbourhood', genre: 'Alt Rock', genres: ['rock', 'indie', 'pop'], gradient: 'from-neutral-600 to-black', avatarUrl: 'https://lh3.googleusercontent.com/J19IDTPTPVFTr0WvJocjskYePdfGuJLJl8wVqKg1cJ3PRMKRg1k-bGjQ6PF9PbgLnw95APtKV0gXIrw=w544-h544-l90-rj' },
+  { name: 'Король и Шут', genre: 'Punk Rock', genres: ['rock'], gradient: 'from-red-700 to-black', avatarUrl: 'https://yt3.googleusercontent.com/xw3xvEHQEWXX8ccMROkcmOjYcYZvKbo7GHzYStl7VRXehxqE-yXirXpSB1KckLYoTsn9UpH4pnfC1aY=w544-h544-l90-rj' },
+  { name: 'Кино', genre: 'Post-Punk', genres: ['rock', 'indie'], gradient: 'from-slate-700 to-black', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_m7A-puWYGi4-6hzDCgLWIfCyIEg87vsrGOVjJDFuMvUg=w544-h544-l90-rj' },
+  { name: 'Три дня дождя', genre: 'Rock', genres: ['rock'], gradient: 'from-blue-800 to-slate-950', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_mh4kt6VaYTL077ddRxOvNlMSs2ouMUvvLAeWbL76NrFwo=w544-h544-l90-rj' },
+  { name: 'Bring Me The Horizon', genre: 'Metalcore', genres: ['rock', 'metal'], gradient: 'from-rose-800 to-zinc-950', avatarUrl: 'https://yt3.googleusercontent.com/YgsyFk3KZHvI5cYtcGOcWYwbpu_GJc-IbPeWyF_Xzy2JIDwL1cPefog1szowNlvuIJ-_OkpoyWOYxhg=w544-h544-l90-rj' },
 
   // Electronic / Synthwave
-  { name: 'Daft Punk', genre: 'Electronic', genres: ['electronic'], gradient: 'from-yellow-500 to-amber-900' },
-  { name: 'The Prodigy', genre: 'Electronic / Breakbeat', genres: ['electronic', 'rock'], gradient: 'from-lime-600 to-emerald-950' },
-  { name: 'Fred again..', genre: 'Electronic', genres: ['electronic'], gradient: 'from-sky-600 to-blue-950' },
-  { name: 'Skrillex', genre: 'Electronic', genres: ['electronic', 'hiphop'], gradient: 'from-violet-600 to-purple-950' },
-  { name: 'Gesaffelstein', genre: 'Dark Techno', genres: ['electronic'], gradient: 'from-neutral-700 to-black' },
+  { name: 'Daft Punk', genre: 'Electronic', genres: ['electronic'], gradient: 'from-yellow-500 to-amber-900', avatarUrl: 'https://lh3.googleusercontent.com/qLhu6Py_4_xoBsoubKQsXlhOQGqU9YU1ZRAbFusF0LlrPkXbbpu7bEh-k_ZtE4JwLgubvucAQqcK1hRk=w544-h544-l90-rj' },
+  { name: 'The Prodigy', genre: 'Electronic / Breakbeat', genres: ['electronic', 'rock'], gradient: 'from-lime-600 to-emerald-950', avatarUrl: 'https://lh3.googleusercontent.com/T6tDVkRwiyBctIvUpMYd8RWaH2V0BsNkqZnmrxxkY8An2t2_htNtHRZeYDJBopu-p3GC2wq1OvHB9F4=w544-h544-l90-rj' },
+  { name: 'Fred again..', genre: 'Electronic', genres: ['electronic'], gradient: 'from-sky-600 to-blue-950', avatarUrl: 'https://lh3.googleusercontent.com/A_RYzbdTf179VgAVX6dbbviS9Ff6ryikolaxwOtMFDctcvuo7JWPS_OZtS7N77eS7WNwaWYjOnhNX7g=w544-h544-l90-rj' },
+  { name: 'Skrillex', genre: 'Electronic', genres: ['electronic', 'hiphop'], gradient: 'from-violet-600 to-purple-950', avatarUrl: 'https://lh3.googleusercontent.com/VV_UrDtHZTdKt-oP2Gcn4D15Oh2kec4yuGRn7F-S7vx7-tit2QfZNys-kL9uyjK0VovAg96LIscl8_FJ=w544-h544-l90-rj' },
+  { name: 'Gesaffelstein', genre: 'Dark Techno', genres: ['electronic'], gradient: 'from-neutral-700 to-black', avatarUrl: 'https://yt3.googleusercontent.com/O_rI9mhwQw3m0Sq3RqAb4dHHQV05k30zB1KriF9rS0smdQvhj9bcuQAIQClcDAmO3oIq4a91xN1zPUAD=w544-h544-l90-rj' },
 
   // Pop / Indie
-  { name: 'Billie Eilish', genre: 'Alt Pop', genres: ['pop', 'indie'], gradient: 'from-emerald-600 to-zinc-950' },
-  { name: 'Lana Del Rey', genre: 'Dream Pop', genres: ['pop', 'indie'], gradient: 'from-rose-600 to-stone-900' },
-  { name: 'Joji', genre: 'Lo-Fi / R&B', genres: ['pop', 'indie', 'lofi'], gradient: 'from-purple-800 to-slate-950' },
-  { name: 'Gorillaz', genre: 'Alt / Trip-Hop', genres: ['indie', 'rock', 'electronic'], gradient: 'from-teal-600 to-neutral-950' },
-  { name: 'Cigarettes After Sex', genre: 'Dream Pop', genres: ['indie'], gradient: 'from-neutral-700 to-black' },
-  { name: 'Tame Impala', genre: 'Psychedelic Pop', genres: ['indie', 'electronic'], gradient: 'from-pink-600 to-indigo-950' },
-  { name: 'Radiohead', genre: 'Alt Rock', genres: ['rock', 'indie'], gradient: 'from-slate-600 to-zinc-900' },
+  { name: 'Billie Eilish', genre: 'Alt Pop', genres: ['pop', 'indie'], gradient: 'from-emerald-600 to-zinc-950', avatarUrl: 'https://lh3.googleusercontent.com/tQC4rOL6xz6FhmFr0ggQExxyGbYSOsyveXVSnPBh2WjEyIzQ9pMHablLJ-0GlMBrLBlBrbWQGmzrV6KN=w544-h544-l90-rj' },
+  { name: 'Lana Del Rey', genre: 'Dream Pop', genres: ['pop', 'indie'], gradient: 'from-rose-600 to-stone-900', avatarUrl: 'https://lh3.googleusercontent.com/CN-IGGdHB9FLirmRDoFj8VPwVJGd1N-WUP7uGyw7tOdJuE2MLwF-oe8xnr3ExERS6sCo-iviC-g3TtrL=w544-h544-l90-rj' },
+  { name: 'Joji', genre: 'Lo-Fi / R&B', genres: ['pop', 'indie', 'lofi'], gradient: 'from-purple-800 to-slate-950', avatarUrl: 'https://lh3.googleusercontent.com/qMz5INk8KDMl9JNUQck7ijuD-o-aJGFT_tw0KPHcxqNUAs5RZD0lkbLkUMhy3p0VFOoKZecEvkbh1BDp=w544-h544-l90-rj' },
+  { name: 'Gorillaz', genre: 'Alt / Trip-Hop', genres: ['indie', 'rock', 'electronic'], gradient: 'from-teal-600 to-neutral-950', avatarUrl: 'https://lh3.googleusercontent.com/MQ8sTeoDhSNyEItlabM-Bl1kFgCa4r1Rog38K8nokZ8vAIAgoN0omxEk5G6lXBj5azaaUZAvH7xhuRA=w544-h544-l90-rj' },
+  { name: 'Cigarettes After Sex', genre: 'Dream Pop', genres: ['indie'], gradient: 'from-neutral-700 to-black', avatarUrl: 'https://yt3.googleusercontent.com/ZPa3GuJRbvtOYYgGfslq7XIyzmATk9rncc2RTOFkLh6n4RyYYeGw-_AjqNpOCaC3a02xFHys5EZe97TY=w544-h544-l90-rj' },
+  { name: 'Tame Impala', genre: 'Psychedelic Pop', genres: ['indie', 'electronic'], gradient: 'from-pink-600 to-indigo-950', avatarUrl: 'https://lh3.googleusercontent.com/onR0ZnuFE6PwBeNwMiaTQHtz5vIbEIV8GJwDj8nEmOHuOvUj0efwFdAtXpfCOnpm-4GBl1IMgmtUNw=w544-h544-l90-rj' },
+  { name: 'Radiohead', genre: 'Alt Rock', genres: ['rock', 'indie'], gradient: 'from-slate-600 to-zinc-900', avatarUrl: 'https://lh3.googleusercontent.com/G-Vsaq4pw6Bl5Ny4p_wV9obzu_eyZxynQycvCvQru4Wglzfxg4NO9owDKnSlKys_-WRzPEc0O6ydGA=w544-h544-l90-rj' },
 ];
 
 const GENRE_FILTERS = [
@@ -128,6 +128,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     settingsStore.favoriteArtists || []
   );
 
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {
+      ...(settingsStore.favoriteArtistAvatars || {}),
+    };
+    for (const a of CURATED_ARTISTS) {
+      if (a.avatarUrl) {
+        initial[a.name] = a.avatarUrl;
+      }
+    }
+    return initial;
+  });
+
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (!trimmed) {
@@ -141,6 +153,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       try {
         const results = await apiSearchArtists(trimmed);
         setSearchResults(results);
+        setAvatarMap((prev) => {
+          const updated = { ...prev };
+          for (const item of results) {
+            const av = item.avatarUrl || item.thumbnailUrl;
+            if (av && item.name) {
+              updated[item.name] = av;
+            }
+          }
+          return updated;
+        });
       } catch (err) {
         console.error('Failed to search artists:', err);
         setSearchResults([]);
@@ -152,7 +174,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const toggleArtist = (name: string) => {
+  const toggleArtist = (name: string, avatarUrl?: string) => {
+    if (avatarUrl) {
+      setAvatarMap((prev) => ({ ...prev, [name]: avatarUrl }));
+    }
     setSelectedArtists((prev) =>
       prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name]
     );
@@ -171,7 +196,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const handleFinish = () => {
     if (!canSubmit) return;
     invalidateWaveCache();
-    settingsStore.setFavoriteArtists(selectedArtists);
+    const finalAvatars: Record<string, string> = {};
+    for (const name of selectedArtists) {
+      if (avatarMap[name]) {
+        finalAvatars[name] = avatarMap[name];
+      }
+    }
+    settingsStore.setFavoriteArtists(selectedArtists, finalAvatars);
     settingsStore.setOnboardingCompleted(true);
     if (onCompleteWave) {
       onCompleteWave(selectedArtists);
@@ -226,21 +257,40 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
           {selectedArtists.length > 0 && (
             <div className="mt-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
-              {selectedArtists.map((artistName) => (
-                <span
-                  key={artistName}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/20 text-xs font-medium text-white border border-white/15 transition-colors shrink-0"
-                >
-                  <span className="truncate max-w-[160px]">{artistName}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleArtist(artistName)}
-                    className="text-white/60 hover:text-white transition-colors"
+              {selectedArtists.map((artistName) => {
+                const avatar =
+                  avatarMap[artistName] || settingsStore.favoriteArtistAvatars?.[artistName];
+                return (
+                  <span
+                    key={artistName}
+                    className="inline-flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-white/15 hover:bg-white/20 text-xs font-medium text-white border border-white/15 transition-colors shrink-0"
                   >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
+                    <div className="w-5 h-5 rounded-full overflow-hidden bg-white/20 shrink-0 flex items-center justify-center">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt={artistName}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <User size={11} className="text-white/70" />
+                      )}
+                    </div>
+                    <span className="truncate max-w-[150px]">{artistName}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleArtist(artistName)}
+                      className="text-white/60 hover:text-white transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                );
+              })}
             </div>
           )}
 
@@ -313,11 +363,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 {searchResults.map((artist) => {
                   const isSelected = selectedArtists.includes(artist.name);
                   const gradient = getArtistGradient(artist.name);
-                  const avatar = artist.avatarUrl || artist.thumbnailUrl;
+                  const avatar = artist.avatarUrl || artist.thumbnailUrl || avatarMap[artist.name];
                   return (
                     <div
                       key={artist.id || artist.name}
-                      onClick={() => toggleArtist(artist.name)}
+                      onClick={() => toggleArtist(artist.name, avatar)}
                       className={`group relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center gap-3 select-none ${
                         isSelected
                           ? 'bg-white/[0.16] border-white/40 shadow-[0_4px_20px_rgba(255,255,255,0.1)] scale-[1.02]'
@@ -332,6 +382,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                             src={avatar}
                             alt={artist.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
                           />
                         ) : (
                           <User size={18} className="text-white/80" />
@@ -369,10 +423,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {filteredCurated.map((artist) => {
                 const isSelected = selectedArtists.includes(artist.name);
+                const avatar = artist.avatarUrl || avatarMap[artist.name];
                 return (
                   <div
                     key={artist.name}
-                    onClick={() => toggleArtist(artist.name)}
+                    onClick={() => toggleArtist(artist.name, avatar)}
                     className={`group relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center gap-3 select-none ${
                       isSelected
                         ? 'bg-white/[0.16] border-white/40 shadow-[0_4px_20px_rgba(255,255,255,0.1)] scale-[1.02]'
@@ -380,11 +435,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     }`}
                   >
                     <div
-                      className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-gradient-to-br ${artist.gradient} shadow-md relative`}
+                      className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-gradient-to-br ${artist.gradient} shadow-md relative overflow-hidden`}
                     >
-                      <User size={18} className="text-white/80" />
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt={artist.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <User size={18} className="text-white/80" />
+                      )}
                       {isSelected && (
-                        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
                           <Check size={18} className="text-white stroke-[3]" />
                         </div>
                       )}

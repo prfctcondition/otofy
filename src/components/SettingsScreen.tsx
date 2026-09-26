@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Cloud,
+  User,
 } from 'lucide-react';
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -253,6 +254,37 @@ export const SettingsScreen: React.FC = () => {
                   : (t.settingsPersonalization?.rowSubtitleEmpty ||
                       'No favorite artists selected yet. Calibrate to power your personal "My Wave" endless station.')}
               </p>
+
+              {settings.favoriteArtists && settings.favoriteArtists.length > 0 && (
+                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                  {settings.favoriteArtists.map((artistName) => {
+                    const avatar = settings.favoriteArtistAvatars?.[artistName];
+                    return (
+                      <div
+                        key={artistName}
+                        className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/10 border border-black/5 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-white/90"
+                      >
+                        <div className="w-5 h-5 rounded-full overflow-hidden bg-black/10 dark:bg-white/10 shrink-0 flex items-center justify-center">
+                          {avatar ? (
+                            <img
+                              src={avatar}
+                              alt={artistName}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <User size={11} className="text-slate-600 dark:text-white/60" />
+                          )}
+                        </div>
+                        <span className="truncate max-w-[120px]">{artistName}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button

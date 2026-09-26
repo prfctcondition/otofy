@@ -232,17 +232,20 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
   return (
     <section
       id="playlist-suggested-tracks-section"
-      className="mt-8 pt-6 border-t border-white/[0.08] select-none"
+      className="mt-8 pt-6 px-6 border-t border-black/[0.06] dark:border-white/[0.08] select-none w-full max-w-full overflow-hidden"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-amber-400" />
-            <h3 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white tracking-tight">
+      <div className="flex items-center justify-between mb-4 gap-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles size={18} className="text-slate-800 dark:text-white shrink-0" />
+            <h3 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white tracking-tight truncate">
               {t.suggested?.title || 'Recommended Tracks'}
             </h3>
           </div>
-          <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+          <p
+            className="text-xs text-[#64748B] dark:text-white/60 mt-0.5 truncate"
+            title={subtitleText}
+          >
             {subtitleText}
           </p>
         </div>
@@ -250,7 +253,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
         <button
           onClick={loadSuggestions}
           disabled={isLoading}
-          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white transition-all cursor-pointer"
+          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white transition-all cursor-pointer shrink-0"
           title={t.suggested?.refresh || 'Refresh recommendations'}
         >
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
@@ -264,7 +267,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 w-full min-w-0">
         {visibleTracks.map((track) => {
           const isCurrentActive = activeTrack?.id === track.id;
           const isCurrentlyPlaying = isCurrentActive && isPlaying;
@@ -274,7 +277,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
             <div
               key={track.id}
               onClick={() => handlePlaySuggestedTrack(track)}
-              className={`group flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-150 cursor-pointer ${
+              className={`group flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-150 cursor-pointer min-w-0 ${
                 isCurrentActive
                   ? 'bg-black/[0.06] dark:bg-white/[0.12]'
                   : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.06]'
@@ -306,17 +309,21 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 pr-2">
                   <span
                     className={`text-sm font-semibold truncate block ${
                       isCurrentActive
-                        ? 'text-amber-600 dark:text-amber-400'
+                        ? 'text-black dark:text-white font-bold'
                         : 'text-[#0F172A] dark:text-white'
                     }`}
+                    title={track.title}
                   >
                     {track.title}
                   </span>
-                  <span className="text-xs text-[#64748B] dark:text-white/60 truncate block">
+                  <span
+                    className="text-xs text-[#64748B] dark:text-white/60 truncate block"
+                    title={track.artist}
+                  >
                     {track.artist}
                   </span>
                 </div>
@@ -331,8 +338,8 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
                   onClick={(e) => handleAddTrack(e, track)}
                   className={`p-1.5 rounded-full border transition-all ${
                     isAdded
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-[#0F172A] dark:text-white border-white/80 dark:border-white/10 active:scale-95'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      : 'bg-black/5 hover:bg-black/10 text-slate-800 border-black/10 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border-white/10 active:scale-95'
                   }`}
                   title={
                     isAdded
@@ -357,7 +364,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
         <div className="mt-3 flex justify-center">
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[#475569] dark:text-white/80 border border-black/5 dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-slate-700 dark:text-white/80 border border-black/5 dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
           >
             <span>
               {isExpanded
