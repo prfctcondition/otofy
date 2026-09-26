@@ -474,13 +474,14 @@ ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: stri
   }
 });
 
-ipcMain.handle('music:get-moods-and-genres', async () => {
-  const cacheKey = 'innertube_moods_and_genres';
+ipcMain.handle('music:get-moods-and-genres', async (_event, args?: { lang?: string }) => {
+  const lang = args?.lang || 'en';
+  const cacheKey = `innertube_moods_and_genres_${lang}`;
   const cached = getIpcCache(cacheKey);
   if (cached) return cached;
 
   try {
-    const sections = await innertubeService.getMoodsAndGenres();
+    const sections = await innertubeService.getMoodsAndGenres(lang);
     if (sections && sections.length > 0) {
       setIpcCache(cacheKey, sections);
     }

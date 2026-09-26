@@ -363,7 +363,7 @@ declare global {
       analyzeTracksPopularity?: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) => Promise<Record<string, number>>;
       openExternal?: (url: string) => Promise<boolean>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
-      getMoodsAndGenres?: () => Promise<MoodsAndGenresSection[]>;
+      getMoodsAndGenres?: (lang?: string) => Promise<MoodsAndGenresSection[]>;
       searchArtists?: (query: string) => Promise<Array<{ name: string; avatarUrl?: string; subscribers?: string; genre?: string; browseId?: string }>>;
       getRelatedTracks?: (
         trackId: string,

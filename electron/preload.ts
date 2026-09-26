@@ -23,8 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('app:open-external', url),
   getGenreTracks: (query: string) =>
     ipcRenderer.invoke('music:get-genre-tracks', { query }),
-  getMoodsAndGenres: () =>
-    ipcRenderer.invoke('music:get-moods-and-genres'),
+  getMoodsAndGenres: (lang?: string) =>
+    ipcRenderer.invoke('music:get-moods-and-genres', { lang }),
   searchArtists: (query: string) =>
     ipcRenderer.invoke('music:search-artists', { query }),
   getRelatedTracks: (trackId: string, source: 'YT' | 'SC', artist?: string, title?: string) =>

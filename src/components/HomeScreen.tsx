@@ -35,27 +35,38 @@ import { useToastStore } from '../store/toastStore';
 import { generateWaveTracks } from '../services/waveService';
 import { apiGetMoodsAndGenres, apiGetGenreTracks } from '../services/musicApiService';
 
-const DEFAULT_MOOD_PILLS_RU: MoodOrGenreItem[] = [
-  { id: 'm-1', title: 'В дороге', stripeColor: '#ffc200', params: '', browseId: '' },
-  { id: 'm-2', title: 'Заряд энергии', stripeColor: '#ffc200', params: '', browseId: '' },
-  { id: 'm-3', title: 'Отдых', stripeColor: '#00a513', params: '', browseId: '' },
-  { id: 'm-4', title: 'Концентрация', stripeColor: '#337dff', params: '', browseId: '' },
-  { id: 'm-5', title: 'Вечеринка', stripeColor: '#b47bff', params: '', browseId: '' },
-  { id: 'm-6', title: 'Романтика', stripeColor: '#e24b00', params: '', browseId: '' },
-  { id: 'm-7', title: 'Рок', stripeColor: '#e24b00', params: '', browseId: '' },
-  { id: 'm-8', title: 'Хип-хоп', stripeColor: '#ff8500', params: '', browseId: '' },
+const MOOD_PILLS_CONFIG: Record<string, string[]> = {
+  ru: ['В дороге', 'Заряд энергии', 'Отдых', 'Концентрация', 'Вечеринка', 'Романтика', 'Рок', 'Хип-хоп'],
+  en: ['Road Trip', 'Energy Boost', 'Relax & Chill', 'Deep Focus', 'Party Vibes', 'Romance', 'Rock', 'Hip-Hop'],
+  de: ['Unterwegs', 'Energieschub', 'Entspannung', 'Fokus', 'Party', 'Romantik', 'Rock', 'Hip-Hop'],
+  es: ['Para el camino', 'Energía', 'Relax', 'Concentración', 'Fiesta', 'Romance', 'Rock', 'Hip-hop'],
+  fr: ['Sur la route', 'Énergie', 'Détente', 'Concentration', 'Fête', 'Romance', 'Rock', 'Hip-hop'],
+  ja: ['ドライブ', 'エナジー', 'リラックス', '集中', 'パーティー', 'ロマンス', 'ロック', 'ヒップホップ'],
+  pt: ['Na estrada', 'Energia', 'Relaxar', 'Concentração', 'Festa', 'Romance', 'Rock', 'Hip-hop'],
+  zh: ['在路上', '充满活力', '放松', '专注', '派对', '浪漫', '摇滚', '嘻哈'],
+};
+
+const STRIPE_COLORS = [
+  '#ffc200',
+  '#ffc200',
+  '#00a513',
+  '#337dff',
+  '#b47bff',
+  '#e24b00',
+  '#e24b00',
+  '#ff8500',
 ];
 
-const DEFAULT_MOOD_PILLS_EN: MoodOrGenreItem[] = [
-  { id: 'm-1', title: 'Road Trip', stripeColor: '#ffc200', params: '', browseId: '' },
-  { id: 'm-2', title: 'Energy Boost', stripeColor: '#ffc200', params: '', browseId: '' },
-  { id: 'm-3', title: 'Relax & Chill', stripeColor: '#00a513', params: '', browseId: '' },
-  { id: 'm-4', title: 'Deep Focus', stripeColor: '#337dff', params: '', browseId: '' },
-  { id: 'm-5', title: 'Party Vibes', stripeColor: '#b47bff', params: '', browseId: '' },
-  { id: 'm-6', title: 'Romance', stripeColor: '#e24b00', params: '', browseId: '' },
-  { id: 'm-7', title: 'Rock', stripeColor: '#e24b00', params: '', browseId: '' },
-  { id: 'm-8', title: 'Hip-Hop', stripeColor: '#ff8500', params: '', browseId: '' },
-];
+function getCanonicalMoodPills(lang: string): MoodOrGenreItem[] {
+  const titles = MOOD_PILLS_CONFIG[lang] || MOOD_PILLS_CONFIG.en;
+  return titles.map((title, idx) => ({
+    id: `home-mood-${idx}`,
+    title,
+    stripeColor: STRIPE_COLORS[idx] || '#337dff',
+    params: '',
+    browseId: '',
+  }));
+}
 
 interface HomeScreenProps {
   onSelectCollection: (itemOrTitle: QuickAccessItem | string, playlistId?: string) => void;
@@ -83,8 +94,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const toastStore = useToastStore();
   const favoriteArtists = settingsStore.favoriteArtists || [];
   const [isWaveLoading, setIsWaveLoading] = useState<boolean>(false);
-  const defaultMoods = language === 'ru' ? DEFAULT_MOOD_PILLS_RU : DEFAULT_MOOD_PILLS_EN;
-  const [moodPills, setMoodPills] = useState<MoodOrGenreItem[]>(defaultMoods);
+  const moodPills = useMemo(() => getCanonicalMoodPills(language), [language]);
 
   const [dynamicMixes, setDynamicMixes] = useState<DailyMixConfig[]>([]);
 
@@ -98,28 +108,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 • Hip-Hop`;
     return item.title;
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    apiGetMoodsAndGenres()
-      .then((sections) => {
-        if (isMounted && Array.isArray(sections) && sections.length > 0) {
-          const allItems: MoodOrGenreItem[] = [];
-          for (const s of sections) {
-            if (s.items && Array.isArray(s.items)) {
-              allItems.push(...s.items);
-            }
-          }
-          if (allItems.length > 0) {
-            setMoodPills(allItems.slice(0, 8));
-          }
-        }
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handleWaveClick = async () => {
     if (favoriteArtists.length === 0) {
@@ -357,7 +345,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 {getQuickAccessTitle(item)}
               </span>
 
-              <div className="pr-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+              <div className="pr-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 shrink-0">
                 <button
                   id={`play-qa-${item.id}`}
                   onClick={(e) => {
@@ -368,11 +356,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       onSelectCollection(item, item.playlistId);
                     }
                   }}
-                  className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform"
+                  className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                   title={`Play ${getQuickAccessTitle(item)}`}
                   aria-label={`Play ${getQuickAccessTitle(item)}`}
                 >
-                  <Play size={14} className="fill-white dark:fill-black translate-x-0.5" />
+                  <Play size={13} className="fill-white text-white dark:fill-black dark:text-black" />
                 </button>
               </div>
             </div>
@@ -383,7 +371,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <section id="home-moods-section" className="relative z-10 mb-8">
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-2">
-            <Compass size={18} className="text-white/70" />
+            <Compass size={18} className="text-slate-800 dark:text-white/70" />
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
               {t.moods?.title || 'Moods & Genres'}
             </h2>
@@ -396,23 +384,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2">
           {moodPills.slice(0, 8).map((pill) => (
             <div
               key={pill.id}
               onClick={() => handlePlayMood(pill)}
-              className="group relative h-12 rounded-xl bg-white/45 dark:bg-[#1C1C1E]/80 hover:bg-white/75 dark:hover:bg-[#2C2C2E] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 transition-all duration-150 cursor-pointer flex items-center px-3.5 gap-3 overflow-hidden shadow-xs hover:shadow-md"
+              className="group relative h-12 rounded-xl bg-white/60 dark:bg-[#1C1C1E]/80 hover:bg-white/85 dark:hover:bg-[#2C2C2E] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 transition-all duration-150 cursor-pointer flex items-center px-3 gap-3 overflow-hidden shadow-xs hover:shadow-md"
             >
               <div
                 className="w-1.5 h-6 rounded-full shrink-0 shadow-xs transition-transform group-hover:scale-y-110"
                 style={{ backgroundColor: pill.stripeColor }}
               />
-              <span className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white/90 group-hover:text-black dark:group-hover:text-white truncate flex-1">
+              <span className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white/90 group-hover:text-black dark:group-hover:text-white truncate flex-1 min-w-0">
                 {pill.title}
               </span>
               <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
-                  <Play size={11} className="fill-white dark:fill-black translate-x-0.5" />
+                  <Play size={11} className="fill-white dark:fill-black" />
                 </div>
               </div>
             </div>
@@ -480,17 +468,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 </div>
 
                 {/* Hover Floating Play Button - MATCHED with bottom player */}
-                <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
+                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                   <button
                     id={`play-station-btn-${station.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onPlayStation(station);
                     }}
-                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
+                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     title={`${t.player.play} ${station.title}`}
                   >
-                    <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
+                    <Play size={16} className="fill-white dark:fill-black" />
                   </button>
                 </div>
               </div>
@@ -592,17 +580,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 )}
 
                 {/* Hover Play Button - MATCHED with bottom player */}
-                <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
+                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                   <button
                     id={`play-mix-btn-${item.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onPlayMix(item);
                     }}
-                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
+                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     title={`${t.player.play} ${item.title}`}
                   >
-                    <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
+                    <Play size={16} className="fill-white dark:fill-black" />
                   </button>
                 </div>
               </div>

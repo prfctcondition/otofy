@@ -33,10 +33,10 @@ function normalizeToTrack(raw: any, index: number = 0): Track {
   };
 }
 
-export async function apiGetMoodsAndGenres(): Promise<MoodsAndGenresSection[]> {
+export async function apiGetMoodsAndGenres(lang: string = 'en'): Promise<MoodsAndGenresSection[]> {
   try {
     if (window.electronAPI?.getMoodsAndGenres) {
-      const data = await window.electronAPI.getMoodsAndGenres();
+      const data = await window.electronAPI.getMoodsAndGenres(lang);
       if (Array.isArray(data) && data.length > 0) {
         return data;
       }
@@ -46,7 +46,7 @@ export async function apiGetMoodsAndGenres(): Promise<MoodsAndGenresSection[]> {
   }
 
   try {
-    const res = await fetch('/api/music/moods-and-genres');
+    const res = await fetch(`/api/music/moods-and-genres?lang=${encodeURIComponent(lang)}`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {

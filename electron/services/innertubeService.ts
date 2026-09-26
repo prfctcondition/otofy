@@ -2904,9 +2904,12 @@ export interface MoodsAndGenresSection {
   items: MoodOrGenreItem[];
 }
 
-export async function getMoodsAndGenres(): Promise<MoodsAndGenresSection[]> {
+export async function getMoodsAndGenres(lang: string = 'en'): Promise<MoodsAndGenresSection[]> {
   const yt = await getInnertube();
   try {
+    if (yt.session?.context?.client) {
+      yt.session.context.client.hl = lang;
+    }
     const res = await yt.actions.execute('/browse', {
       browseId: 'FEmusic_moods_and_genres',
       client: 'YTMUSIC',

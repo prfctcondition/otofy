@@ -262,9 +262,11 @@ function musicApiPlugin(): Plugin {
 
         if (req.url && req.url.startsWith('/api/music/moods-and-genres')) {
           try {
+            const urlObj = new URL(req.url, 'http://localhost');
+            const lang = urlObj.searchParams.get('lang') || 'en';
             const itModule = await import('./dist-electron/services/innertubeService.js');
             const getMoodsFn = itModule.getMoodsAndGenres || itModule.default?.getMoodsAndGenres;
-            const sections = await getMoodsFn();
+            const sections = await getMoodsFn(lang);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(sections || []));
             return;

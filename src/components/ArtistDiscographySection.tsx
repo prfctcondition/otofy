@@ -63,7 +63,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
 
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
                         <Play size={16} fill="currentColor" className="ml-0.5" />
                       </div>
                     </div>
@@ -116,7 +116,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                     className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
                       <Play size={16} fill="currentColor" className="ml-0.5" />
                     </div>
                   </div>

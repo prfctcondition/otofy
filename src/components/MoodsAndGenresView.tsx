@@ -119,11 +119,13 @@ const FALLBACK_SECTIONS_EN: MoodsAndGenresSection[] = [
   },
 ];
 
+const cachedSectionsByLang = new Map<string, MoodsAndGenresSection[]>();
+
 export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }) => {
   const { t, language } = useTranslation();
-  const defaultSections = language === 'ru' ? FALLBACK_SECTIONS_RU : FALLBACK_SECTIONS_EN;
+  const defaultSections = cachedSectionsByLang.get(language) || (language === 'ru' ? FALLBACK_SECTIONS_RU : FALLBACK_SECTIONS_EN);
   const [sections, setSections] = useState<MoodsAndGenresSection[]>(defaultSections);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedSectionsByLang.has(language));
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
 
@@ -132,9 +134,18 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
 
   useEffect(() => {
     let isMounted = true;
-    apiGetMoodsAndGenres()
+    const cached = cachedSectionsByLang.get(language);
+    if (cached && cached.length > 0) {
+      setSections(cached);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    apiGetMoodsAndGenres(language)
       .then((data) => {
         if (isMounted && Array.isArray(data) && data.length > 0) {
+          cachedSectionsByLang.set(language, data);
           setSections(data);
         }
       })
@@ -148,7 +159,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [language]);
 
   const handlePlayCategory = async (item: MoodOrGenreItem) => {
     setLoadingItemId(item.id);
@@ -252,7 +263,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
                         <Loader2 size={16} className="animate-spin text-[#0F172A] dark:text-white" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
-                          <Play size={12} className="fill-white dark:fill-black text-[#0F172A] dark:text-white translate-x-0.5" />
+                          <Play size={12} className="fill-white dark:fill-black text-[#0F172A] dark:text-white" />
                         </div>
                       )}
                     </div>
