@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('app:open-external', url),
   getGenreTracks: (query: string) =>
     ipcRenderer.invoke('music:get-genre-tracks', { query }),
+  getMoodsAndGenres: () =>
+    ipcRenderer.invoke('music:get-moods-and-genres'),
   getRelatedTracks: (trackId: string, source: 'YT' | 'SC', artist?: string, title?: string) =>
     ipcRenderer.invoke('music:get-related-tracks', { trackId, source, artist, title }),
   importRemotePlaylist: (source: string, url: string) =>

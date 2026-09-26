@@ -9,6 +9,9 @@ import { DockPlayerBar } from './components/DockPlayerBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { HomeScreen } from './components/HomeScreen';
 import { GenreCatalogScreen } from './components/GenreCatalogScreen';
+import { MoodsAndGenresView } from './components/MoodsAndGenresView';
+import { OnboardingModal } from './components/OnboardingModal';
+import { SuggestedTracksSection } from './components/SuggestedTracksSection';
 import { SettingsScreen } from './components/SettingsScreen';
 import { StationItem, MadeForYouItem } from './data/homeData';
 
@@ -99,6 +102,9 @@ export default function App() {
 
   const isCompactLayout = windowWidth < 1100;
   const currentLanguage = useSettingsStore((s) => s.language);
+  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  const isOnboardingModalOpen = useSettingsStore((s) => s.isOnboardingModalOpen);
+  const setIsOnboardingModalOpen = useSettingsStore((s) => s.setIsOnboardingModalOpen);
 
   useEffect(() => {
     document.documentElement.lang = currentLanguage;
@@ -1180,6 +1186,7 @@ export default function App() {
         onSearchChange={libraryStore.setGlobalSearch}
         currentView={currentView}
         onNavigateHome={handleNavigateHome}
+        onNavigateCatalog={libraryStore.openCatalog}
         onNavigateBack={libraryStore.navigateBack}
         canGoBack={libraryStore.historyIndex > 0}
         canGoForward={libraryStore.historyIndex < libraryStore.history.length - 1}
@@ -1232,7 +1239,7 @@ export default function App() {
                   onShowAll={libraryStore.openCatalog}
                 />
               ) : currentView === 'catalog' ? (
-                <GenreCatalogScreen
+                <MoodsAndGenresView
                   onBack={() => libraryStore.setCurrentView('home')}
                 />
               ) : currentView === 'settings' ? (
@@ -1284,7 +1291,13 @@ export default function App() {
                       onSelectAlbum={handleOpenAlbumView}
                     />
 
-                    {/* Artist Discography, Singles, and Related Artists */}
+                    {currentPlaylist.type === 'Playlist' && (
+                      <SuggestedTracksSection
+                        playlist={currentPlaylist}
+                        tracks={currentPlaylistTracks}
+                      />
+                    )}
+
                     {currentPlaylist.type === 'Artist' && libraryStore.currentArtistDetails && (
                       <ArtistDiscographySection
                         details={libraryStore.currentArtistDetails}
@@ -1306,7 +1319,7 @@ export default function App() {
           /* Mobile Viewport */
           <div className="w-full max-w-md mx-auto h-full flex flex-col liquid-glass-panel rounded-3xl overflow-hidden shadow-2xl relative">
             {currentView === 'catalog' ? (
-              <GenreCatalogScreen
+              <MoodsAndGenresView
                 onBack={() => libraryStore.setCurrentView('home')}
               />
             ) : currentView === 'settings' ? (
@@ -1366,6 +1379,13 @@ export default function App() {
                     onSelectArtist={handleOpenArtistView}
                     onSelectAlbum={handleOpenAlbumView}
                   />
+
+                  {currentPlaylist.type === 'Playlist' && (
+                    <SuggestedTracksSection
+                      playlist={currentPlaylist}
+                      tracks={currentPlaylistTracks}
+                    />
+                  )}
 
                   {currentPlaylist.type === 'Artist' && libraryStore.currentArtistDetails && (
                     <ArtistDiscographySection
@@ -1434,6 +1454,12 @@ export default function App() {
           isOpen={libraryStore.isUpdateModalOpen}
           updateInfo={libraryStore.updateInfo}
           onClose={libraryStore.closeUpdateModal}
+        />
+      )}
+      {(!onboardingCompleted || isOnboardingModalOpen) && (
+        <OnboardingModal
+          isOpen={!onboardingCompleted || isOnboardingModalOpen}
+          onClose={() => setIsOnboardingModalOpen(false)}
         />
       )}
 

@@ -44,6 +44,11 @@ export interface SettingsState {
   // 7. Localization
   language: SupportedLanguage;
 
+  // 8. Onboarding and My Wave
+  onboardingCompleted: boolean;
+  favoriteArtists: string[];
+  isOnboardingModalOpen: boolean;
+
   // Actions
   setAutoplay: (autoplay: boolean) => void;
   setStreamingQuality: (streamingQuality: StreamingQuality) => void;
@@ -58,6 +63,10 @@ export interface SettingsState {
   setDownloadsPath: (downloadsPath: string) => void;
   setHardwareAcceleration: (hardwareAcceleration: boolean) => Promise<void>;
   setLanguage: (language: SupportedLanguage) => void;
+  setOnboardingCompleted: (completed: boolean) => void;
+  setFavoriteArtists: (artists: string[]) => void;
+  setIsOnboardingModalOpen: (open: boolean) => void;
+  resetOnboarding: () => void;
   initFromSystem: () => Promise<void>;
 }
 
@@ -77,6 +86,14 @@ export const useSettingsStore = create<SettingsState>()(
       downloadsPath: '',
       hardwareAcceleration: true,
       language: getInitialLanguage(),
+      onboardingCompleted: false,
+      favoriteArtists: [],
+      isOnboardingModalOpen: false,
+
+      setOnboardingCompleted: (onboardingCompleted) => set({ onboardingCompleted }),
+      setFavoriteArtists: (favoriteArtists) => set({ favoriteArtists }),
+      setIsOnboardingModalOpen: (isOnboardingModalOpen) => set({ isOnboardingModalOpen }),
+      resetOnboarding: () => set({ onboardingCompleted: false, favoriteArtists: [], isOnboardingModalOpen: true }),
 
       setLanguage: (language) => set({ language }),
 

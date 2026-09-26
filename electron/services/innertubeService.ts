@@ -2826,6 +2826,81 @@ export async function getTracksPopularity(
   return result;
 }
 
+export interface MoodOrGenreItem {
+  id: string;
+  title: string;
+  params: string;
+  browseId: string;
+  stripeColor: string;
+}
+
+export interface MoodsAndGenresSection {
+  title: string;
+  items: MoodOrGenreItem[];
+}
+
+export async function getMoodsAndGenres(): Promise<MoodsAndGenresSection[]> {
+  const yt = await getInnertube();
+  try {
+    const res = await yt.actions.execute('/browse', {
+      browseId: 'FEmusic_moods_and_genres',
+      client: 'YTMUSIC',
+    });
+
+    const data: any = res.data;
+    const sections = data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents;
+    if (!sections || !Array.isArray(sections)) {
+      return [];
+    }
+
+    const result: MoodsAndGenresSection[] = [];
+
+    for (const sec of sections) {
+      const secTitle = sec.gridRenderer?.header?.gridHeaderRenderer?.title?.runs?.[0]?.text;
+      const rawItems = sec.gridRenderer?.items || [];
+      const parsedItems: MoodOrGenreItem[] = [];
+
+      for (const item of rawItems) {
+        const btn = item.musicNavigationButtonRenderer;
+        if (!btn) continue;
+        const title = btn.buttonText?.runs?.[0]?.text;
+        const clickCommand = btn.clickCommand || btn.navigationEndpoint;
+        const browseEndpoint = clickCommand?.browseEndpoint;
+        const browseId = browseEndpoint?.browseId || '';
+        const params = browseEndpoint?.params || '';
+        const rawColor = btn.solid?.leftStripeColor;
+        let stripeColor = '#8B5CF6';
+        if (typeof rawColor === 'number' && rawColor > 0) {
+          const hex = (rawColor >>> 0).toString(16).padStart(8, '0');
+          stripeColor = '#' + hex.slice(2);
+        }
+
+        if (title) {
+          parsedItems.push({
+            id: params || title,
+            title,
+            params,
+            browseId,
+            stripeColor,
+          });
+        }
+      }
+
+      if (secTitle && parsedItems.length > 0) {
+        result.push({
+          title: secTitle,
+          items: parsedItems,
+        });
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.warn('[InnertubeService] getMoodsAndGenres error:', err);
+    return [];
+  }
+}
+
 export default {
   getInnertube,
   resetInnertubeInstance,
@@ -2838,6 +2913,7 @@ export default {
   enrichTracksWithUploadDates,
   getAlbum,
   getGenreTracks,
+  getMoodsAndGenres,
   getRelatedTracks,
   getLyrics,
   parseDurationToSec,

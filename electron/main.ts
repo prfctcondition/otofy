@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 import { exec } from 'child_process';
 import { fileURLToPath, pathToFileURL } from 'url';
 import ytResolver from './services/ytResolver.js';
@@ -469,6 +470,23 @@ ipcMain.handle('music:get-genre-tracks', async (_event, { query }: { query: stri
     return ytTracks;
   } catch (err) {
     console.warn('[main] getGenreTracks error:', err);
+    return [];
+  }
+});
+
+ipcMain.handle('music:get-moods-and-genres', async () => {
+  const cacheKey = 'innertube_moods_and_genres';
+  const cached = getIpcCache(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const sections = await innertubeService.getMoodsAndGenres();
+    if (sections && sections.length > 0) {
+      setIpcCache(cacheKey, sections);
+    }
+    return sections;
+  } catch (err) {
+    console.warn('[main] getMoodsAndGenres error:', err);
     return [];
   }
 });
@@ -1209,7 +1227,7 @@ app.whenReady().then(() => {
     }
   });
 
-  // Handle local file streaming for downloaded audio via atom:// protocol with Range support
+  // Handle local file streaming for downloaded audio via atom:// protocol with RFC 7233 Range support
   protocol.handle('atom', async (request) => {
     try {
       let pathname = request.url.replace(/^atom:\/\/(local\/)?/, '');
@@ -1217,20 +1235,63 @@ app.whenReady().then(() => {
       if (process.platform === 'win32' && pathname.startsWith('/')) {
         pathname = pathname.slice(1);
       }
-      const fileUrl = pathToFileURL(pathname).toString();
-      const res = await net.fetch(fileUrl);
-      const headers = new Headers(res.headers);
-      headers.set('Access-Control-Allow-Origin', '*');
-      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', '*');
-      return new Response(res.body, {
-        status: res.status,
-        statusText: res.statusText,
-        headers,
+      pathname = path.normalize(pathname);
+
+      if (!fs.existsSync(pathname)) {
+        return new Response('File not found', { status: 404 });
+      }
+
+      const stat = fs.statSync(pathname);
+      const fileSize = stat.size;
+      const ext = path.extname(pathname).toLowerCase();
+      const mimeType = ext === '.flac' ? 'audio/flac' : ext === '.wav' ? 'audio/wav' : ext === '.ogg' ? 'audio/ogg' : 'audio/mpeg';
+
+      const origin = request.headers.get('origin') || 'http://localhost:3000';
+      const rangeHeader = request.headers.get('range');
+
+      if (rangeHeader) {
+        const parts = rangeHeader.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const safeStart = Number.isFinite(start) ? Math.max(0, start) : 0;
+        const safeEnd = Number.isFinite(end) ? Math.min(fileSize - 1, end) : fileSize - 1;
+        const chunkSize = safeEnd - safeStart + 1;
+
+        const stream = fs.createReadStream(pathname, { start: safeStart, end: safeEnd });
+        const webStream = Readable.toWeb(stream) as ReadableStream;
+
+        return new Response(webStream, {
+          status: 206,
+          statusText: 'Partial Content',
+          headers: {
+            'Content-Range': `bytes ${safeStart}-${safeEnd}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': String(chunkSize),
+            'Content-Type': mimeType,
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Headers': 'Range, Content-Type',
+          },
+        });
+      }
+
+      const stream = fs.createReadStream(pathname);
+      const webStream = Readable.toWeb(stream) as ReadableStream;
+
+      return new Response(webStream, {
+        status: 200,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(fileSize),
+          'Content-Type': mimeType,
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range, Content-Type',
+        },
       });
     } catch (err) {
       console.warn('[Protocol atom] Failed to stream file:', err);
-      return new Response('File not found', { status: 404 });
+      return new Response('Error streaming file', { status: 500 });
     }
   });
 

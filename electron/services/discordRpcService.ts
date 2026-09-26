@@ -218,15 +218,14 @@ class DiscordRpcService {
       return;
     }
 
-    const sourceTag = data.source?.toUpperCase() === 'SC' ? '「SC」' : '「YT」';
     const artistName = data.artist || 'Unknown Artist';
     const rawTitle = data.title || 'Unknown Track';
 
     const cleanTitle = rawTitle.replace(/^Listening to /i, '').trim();
     const detailsText = `Listening to ${cleanTitle}`;
 
-    // State: strictly artist with source tag: ${track.artist} 「${sourceTag}」
-    const stateText = `${artistName} ${sourceTag}`;
+    // State: strictly artist name without stream source tag
+    const stateText = artistName;
 
     // Large image: direct HTTPS URL of album cover, fallback to 'logo'
     const rawArtwork = (data.artworkUrl || '').trim();

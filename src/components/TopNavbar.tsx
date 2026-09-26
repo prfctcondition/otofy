@@ -12,6 +12,7 @@ import {
   Copy,
   Sun,
   Moon,
+  Compass,
 } from 'lucide-react';
 import { ViewportMode } from '../types';
 import { useSearchStore } from '../store/searchStore';
@@ -24,8 +25,9 @@ import { UserProfileDropdown } from './UserProfileDropdown';
 interface TopNavbarProps {
   viewportMode: ViewportMode;
   onToggleViewport: (mode: ViewportMode) => void;
-  currentView: 'home' | 'playlist';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings' | string;
   onNavigateHome: () => void;
+  onNavigateCatalog?: () => void;
   onNavigateBack: () => void;
   canGoBack: boolean;
   canGoForward?: boolean;
@@ -39,6 +41,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   onToggleViewport,
   currentView,
   onNavigateHome,
+  onNavigateCatalog,
   onNavigateBack,
   canGoBack,
   canGoForward = false,
@@ -173,6 +176,20 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           aria-label={t.nav.home}
         >
           <Home size={18} />
+        </button>
+
+        <button
+          id="nav-explore-button"
+          onClick={onNavigateCatalog}
+          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+            currentView === 'catalog'
+              ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
+              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
+          }`}
+          title="Навигация (Настроения и жанры)"
+          aria-label="Навигация"
+        >
+          <Compass size={18} />
         </button>
       </div>
 

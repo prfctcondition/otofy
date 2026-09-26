@@ -17,6 +17,19 @@ export interface TrackAlternative {
   thumbnail?: string;
 }
 
+export interface MoodOrGenreItem {
+  id: string;
+  title: string;
+  params: string;
+  browseId: string;
+  stripeColor: string;
+}
+
+export interface MoodsAndGenresSection {
+  title: string;
+  items: MoodOrGenreItem[];
+}
+
 export interface Track {
   id: string;
   number: number;
@@ -350,6 +363,7 @@ declare global {
       analyzeTracksPopularity?: (tracks: Array<{ id: string; sourceId?: string; source?: 'YT' | 'SC' }>) => Promise<Record<string, number>>;
       openExternal?: (url: string) => Promise<boolean>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
+      getMoodsAndGenres?: () => Promise<MoodsAndGenresSection[]>;
       getRelatedTracks?: (
         trackId: string,
         source: 'YT' | 'SC',

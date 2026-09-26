@@ -15,6 +15,7 @@ import {
   Waves,
   Zap,
   History,
+  Loader2,
 } from 'lucide-react';
 import {
   QUICK_ACCESS_ITEMS,
@@ -25,8 +26,13 @@ import {
   MadeForYouItem,
 } from '../data/homeData';
 import { getStoredDailyMixes } from '../services/dailyMixService';
-import type { DailyMixConfig } from '../types';
+import type { DailyMixConfig, MoodOrGenreItem } from '../types';
 import { useTranslation } from '../i18n';
+import { useSettingsStore } from '../store/settingsStore';
+import { usePlayerStore } from '../store/playerStore';
+import { useLibraryStore } from '../store/libraryStore';
+import { useToastStore } from '../store/toastStore';
+import { generateWaveTracks } from '../services/waveService';
 
 interface HomeScreenProps {
   onSelectCollection: (title: string, playlistId?: string) => void;
@@ -48,6 +54,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onShowAll,
 }) => {
   const { t } = useTranslation();
+  const settingsStore = useSettingsStore();
+  const playerStore = usePlayerStore();
+  const libraryStore = useLibraryStore();
+  const toastStore = useToastStore();
+  const favoriteArtists = settingsStore.favoriteArtists || [];
+  const [isWaveLoading, setIsWaveLoading] = useState<boolean>(false);
+  const [moodPills, setMoodPills] = useState<MoodOrGenreItem[]>([
+    { id: 'm-1', title: 'В дороге', stripeColor: '#ffc200', params: '', browseId: '' },
+    { id: 'm-2', title: 'Заряд энергии', stripeColor: '#ffc200', params: '', browseId: '' },
+    { id: 'm-3', title: 'Отдых', stripeColor: '#00a513', params: '', browseId: '' },
+    { id: 'm-4', title: 'Концентрация', stripeColor: '#337dff', params: '', browseId: '' },
+    { id: 'm-5', title: 'Вечеринка', stripeColor: '#b47bff', params: '', browseId: '' },
+    { id: 'm-6', title: 'Романтика', stripeColor: '#e24b00', params: '', browseId: '' },
+    { id: 'm-7', title: 'Рок', stripeColor: '#e24b00', params: '', browseId: '' },
+    { id: 'm-8', title: 'Хип-хоп', stripeColor: '#ff8500', params: '', browseId: '' },
+  ]);
+
   const [dynamicMixes, setDynamicMixes] = useState<DailyMixConfig[]>([]);
 
   const getQuickAccessTitle = (item: QuickAccessItem) => {
@@ -59,6 +82,80 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 • Synthwave`;
     if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 • Hip-Hop`;
     return item.title;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    if (window.electronAPI?.getMoodsAndGenres) {
+      window.electronAPI
+        .getMoodsAndGenres()
+        .then((sections) => {
+          if (isMounted && Array.isArray(sections) && sections.length > 0) {
+            const allItems: MoodOrGenreItem[] = [];
+            for (const s of sections) {
+              if (s.items && Array.isArray(s.items)) {
+                allItems.push(...s.items);
+              }
+            }
+            if (allItems.length > 0) {
+              setMoodPills(allItems.slice(0, 8));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleWaveClick = async () => {
+    if (favoriteArtists.length === 0) {
+      settingsStore.setIsOnboardingModalOpen(true);
+      return;
+    }
+    setIsWaveLoading(true);
+    try {
+      const tracks = await generateWaveTracks(favoriteArtists);
+      if (tracks && tracks.length > 0) {
+        libraryStore.setCustomPlaylistView('Моя волна', tracks, {
+          creator: 'Otofy',
+          description: `Персональный поток музыки на основе: ${favoriteArtists.join(', ')}`,
+          iconName: 'waves',
+          gradientFrom: '#4C1D95',
+          gradientTo: '#0F172A',
+        });
+        await playerStore.playTrack(tracks[0], tracks);
+        toastStore.success('Моя волна запущена', `Воспроизведение персональной волны (${tracks.length} треков)`);
+      }
+    } catch (e) {
+      console.warn('[HomeScreen] My wave failed:', e);
+      toastStore.error('Ошибка', 'Не удалось загрузить Мою волну');
+    } finally {
+      setIsWaveLoading(false);
+    }
+  };
+
+  const handlePlayMood = async (item: MoodOrGenreItem) => {
+    try {
+      let tracks: any[] = [];
+      if (window.electronAPI?.getGenreTracks) {
+        tracks = await window.electronAPI.getGenreTracks(item.title);
+      }
+      if (tracks && tracks.length > 0) {
+        libraryStore.setCustomPlaylistView(item.title, tracks, {
+          creator: 'YouTube Music',
+          description: `Станция настроения: ${item.title}`,
+          iconName: 'radio',
+          gradientFrom: '#1E293B',
+          gradientTo: '#0F172A',
+        });
+        await playerStore.playTrack(tracks[0], tracks);
+        toastStore.success('Станция запущена', `Воспроизведение: «${item.title}»`);
+      }
+    } catch {
+      toastStore.error('Ошибка', 'Не удалось запустить станцию');
+    }
   };
 
   useEffect(() => {
@@ -127,6 +224,69 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* Top Subtle Gloss Sheen */}
       <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 dark:from-white/[0.04] to-transparent z-0" />
 
+      <section id="my-wave-hero-section" className="relative z-10 mb-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-900/40 via-purple-900/30 to-indigo-950/40 backdrop-blur-xl border border-white/10 p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group">
+          <div className="pointer-events-none absolute -top-16 -left-16 w-56 h-56 rounded-full bg-violet-600/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 right-1/4 w-56 h-56 rounded-full bg-cyan-600/15 blur-3xl" />
+
+          <div className="relative z-10 flex items-center gap-4 min-w-0">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_8px_24px_rgba(124,58,237,0.4)] overflow-hidden">
+              <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
+              <Waves size={36} className="text-white drop-shadow-md animate-pulse" />
+            </div>
+
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/15 text-white/90 border border-white/10">
+                  Персональный поток
+                </span>
+                {favoriteArtists.length > 0 && (
+                  <span className="text-[11px] text-white/50 font-medium">
+                    {favoriteArtists.length} любимых артистов
+                  </span>
+                )}
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                Моя волна
+              </h2>
+
+              <p className="text-xs sm:text-sm text-white/70 max-w-xl truncate mt-0.5">
+                {favoriteArtists.length > 0
+                  ? `На основе: ${favoriteArtists.slice(0, 4).join(', ')}${favoriteArtists.length > 4 ? ' и других' : ''}`
+                  : 'Бесконечный поток музыки, подобранный под ваши предпочтения'}
+              </p>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-3 w-full md:w-auto justify-end">
+            <button
+              onClick={() => settingsStore.setIsOnboardingModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Настроить любимых исполнителей"
+            >
+              <Sparkles size={14} className="text-violet-300" />
+              <span>Настроить</span>
+            </button>
+
+            <button
+              id="play-my-wave-btn"
+              onClick={handleWaveClick}
+              disabled={isWaveLoading}
+              className="h-11 px-5 rounded-xl bg-white text-black hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.3)] cursor-pointer shrink-0"
+              title="Включить Мою волну"
+            >
+              {isWaveLoading ? (
+                <Loader2 size={18} className="animate-spin text-black" />
+              ) : (
+                <Play size={18} className="fill-black translate-x-0.5" />
+              )}
+              <span>Слушать</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* 1. TOP QUICK-ACCESS GRID (8 items: 2 rows x 4 cols on desktop) */}
       <section id="quick-access-section" className="relative z-10 mb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -175,6 +335,46 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 >
                   <Play size={14} className="fill-white dark:fill-black translate-x-0.5" />
                 </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="home-moods-section" className="relative z-10 mb-8">
+        <div className="flex items-center justify-between mb-3.5">
+          <div className="flex items-center gap-2">
+            <Compass size={18} className="text-white/70" />
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
+              Настроения и жанры
+            </h2>
+          </div>
+          <button
+            onClick={onShowAll}
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
+          >
+            Все жанры и настроения
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5">
+          {moodPills.slice(0, 8).map((pill) => (
+            <div
+              key={pill.id}
+              onClick={() => handlePlayMood(pill)}
+              className="group relative h-12 rounded-xl bg-white/45 dark:bg-[#1C1C1E]/80 hover:bg-white/75 dark:hover:bg-[#2C2C2E] border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 transition-all duration-150 cursor-pointer flex items-center px-3.5 gap-3 overflow-hidden shadow-xs hover:shadow-md"
+            >
+              <div
+                className="w-1.5 h-6 rounded-full shrink-0 shadow-xs transition-transform group-hover:scale-y-110"
+                style={{ backgroundColor: pill.stripeColor }}
+              />
+              <span className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white/90 group-hover:text-black dark:group-hover:text-white truncate flex-1">
+                {pill.title}
+              </span>
+              <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
+                  <Play size={11} className="fill-white dark:fill-black translate-x-0.5" />
+                </div>
               </div>
             </div>
           ))}
