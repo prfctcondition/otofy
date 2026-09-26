@@ -2944,6 +2944,14 @@ export async function getMoodsAndGenres(lang: string = 'en'): Promise<MoodsAndGe
         }
 
         if (title) {
+          const lowerTitle = title.toLowerCase();
+          if (
+            lowerTitle.includes('ukrain') ||
+            lowerTitle.includes('украин') ||
+            lowerTitle.includes('україн')
+          ) {
+            continue;
+          }
           parsedItems.push({
             id: params || title,
             title,

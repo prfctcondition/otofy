@@ -66,8 +66,6 @@ const FALLBACK_SECTIONS_RU: MoodsAndGenresSection[] = [
       { id: 'g-18', title: 'Хип-хоп', params: '', browseId: '', stripeColor: '#ff8500' },
       { id: 'g-19', title: 'K-Pop', params: '', browseId: '', stripeColor: '#b47bff' },
       { id: 'g-20', title: 'R&B и соул', params: '', browseId: '', stripeColor: '#b47bff' },
-      { id: 'g-21', title: 'Ukrainian pop', params: '', browseId: '', stripeColor: '#ffc200' },
-      { id: 'g-22', title: 'Ukrainian rock', params: '', browseId: '', stripeColor: '#e24b00' },
     ],
   },
 ];
@@ -119,6 +117,11 @@ const FALLBACK_SECTIONS_EN: MoodsAndGenresSection[] = [
   },
 ];
 
+const isExcludedGenre = (title: string): boolean => {
+  const lower = title.toLowerCase();
+  return lower.includes('ukrain') || lower.includes('украин') || lower.includes('україн');
+};
+
 const cachedSectionsByLang = new Map<string, MoodsAndGenresSection[]>();
 
 export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }) => {
@@ -145,8 +148,14 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
     apiGetMoodsAndGenres(language)
       .then((data) => {
         if (isMounted && Array.isArray(data) && data.length > 0) {
-          cachedSectionsByLang.set(language, data);
-          setSections(data);
+          const cleaned = data
+            .map((sec) => ({
+              ...sec,
+              items: sec.items.filter((item) => !isExcludedGenre(item.title)),
+            }))
+            .filter((sec) => sec.items.length > 0);
+          cachedSectionsByLang.set(language, cleaned);
+          setSections(cleaned);
         }
       })
       .catch((err) => {
@@ -184,11 +193,17 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
 
   const filteredSections = sections
     .map((sec) => {
-      if (!searchFilter.trim()) return sec;
+      const allowedItems = sec.items.filter((item) => !isExcludedGenre(item.title));
+      if (!searchFilter.trim()) {
+        return {
+          ...sec,
+          items: allowedItems,
+        };
+      }
       const q = searchFilter.toLowerCase().trim();
       return {
         ...sec,
-        items: sec.items.filter((item) => item.title.toLowerCase().includes(q)),
+        items: allowedItems.filter((item) => item.title.toLowerCase().includes(q)),
       };
     })
     .filter((sec) => sec.items.length > 0);
