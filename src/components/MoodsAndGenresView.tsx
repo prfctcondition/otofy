@@ -198,13 +198,6 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
       id="moods-and-genres-view"
       className="flex-1 overflow-y-auto px-6 py-6 pb-24 relative select-none bg-transparent text-[#0F172A] dark:text-white"
     >
-      <div
-        className="pointer-events-none absolute inset-0 z-0 dark:block hidden"
-        style={{
-          background: 'linear-gradient(180deg, #181822 0%, #0d0d14 30%, #060609 65%, #000000 100%)',
-        }}
-      />
-
       <div className="relative z-10 flex flex-col gap-4 mb-8">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">

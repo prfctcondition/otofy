@@ -219,18 +219,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   return (
-    <div id="home-screen-view" className="flex-1 overflow-y-auto px-6 py-5 pb-20 relative select-none">
-      {/* Dark theme vertical gradient: deep charcoal/gray to obsidian pitch-black */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 dark:block hidden"
-        style={{
-          background: 'linear-gradient(180deg, #181822 0%, #0d0d14 30%, #060609 65%, #000000 100%)',
-        }}
-      />
-
-      {/* Top Subtle Gloss Sheen */}
-      <div className="pointer-events-none absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/40 dark:from-white/[0.04] to-transparent z-0" />
-
+    <div id="home-screen-view" className="flex-1 overflow-y-auto px-6 py-5 pb-20 relative select-none bg-transparent">
       <section id="my-wave-hero-section" className="relative z-10 mb-8">
         <div className="relative overflow-hidden rounded-2xl bg-white/70 hover:bg-white/80 dark:bg-[#0C0C10]/90 dark:hover:bg-[#111116] backdrop-blur-2xl border border-black/[0.07] dark:border-white/10 p-5 sm:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group transition-all duration-200">
           <div className="pointer-events-none absolute -top-16 -left-16 w-56 h-56 rounded-full bg-black/[0.02] dark:bg-white/[0.03] blur-3xl" />
@@ -369,7 +358,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </section>
 
       <section id="home-moods-section" className="relative z-10 mb-8">
-        <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Compass size={18} className="text-slate-800 dark:text-white/70" />
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
@@ -410,7 +399,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* 2. SECTION: RECOMMENDED STATIONS */}
       <section id="recommended-stations-section" className="relative z-10 mb-9">
-        <div className="flex items-end justify-between mb-3.5">
+        <div className="flex items-end justify-between mb-3">
           <div>
             <p className="text-xs font-semibold text-[#64748B] dark:text-white/70 tracking-wide mb-1">
               {t.home.nonStopMusic}
@@ -422,20 +411,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <button
             id="show-all-stations-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
             {t.home.showAll}
           </button>
         </div>
 
         {/* Recommended Stations Responsive Grid */}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
           {RECOMMENDED_STATIONS.map((station) => (
             <div
               key={station.id}
               id={`station-card-${station.id}`}
               onClick={() => onOpenStation(station)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.06] hover:bg-white/80 dark:hover:bg-white/[0.12] backdrop-blur-xl border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
             >
               {/* Authentic Spotify-style Radio Graphic Artwork */}
               <div
@@ -505,27 +494,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* 3. SECTION: MADE FOR YOU */}
       <section id="made-for-you-section" className="relative z-10">
-        <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
             {t.home.madeForYou}
           </h2>
           <button
             id="show-all-made-for-you-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs"
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
             {t.home.showAll}
           </button>
         </div>
 
         {/* Made For You Responsive Grid */}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
           {displayMixes.map((item) => (
             <div
               key={item.id}
               id={`made-for-you-card-${item.id}`}
               onClick={() => onOpenMix(item)}
-              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.09] backdrop-blur-xl border border-white/80 dark:border-white/[0.08] hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
+              className="group flex flex-col p-3 rounded-2xl bg-white/50 dark:bg-white/[0.06] hover:bg-white/80 dark:hover:bg-white/[0.12] backdrop-blur-xl border border-white/80 dark:border-white/10 hover:border-white dark:hover:border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-none hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] cursor-pointer transition-all duration-200 min-w-0"
             >
               {/* Artwork Box */}
               <div
