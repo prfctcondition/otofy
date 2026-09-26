@@ -182,6 +182,8 @@ export interface TranslationSchema {
     updatingDesc?: string;
     updatedTitle?: string;
     saveChanges?: string;
+    remix?: string;
+    remixDesc?: string;
   };
   onboarding: {
     headerBadge: string;

@@ -279,6 +279,8 @@ export const ru: TranslationSchema = {
     updatingDesc: 'Подбираем новые треки на основе выбранных артистов...',
     updatedTitle: '«Моя волна» обновлена',
     saveChanges: 'Сохранить изменения',
+    remix: 'Ремикс',
+    remixDesc: 'Пересобрать волну с новыми треками',
   },
   onboarding: {
     headerBadge: 'Персонализация Otofy',

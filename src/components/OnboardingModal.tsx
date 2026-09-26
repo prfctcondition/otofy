@@ -13,6 +13,7 @@ import {
   Globe,
   Compass,
   Sparkles,
+  Shuffle,
 } from 'lucide-react';
 import { useSettingsStore } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
@@ -290,6 +291,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           console.warn('[OnboardingModal] Background wave update failed:', err);
         });
     }
+  };
+
+  const handleRemix = () => {
+    if (!canSubmit) return;
+    invalidateWaveCache();
+    const finalAvatars: Record<string, string> = {};
+    for (const name of selectedArtists) {
+      if (avatarMap[name]) {
+        finalAvatars[name] = avatarMap[name];
+      }
+    }
+    settingsStore.setFavoriteArtists(selectedArtists, finalAvatars);
+    settingsStore.setOnboardingCompleted(true);
+    onClose();
+    settingsStore.setIsWaveGeneratingModalOpen(true);
   };
 
   const handleSkip = () => {
@@ -590,14 +606,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
         {currentStep === 'artists' && (
           <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-4 flex flex-col gap-3 min-h-0">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A] dark:text-white">
-                {t.onboarding?.title || 'Choose 3 or more favorite artists'}
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-white/60 max-w-2xl leading-relaxed">
-                {t.onboarding?.subtitle ||
-                  'This immediately activates and calibrates your personal "My Wave" endless station on the Home screen.'}
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A] dark:text-white">
+                  {t.onboarding?.title || 'Choose 3 or more favorite artists'}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-white/60 max-w-2xl leading-relaxed">
+                  {t.onboarding?.subtitle ||
+                    'This immediately activates and calibrates your personal "My Wave" endless station on the Home screen.'}
+                </p>
+              </div>
+              {settingsStore.onboardingCompleted && canSubmit && (
+                <button
+                  type="button"
+                  onClick={handleRemix}
+                  className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-black/[0.05] hover:bg-black/10 text-slate-800 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/15 cursor-pointer hover:scale-105 active:scale-95 transition-all self-start"
+                  title={t.wave?.remixDesc || 'Rebuild wave with fresh tracks'}
+                >
+                  <Shuffle size={14} />
+                  <span>{t.wave?.remix || 'Remix'}</span>
+                </button>
+              )}
             </div>
 
             {selectedArtists.length > 0 && (
@@ -846,18 +875,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </div>
 
               {canSubmit ? (
-                <button
-                  type="button"
-                  onClick={handleFinish}
-                  className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-[0_4px_20px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.35)] cursor-pointer hover:scale-105 active:scale-95 transition-all"
-                >
-                  <span>
-                    {settingsStore.onboardingCompleted
-                      ? t.wave?.saveChanges || (language === 'ru' ? 'Сохранить изменения' : 'Save changes')
-                      : t.onboarding?.finishSetup || (language === 'ru' ? 'Сформировать Мою волну' : 'Generate My Wave')}
-                  </span>
-                  <ArrowRight size={16} />
-                </button>
+                <div className="flex items-center gap-2.5">
+                  {settingsStore.onboardingCompleted && (
+                    <button
+                      type="button"
+                      onClick={handleRemix}
+                      className="px-4 sm:px-5 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-black/[0.05] hover:bg-black/10 text-slate-800 border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white dark:border-white/15 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                      title={t.wave?.remixDesc || 'Rebuild wave with fresh tracks'}
+                    >
+                      <Shuffle size={15} />
+                      <span>{t.wave?.remix || 'Remix'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleFinish}
+                    className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-[0_4px_20px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.35)] cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <span>
+                      {settingsStore.onboardingCompleted
+                        ? t.wave?.saveChanges || (language === 'ru' ? 'Сохранить изменения' : 'Save changes')
+                        : t.onboarding?.finishSetup || (language === 'ru' ? 'Сформировать Мою волну' : 'Generate My Wave')}
+                    </span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -889,7 +932,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 : 'opacity-100 translate-y-0 scale-100'
             }`}
           >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-[#0F172A] text-white flex items-center justify-center shadow-xl mb-8 transition-transform duration-700 animate-pulse">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-[#0F172A] text-white flex items-center justify-center shadow-xl mb-8 transition-transform duration-700">
               <Waves size={36} />
             </div>
 

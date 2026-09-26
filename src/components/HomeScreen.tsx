@@ -16,6 +16,7 @@ import {
   Zap,
   History,
   Loader2,
+  Shuffle,
 } from 'lucide-react';
 import {
   QUICK_ACCESS_ITEMS,
@@ -32,7 +33,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
-import { generateWaveTracks } from '../services/waveService';
+import { generateWaveTracks, invalidateWaveCache } from '../services/waveService';
 import { apiGetMoodsAndGenres, apiGetGenreTracks } from '../services/musicApiService';
 
 const MOOD_PILLS_CONFIG: Record<string, string[]> = {
@@ -140,6 +141,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
   };
 
+  const handleRemixWave = () => {
+    if (favoriteArtists.length === 0) {
+      settingsStore.setIsOnboardingModalOpen(true);
+      return;
+    }
+    invalidateWaveCache();
+    settingsStore.setIsWaveGeneratingModalOpen(true);
+  };
+
   const handlePlayMood = async (item: MoodOrGenreItem) => {
     const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
     const stationTitle = t.moods?.stationStarted || 'Station Started';
@@ -227,7 +237,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
           <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md dark:shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden transition-transform group-hover:scale-105">
-              <Waves size={30} className="animate-pulse" />
+              <Waves size={30} />
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
@@ -280,6 +290,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
 
           <div className="relative z-10 flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
+            {favoriteArtists.length > 0 && (
+              <button
+                onClick={handleRemixWave}
+                disabled={isWaveLoading}
+                className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                title={t.wave?.remixDesc || 'Remix My Wave with fresh tracks'}
+              >
+                <Shuffle size={14} className="text-slate-600 dark:text-white/70" />
+                <span>{t.wave?.remix || 'Remix'}</span>
+              </button>
+            )}
+
             <button
               onClick={() => settingsStore.setIsOnboardingModalOpen(true)}
               className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"

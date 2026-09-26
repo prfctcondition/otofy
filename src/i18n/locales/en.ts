@@ -279,6 +279,8 @@ export const en: TranslationSchema = {
     updatingDesc: 'Generating fresh tracks based on your artists...',
     updatedTitle: 'My Wave updated',
     saveChanges: 'Save changes',
+    remix: 'Remix',
+    remixDesc: 'Rebuild wave with fresh tracks',
   },
   onboarding: {
     headerBadge: 'Otofy Setup',

@@ -113,7 +113,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
       <div className="relative z-10 w-full max-w-xl flex flex-col items-center text-center">
         <div className="relative mb-8">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-[0_12px_40px_rgba(15,23,42,0.25)] dark:shadow-[0_0_50px_rgba(255,255,255,0.25)] transition-transform duration-300 scale-100 hover:scale-105">
-            <Waves size={44} className="animate-pulse" />
+            <Waves size={44} />
           </div>
 
           <div className="absolute inset-0 rounded-3xl border border-black/15 dark:border-white/30 animate-ping opacity-25 pointer-events-none" />
