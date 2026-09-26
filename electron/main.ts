@@ -491,6 +491,15 @@ ipcMain.handle('music:get-moods-and-genres', async () => {
   }
 });
 
+ipcMain.handle('music:search-artists', async (_event, { query }: { query: string }) => {
+  try {
+    return await innertubeService.searchArtists(query);
+  } catch (err) {
+    console.warn('[main] searchArtists error:', err);
+    return [];
+  }
+});
+
 ipcMain.handle(
   'music:get-related-tracks',
   async (

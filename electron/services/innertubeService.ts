@@ -2642,6 +2642,71 @@ export async function searchPlaylists(query: string): Promise<SearchPlaylistResu
   }
 }
 
+export interface SearchArtistResult {
+  name: string;
+  avatarUrl?: string;
+  subscribers?: string;
+  genre?: string;
+  browseId?: string;
+}
+
+export async function searchArtists(query: string): Promise<SearchArtistResult[]> {
+  try {
+    const yt = await getInnertube();
+    const cleanQ = query.trim();
+    if (!cleanQ) return [];
+
+    const res = await yt.music.search(cleanQ, { type: 'artist' });
+    const results: SearchArtistResult[] = [];
+
+    const shelves = res.contents || [];
+    for (const shelf of shelves) {
+      const items: any[] = (shelf as any).contents || [];
+      for (const item of items) {
+        const name = item.name || (typeof item.title === 'string' ? item.title : item.title?.text);
+        if (!name) continue;
+        const avatarUrl = extractThumbnailUrl(item.thumbnails || item.thumbnail);
+        const subscribers = item.subscribers?.text || item.subtitle?.text || 'Artist';
+        const browseId = item.id || item.browseId;
+
+        if (!results.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+          results.push({
+            name,
+            avatarUrl,
+            subscribers,
+            genre: 'Artist',
+            browseId,
+          });
+        }
+      }
+    }
+
+    if (results.length === 0) {
+      const genSearch = await yt.music.search(cleanQ);
+      if (genSearch?.contents) {
+        const contents = genSearch.contents as any[];
+        const card = contents.find((c: any) => c.type === 'MusicCardShelf');
+        if (card) {
+          const cardName = card.title?.text || cleanQ;
+          const cardAvatar = extractThumbnailUrl(card.thumbnail || card.thumbnails);
+          results.push({
+            name: cardName,
+            avatarUrl: cardAvatar,
+            subscribers: card.subtitle?.text || 'Artist',
+            genre: 'Artist',
+            browseId: card.title?.endpoint?.payload?.browseId || card.endpoint?.payload?.browseId,
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.warn('[InnertubeService] searchArtists error:', err);
+    return [];
+  }
+}
+
 export async function getPlaylistTracks(playlistId: string): Promise<{
   title: string;
   author: string;
@@ -2906,6 +2971,7 @@ export default {
   resetInnertubeInstance,
   search,
   searchPlaylists,
+  searchArtists,
   getPlaylistTracks,
   getTracksPopularity,
   getArtist,

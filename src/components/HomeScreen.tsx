@@ -33,6 +33,29 @@ import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { generateWaveTracks } from '../services/waveService';
+import { apiGetMoodsAndGenres, apiGetGenreTracks } from '../services/musicApiService';
+
+const DEFAULT_MOOD_PILLS_RU: MoodOrGenreItem[] = [
+  { id: 'm-1', title: 'В дороге', stripeColor: '#ffc200', params: '', browseId: '' },
+  { id: 'm-2', title: 'Заряд энергии', stripeColor: '#ffc200', params: '', browseId: '' },
+  { id: 'm-3', title: 'Отдых', stripeColor: '#00a513', params: '', browseId: '' },
+  { id: 'm-4', title: 'Концентрация', stripeColor: '#337dff', params: '', browseId: '' },
+  { id: 'm-5', title: 'Вечеринка', stripeColor: '#b47bff', params: '', browseId: '' },
+  { id: 'm-6', title: 'Романтика', stripeColor: '#e24b00', params: '', browseId: '' },
+  { id: 'm-7', title: 'Рок', stripeColor: '#e24b00', params: '', browseId: '' },
+  { id: 'm-8', title: 'Хип-хоп', stripeColor: '#ff8500', params: '', browseId: '' },
+];
+
+const DEFAULT_MOOD_PILLS_EN: MoodOrGenreItem[] = [
+  { id: 'm-1', title: 'Road Trip', stripeColor: '#ffc200', params: '', browseId: '' },
+  { id: 'm-2', title: 'Energy Boost', stripeColor: '#ffc200', params: '', browseId: '' },
+  { id: 'm-3', title: 'Relax & Chill', stripeColor: '#00a513', params: '', browseId: '' },
+  { id: 'm-4', title: 'Deep Focus', stripeColor: '#337dff', params: '', browseId: '' },
+  { id: 'm-5', title: 'Party Vibes', stripeColor: '#b47bff', params: '', browseId: '' },
+  { id: 'm-6', title: 'Romance', stripeColor: '#e24b00', params: '', browseId: '' },
+  { id: 'm-7', title: 'Rock', stripeColor: '#e24b00', params: '', browseId: '' },
+  { id: 'm-8', title: 'Hip-Hop', stripeColor: '#ff8500', params: '', browseId: '' },
+];
 
 interface HomeScreenProps {
   onSelectCollection: (title: string, playlistId?: string) => void;
@@ -53,23 +76,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPlayMix,
   onShowAll,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const settingsStore = useSettingsStore();
   const playerStore = usePlayerStore();
   const libraryStore = useLibraryStore();
   const toastStore = useToastStore();
   const favoriteArtists = settingsStore.favoriteArtists || [];
   const [isWaveLoading, setIsWaveLoading] = useState<boolean>(false);
-  const [moodPills, setMoodPills] = useState<MoodOrGenreItem[]>([
-    { id: 'm-1', title: 'В дороге', stripeColor: '#ffc200', params: '', browseId: '' },
-    { id: 'm-2', title: 'Заряд энергии', stripeColor: '#ffc200', params: '', browseId: '' },
-    { id: 'm-3', title: 'Отдых', stripeColor: '#00a513', params: '', browseId: '' },
-    { id: 'm-4', title: 'Концентрация', stripeColor: '#337dff', params: '', browseId: '' },
-    { id: 'm-5', title: 'Вечеринка', stripeColor: '#b47bff', params: '', browseId: '' },
-    { id: 'm-6', title: 'Романтика', stripeColor: '#e24b00', params: '', browseId: '' },
-    { id: 'm-7', title: 'Рок', stripeColor: '#e24b00', params: '', browseId: '' },
-    { id: 'm-8', title: 'Хип-хоп', stripeColor: '#ff8500', params: '', browseId: '' },
-  ]);
+  const defaultMoods = language === 'ru' ? DEFAULT_MOOD_PILLS_RU : DEFAULT_MOOD_PILLS_EN;
+  const [moodPills, setMoodPills] = useState<MoodOrGenreItem[]>(defaultMoods);
 
   const [dynamicMixes, setDynamicMixes] = useState<DailyMixConfig[]>([]);
 
@@ -86,24 +101,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    if (window.electronAPI?.getMoodsAndGenres) {
-      window.electronAPI
-        .getMoodsAndGenres()
-        .then((sections) => {
-          if (isMounted && Array.isArray(sections) && sections.length > 0) {
-            const allItems: MoodOrGenreItem[] = [];
-            for (const s of sections) {
-              if (s.items && Array.isArray(s.items)) {
-                allItems.push(...s.items);
-              }
-            }
-            if (allItems.length > 0) {
-              setMoodPills(allItems.slice(0, 8));
+    apiGetMoodsAndGenres()
+      .then((sections) => {
+        if (isMounted && Array.isArray(sections) && sections.length > 0) {
+          const allItems: MoodOrGenreItem[] = [];
+          for (const s of sections) {
+            if (s.items && Array.isArray(s.items)) {
+              allItems.push(...s.items);
             }
           }
-        })
-        .catch(() => {});
-    }
+          if (allItems.length > 0) {
+            setMoodPills(allItems.slice(0, 8));
+          }
+        }
+      })
+      .catch(() => {});
     return () => {
       isMounted = false;
     };
@@ -115,46 +127,53 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       return;
     }
     setIsWaveLoading(true);
+    const stationTitle = t.wave?.stationStarted || 'My Wave started';
+    const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
+    const waveName = t.wave?.title || 'My Wave';
+
     try {
       const tracks = await generateWaveTracks(favoriteArtists);
       if (tracks && tracks.length > 0) {
-        libraryStore.setCustomPlaylistView('Моя волна', tracks, {
+        libraryStore.setCustomPlaylistView(waveName, tracks, {
           creator: 'Otofy',
-          description: `Персональный поток музыки на основе: ${favoriteArtists.join(', ')}`,
+          description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
           iconName: 'waves',
           gradientFrom: '#4C1D95',
           gradientTo: '#0F172A',
         });
         await playerStore.playTrack(tracks[0], tracks);
-        toastStore.success('Моя волна запущена', `Воспроизведение персональной волны (${tracks.length} треков)`);
+        toastStore.success(stationTitle, `${waveName} (${tracks.length})`);
       }
     } catch (e) {
       console.warn('[HomeScreen] My wave failed:', e);
-      toastStore.error('Ошибка', 'Не удалось загрузить Мою волну');
+      toastStore.error(errorTitle, 'Failed to load My Wave');
     } finally {
       setIsWaveLoading(false);
     }
   };
 
   const handlePlayMood = async (item: MoodOrGenreItem) => {
+    const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
+    const stationTitle = t.moods?.stationStarted || 'Station Started';
+    const noTracksPrefix = t.moods?.noTracksFound || 'No tracks found for';
+
     try {
-      let tracks: any[] = [];
-      if (window.electronAPI?.getGenreTracks) {
-        tracks = await window.electronAPI.getGenreTracks(item.title);
-      }
+      const tracks = await apiGetGenreTracks(item.title);
       if (tracks && tracks.length > 0) {
         libraryStore.setCustomPlaylistView(item.title, tracks, {
           creator: 'YouTube Music',
-          description: `Станция настроения: ${item.title}`,
+          description: `${t.moods?.title || 'Moods & Genres'}: ${item.title}`,
           iconName: 'radio',
           gradientFrom: '#1E293B',
           gradientTo: '#0F172A',
         });
         await playerStore.playTrack(tracks[0], tracks);
-        toastStore.success('Станция запущена', `Воспроизведение: «${item.title}»`);
+        toastStore.success(stationTitle, `${item.title} (${tracks.length})`);
+      } else {
+        toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
       }
     } catch {
-      toastStore.error('Ошибка', 'Не удалось запустить станцию');
+      toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
     }
   };
 
@@ -238,23 +257,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/15 text-white/90 border border-white/10">
-                  Персональный поток
+                  {t.wave?.badge || 'Personal Stream'}
                 </span>
                 {favoriteArtists.length > 0 && (
                   <span className="text-[11px] text-white/50 font-medium">
-                    {favoriteArtists.length} любимых артистов
+                    {favoriteArtists.length} {t.wave?.artistsCount || 'favorite artists'}
                   </span>
                 )}
               </div>
 
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Моя волна
+                {t.wave?.title || 'My Wave'}
               </h2>
 
               <p className="text-xs sm:text-sm text-white/70 max-w-xl truncate mt-0.5">
                 {favoriteArtists.length > 0
-                  ? `На основе: ${favoriteArtists.slice(0, 4).join(', ')}${favoriteArtists.length > 4 ? ' и других' : ''}`
-                  : 'Бесконечный поток музыки, подобранный под ваши предпочтения'}
+                  ? `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.slice(0, 4).join(', ')}${favoriteArtists.length > 4 ? (t.wave?.andOthers || ' and others') : ''}`
+                  : (t.wave?.subtitle || 'Endless music flow tailored to your personal taste')}
               </p>
             </div>
           </div>
@@ -263,10 +282,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <button
               onClick={() => settingsStore.setIsOnboardingModalOpen(true)}
               className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 text-xs font-semibold text-white/80 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Настроить любимых исполнителей"
+              title={t.wave?.tune || 'Tune'}
             >
               <Sparkles size={14} className="text-violet-300" />
-              <span>Настроить</span>
+              <span>{t.wave?.tune || 'Tune'}</span>
             </button>
 
             <button
@@ -274,14 +293,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onClick={handleWaveClick}
               disabled={isWaveLoading}
               className="h-11 px-5 rounded-xl bg-white text-black hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.3)] cursor-pointer shrink-0"
-              title="Включить Мою волну"
+              title={t.wave?.listen || 'Listen'}
             >
               {isWaveLoading ? (
                 <Loader2 size={18} className="animate-spin text-black" />
               ) : (
                 <Play size={18} className="fill-black translate-x-0.5" />
               )}
-              <span>Слушать</span>
+              <span>{t.wave?.listen || 'Listen'}</span>
             </button>
           </div>
         </div>
@@ -346,14 +365,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div className="flex items-center gap-2">
             <Compass size={18} className="text-white/70" />
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
-              Настроения и жанры
+              {t.moods?.title || 'Moods & Genres'}
             </h2>
           </div>
           <button
             onClick={onShowAll}
             className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
-            Все жанры и настроения
+            {t.moods?.allMoods || 'All Moods & Genres'}
           </button>
         </div>
 

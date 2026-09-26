@@ -260,6 +260,38 @@ function musicApiPlugin(): Plugin {
           }
         }
 
+        if (req.url && req.url.startsWith('/api/music/moods-and-genres')) {
+          try {
+            const itModule = await import('./dist-electron/services/innertubeService.js');
+            const getMoodsFn = itModule.getMoodsAndGenres || itModule.default?.getMoodsAndGenres;
+            const sections = await getMoodsFn();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(sections || []));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
+        if (req.url && req.url.startsWith('/api/music/search-artists')) {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const q = urlObj.searchParams.get('q') || '';
+          try {
+            const itModule: any = await import('./dist-electron/services/innertubeService.js');
+            const searchArtistsFn = itModule.searchArtists || itModule.default?.searchArtists;
+            const artists = searchArtistsFn ? await searchArtistsFn(q) : [];
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(artists || []));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+
         if (req.url && req.url.startsWith('/api/music/genre-tracks')) {
           const urlObj = new URL(req.url, 'http://localhost');
           const query = urlObj.searchParams.get('query') || '';

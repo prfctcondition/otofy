@@ -23,6 +23,8 @@ import {
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
 import { useLibraryStore } from '../store/libraryStore';
 import useToastStore from '../store/toastStore';
+import { useTranslation } from '../i18n';
+import { invalidateWaveCache } from '../services/waveService';
 import type { UpdateCheckResult } from '../types';
 
 interface AudioDeviceOption {
@@ -31,6 +33,7 @@ interface AudioDeviceOption {
 }
 
 export const SettingsScreen: React.FC = () => {
+  const { t, language } = useTranslation();
   const settings = useSettingsStore();
   const navigateBack = useLibraryStore((s) => s.navigateBack);
 
@@ -232,16 +235,23 @@ export const SettingsScreen: React.FC = () => {
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
-            <h2 className="text-base font-bold">Personalization & My Wave</h2>
+            <h2 className="text-base font-bold">
+              {t.settingsPersonalization?.sectionTitle || 'Personalization & My Wave'}
+            </h2>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3">
             <div className="max-w-xl">
-              <span className="text-sm font-semibold block">Favorite Artists & Recommendation Calibration</span>
+              <span className="text-sm font-semibold block">
+                {t.settingsPersonalization?.rowTitle || 'Favorite Artists & Recommendation Calibration'}
+              </span>
               <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
                 {settings.favoriteArtists && settings.favoriteArtists.length > 0
-                  ? `Selected artists (${settings.favoriteArtists.length}): ${settings.favoriteArtists.join(', ')}`
-                  : 'No favorite artists selected yet. Calibrate to power your personal "My Wave" endless station.'}
+                  ? (t.settingsPersonalization?.rowSubtitleConfigured || 'Selected artists ({count}): {artists}')
+                      .replace('{count}', String(settings.favoriteArtists.length))
+                      .replace('{artists}', settings.favoriteArtists.join(', '))
+                  : (t.settingsPersonalization?.rowSubtitleEmpty ||
+                      'No favorite artists selected yet. Calibrate to power your personal "My Wave" endless station.')}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -250,15 +260,18 @@ export const SettingsScreen: React.FC = () => {
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs"
               >
                 <Sparkles size={14} />
-                <span>Configure Artists</span>
+                <span>{t.settingsPersonalization?.configureBtn || 'Configure Artists'}</span>
               </button>
               {settings.favoriteArtists && settings.favoriteArtists.length > 0 && (
                 <button
-                  onClick={() => settings.resetOnboarding()}
+                  onClick={() => {
+                    invalidateWaveCache();
+                    settings.resetOnboarding();
+                  }}
                   className="px-3 py-2 rounded-xl text-xs font-medium border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                  title="Reset favorite artists"
+                  title={t.settingsPersonalization?.resetBtn || 'Reset'}
                 >
-                  Reset
+                  {t.settingsPersonalization?.resetBtn || 'Reset'}
                 </button>
               )}
             </div>

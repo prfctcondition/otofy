@@ -1,18 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Sparkles,
   Check,
   Search,
-  Music,
   Waves,
-  Flame,
   ArrowRight,
   X,
   User,
+  Loader2,
 } from 'lucide-react';
 import { useSettingsStore } from '../store/settingsStore';
-import { usePlayerStore } from '../store/playerStore';
 import { useTranslation } from '../i18n';
+import { apiSearchArtists, SearchArtistItem } from '../services/musicApiService';
+import { invalidateWaveCache } from '../services/waveService';
 
 interface OnboardingArtist {
   name: string;
@@ -20,6 +19,29 @@ interface OnboardingArtist {
   genres: string[];
   avatarUrl?: string;
   gradient: string;
+}
+
+const GRADIENT_PALETTE = [
+  'from-red-600 to-rose-950',
+  'from-amber-600 to-red-950',
+  'from-purple-700 to-indigo-950',
+  'from-orange-600 to-neutral-900',
+  'from-cyan-600 to-blue-950',
+  'from-blue-600 to-indigo-950',
+  'from-emerald-700 to-teal-950',
+  'from-fuchsia-700 to-purple-950',
+  'from-pink-600 to-rose-950',
+  'from-violet-800 to-neutral-950',
+];
+
+function getArtistGradient(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i = i + 1) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash = hash | 0;
+  }
+  const idx = Math.abs(hash) % GRADIENT_PALETTE.length;
+  return GRADIENT_PALETTE[idx];
 }
 
 const CURATED_ARTISTS: OnboardingArtist[] = [
@@ -75,14 +97,14 @@ const CURATED_ARTISTS: OnboardingArtist[] = [
 ];
 
 const GENRE_FILTERS = [
-  { id: 'all', label: 'Все' },
-  { id: 'hiphop', label: 'Хип-хоп' },
-  { id: 'phonk', label: 'Фонк' },
-  { id: 'rock', label: 'Рок' },
-  { id: 'electronic', label: 'Электроника' },
-  { id: 'pop', label: 'Поп' },
-  { id: 'indie', label: 'Инди' },
-  { id: 'metal', label: 'Метал' },
+  { id: 'all', labelRu: 'Все', labelEn: 'All' },
+  { id: 'hiphop', labelRu: 'Хип-хоп', labelEn: 'Hip-Hop' },
+  { id: 'phonk', labelRu: 'Фонк', labelEn: 'Phonk' },
+  { id: 'rock', labelRu: 'Рок', labelEn: 'Rock' },
+  { id: 'electronic', labelRu: 'Электроника', labelEn: 'Electronic' },
+  { id: 'pop', labelRu: 'Поп', labelEn: 'Pop' },
+  { id: 'indie', labelRu: 'Инди', labelEn: 'Indie' },
+  { id: 'metal', labelRu: 'Метал', labelEn: 'Metal' },
 ];
 
 interface OnboardingModalProps {
@@ -96,13 +118,39 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onClose,
   onCompleteWave,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const settingsStore = useSettingsStore();
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<SearchArtistItem[]>([]);
   const [selectedArtists, setSelectedArtists] = useState<string[]>(
     settingsStore.favoriteArtists || []
   );
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await apiSearchArtists(trimmed);
+        setSearchResults(results);
+      } catch (err) {
+        console.error('Failed to search artists:', err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const toggleArtist = (name: string) => {
     setSelectedArtists((prev) =>
@@ -110,25 +158,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     );
   };
 
-  const filteredArtists = useMemo(() => {
+  const filteredCurated = useMemo(() => {
     let list = CURATED_ARTISTS;
     if (selectedGenre !== 'all') {
       list = list.filter((a) => a.genres.includes(selectedGenre));
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) || a.genre.toLowerCase().includes(q)
-      );
-    }
     return list;
-  }, [selectedGenre, searchQuery]);
+  }, [selectedGenre]);
 
   const canSubmit = selectedArtists.length >= 3;
 
   const handleFinish = () => {
     if (!canSubmit) return;
+    invalidateWaveCache();
     settingsStore.setFavoriteArtists(selectedArtists);
     settingsStore.setOnboardingCompleted(true);
     if (onCompleteWave) {
@@ -138,6 +180,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const isSearchActive = searchQuery.trim().length > 0;
+  const countText = (t.onboarding?.selectedCount || 'Selected: {count} of 3 minimum').replace(
+    '{count}',
+    String(selectedArtists.length)
+  );
 
   return (
     <div
@@ -154,14 +202,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <Waves size={18} />
               </div>
               <span className="text-xs font-bold tracking-widest uppercase text-white/50">
-                Otofy Personalization
+                {t.onboarding?.headerBadge || 'Otofy Personalization'}
               </span>
             </div>
             {settingsStore.onboardingCompleted && (
               <button
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                title="Закрыть"
+                title={t.nav.close}
               >
                 <X size={20} />
               </button>
@@ -169,13 +217,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Выберите от 3 любимых исполнителей
+            {t.onboarding?.title || 'Choose 3 or more favorite artists'}
           </h2>
-          <p className="text-sm text-white/60 max-w-2xl">
-            Это позволит сразу активировать и откалибровать вашу персональную станцию <b>«Моя волна»</b> на Главном экране.
+          <p className="text-sm text-white/60 max-w-2xl leading-relaxed">
+            {t.onboarding?.subtitle ||
+              'This immediately activates and calibrates your personal "My Wave" endless station on the Home screen.'}
           </p>
 
-          <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {selectedArtists.length > 0 && (
+            <div className="mt-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
+              {selectedArtists.map((artistName) => (
+                <span
+                  key={artistName}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/20 text-xs font-medium text-white border border-white/15 transition-colors shrink-0"
+                >
+                  <span className="truncate max-w-[160px]">{artistName}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleArtist(artistName)}
+                    className="text-white/60 hover:text-white transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative flex-1">
               <Search
                 size={16}
@@ -183,76 +252,159 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               />
               <input
                 type="text"
-                placeholder="Поиск исполнителя или жанра..."
+                placeholder={
+                  t.onboarding?.searchPlaceholder ||
+                  'Search any artist or band worldwide...'
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/[0.06] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/[0.09] transition-all"
+                className="w-full h-10 pl-10 pr-10 rounded-xl bg-white/[0.06] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/[0.09] transition-all"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
-              {GENRE_FILTERS.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setSelectedGenre(g.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                    selectedGenre === g.id
-                      ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.3)]'
-                      : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.12] hover:text-white border border-white/5'
-                  }`}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
+            {!isSearchActive && (
+              <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
+                {GENRE_FILTERS.map((g) => {
+                  const label =
+                    g.id === 'all'
+                      ? t.onboarding?.allGenres || (language === 'ru' ? g.labelRu : g.labelEn)
+                      : language === 'ru'
+                      ? g.labelRu
+                      : g.labelEn;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => setSelectedGenre(g.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
+                        selectedGenre === g.id
+                          ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.3)]'
+                          : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.12] hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="relative z-10 flex-1 overflow-y-auto px-8 py-4 scrollbar-thin scrollbar-thumb-white/10">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {filteredArtists.map((artist) => {
-              const isSelected = selectedArtists.includes(artist.name);
-              return (
-                <div
-                  key={artist.name}
-                  onClick={() => toggleArtist(artist.name)}
-                  className={`group relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center gap-3 select-none ${
-                    isSelected
-                      ? 'bg-white/[0.16] border-white/40 shadow-[0_4px_20px_rgba(255,255,255,0.1)] scale-[1.02]'
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/5 hover:border-white/15'
-                  }`}
-                >
-                  <div
-                    className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-gradient-to-br ${artist.gradient} shadow-md relative`}
-                  >
-                    <User size={18} className="text-white/80" />
-                    {isSelected && (
-                      <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                        <Check size={18} className="text-white stroke-[3]" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <span
-                      className={`text-sm font-semibold truncate block transition-colors ${
-                        isSelected ? 'text-white' : 'text-white/90 group-hover:text-white'
+        <div className="relative z-10 flex-1 overflow-y-auto px-8 py-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
+          {isSearchActive ? (
+            isSearching ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3 text-white/60">
+                <Loader2 size={28} className="animate-spin text-white/70" />
+                <span className="text-sm font-medium">
+                  {t.onboarding?.searching || 'Searching artists...'}
+                </span>
+              </div>
+            ) : searchResults.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {searchResults.map((artist) => {
+                  const isSelected = selectedArtists.includes(artist.name);
+                  const gradient = getArtistGradient(artist.name);
+                  const avatar = artist.avatarUrl || artist.thumbnailUrl;
+                  return (
+                    <div
+                      key={artist.id || artist.name}
+                      onClick={() => toggleArtist(artist.name)}
+                      className={`group relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center gap-3 select-none ${
+                        isSelected
+                          ? 'bg-white/[0.16] border-white/40 shadow-[0_4px_20px_rgba(255,255,255,0.1)] scale-[1.02]'
+                          : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/5 hover:border-white/15'
                       }`}
                     >
-                      {artist.name}
-                    </span>
-                    <span className="text-[11px] text-white/50 truncate block">
-                      {artist.genre}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      <div
+                        className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-gradient-to-br ${gradient} shadow-md relative overflow-hidden`}
+                      >
+                        {avatar ? (
+                          <img
+                            src={avatar}
+                            alt={artist.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={18} className="text-white/80" />
+                        )}
+                        {isSelected && (
+                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                            <Check size={18} className="text-white stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
 
-          {filteredArtists.length === 0 && (
-            <div className="py-16 text-center text-white/50 text-sm">
-              Исполнители не найдены. Попробуйте изменить поисковый запрос.
+                      <div className="min-w-0 flex-1">
+                        <span
+                          className={`text-sm font-semibold truncate block transition-colors ${
+                            isSelected ? 'text-white' : 'text-white/90 group-hover:text-white'
+                          }`}
+                        >
+                          {artist.name}
+                        </span>
+                        <span className="text-[11px] text-white/50 truncate block">
+                          {artist.subscribers || artist.genre || 'Artist'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-20 text-center text-white/50 text-sm">
+                {t.onboarding?.noArtistsFound ||
+                  'No artists found. Try another search query.'}
+              </div>
+            )
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {filteredCurated.map((artist) => {
+                const isSelected = selectedArtists.includes(artist.name);
+                return (
+                  <div
+                    key={artist.name}
+                    onClick={() => toggleArtist(artist.name)}
+                    className={`group relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center gap-3 select-none ${
+                      isSelected
+                        ? 'bg-white/[0.16] border-white/40 shadow-[0_4px_20px_rgba(255,255,255,0.1)] scale-[1.02]'
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/5 hover:border-white/15'
+                    }`}
+                  >
+                    <div
+                      className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-gradient-to-br ${artist.gradient} shadow-md relative`}
+                    >
+                      <User size={18} className="text-white/80" />
+                      {isSelected && (
+                        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                          <Check size={18} className="text-white stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={`text-sm font-semibold truncate block transition-colors ${
+                          isSelected ? 'text-white' : 'text-white/90 group-hover:text-white'
+                        }`}
+                      >
+                        {artist.name}
+                      </span>
+                      <span className="text-[11px] text-white/50 truncate block">
+                        {artist.genre}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -260,11 +412,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         <div className="relative z-10 px-8 py-5 bg-[#08080C] border-t border-white/10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-white/70">
-              Выбрано: <b>{selectedArtists.length}</b> из 3 минимум
+              {countText}
             </span>
             {canSubmit && (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-1">
-                <Check size={12} strokeWidth={3} /> Готово к запуску
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-1">
+                <Check size={12} strokeWidth={3} /> {t.onboarding?.readyToLaunch || 'Ready to launch'}
               </span>
             )}
           </div>
@@ -278,7 +430,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 : 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5'
             }`}
           >
-            <span>Начать слушать</span>
+            <span>{t.onboarding?.startListening || 'Start Listening'}</span>
             <ArrowRight size={16} />
           </button>
         </div>

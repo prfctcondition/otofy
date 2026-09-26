@@ -163,6 +163,56 @@ export interface TranslationSchema {
     savedToastBody: string;
     genres: Record<string, GenreTranslation>;
   };
+  wave?: {
+    title: string;
+    badge: string;
+    subtitle: string;
+    artistsPrefix: string;
+    andOthers: string;
+    tune: string;
+    listen: string;
+    stationStarted: string;
+    artistsCount: string;
+  };
+  onboarding?: {
+    headerBadge: string;
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    selectedCount: string;
+    readyToLaunch: string;
+    startListening: string;
+    noArtistsFound: string;
+    searching: string;
+    allGenres: string;
+  };
+  moods?: {
+    title: string;
+    allMoods: string;
+    searchPlaceholder: string;
+    back: string;
+    stationStarted: string;
+    noTracksFound: string;
+  };
+  suggested?: {
+    title: string;
+    basedOn: string;
+    defaultSubtitle: string;
+    refresh: string;
+    findingTracks: string;
+    showMore: string;
+    hide: string;
+    added: string;
+    addToPlaylist: string;
+  };
+  settingsPersonalization?: {
+    sectionTitle: string;
+    rowTitle: string;
+    rowSubtitleConfigured: string;
+    rowSubtitleEmpty: string;
+    configureBtn: string;
+    resetBtn: string;
+  };
 }
 
 export interface GenreTranslation {

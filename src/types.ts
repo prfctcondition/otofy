@@ -364,6 +364,7 @@ declare global {
       openExternal?: (url: string) => Promise<boolean>;
       getGenreTracks?: (query: string) => Promise<Track[]>;
       getMoodsAndGenres?: () => Promise<MoodsAndGenresSection[]>;
+      searchArtists?: (query: string) => Promise<Array<{ name: string; avatarUrl?: string; subscribers?: string; genre?: string; browseId?: string }>>;
       getRelatedTracks?: (
         trackId: string,
         source: 'YT' | 'SC',

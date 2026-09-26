@@ -1,4 +1,5 @@
 import type { Track } from '../types';
+import { apiSearchMusic, apiGetRelatedTracks } from './musicApiService';
 
 export function normalizeToTrack(raw: any, index: number = 0): Track {
   return {
@@ -20,95 +21,94 @@ export function normalizeToTrack(raw: any, index: number = 0): Track {
   };
 }
 
-export const FALLBACK_WAVE_TRACKS: Track[] = [
-  normalizeToTrack({
-    id: 'yt-wave-1',
-    title: 'Starboy',
-    artist: 'The Weeknd',
-    album: 'Starboy',
-    duration: '3:50',
-    durationSec: 230,
-    source: 'YT',
-    sourceId: '34Na4j8AVgA',
-    artworkUrl: 'https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg',
-  }, 0),
-  normalizeToTrack({
-    id: 'yt-wave-2',
-    title: 'Numb',
-    artist: 'Linkin Park',
-    album: 'Meteora',
-    duration: '3:07',
-    durationSec: 187,
-    source: 'YT',
-    sourceId: 'kXYiU_JCYtU',
-    artworkUrl: 'https://i.ytimg.com/vi/kXYiU_JCYtU/hqdefault.jpg',
-  }, 1),
-  normalizeToTrack({
-    id: 'yt-wave-3',
-    title: 'Murder In My Mind',
-    artist: 'Kordhell',
-    album: 'Murder In My Mind',
-    duration: '2:25',
-    durationSec: 145,
-    source: 'YT',
-    sourceId: 'w-sQRS-Um98',
-    artworkUrl: 'https://i.ytimg.com/vi/w-sQRS-Um98/hqdefault.jpg',
-  }, 2),
-  normalizeToTrack({
-    id: 'yt-wave-4',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    album: 'After Hours',
-    duration: '3:20',
-    durationSec: 200,
-    source: 'YT',
-    sourceId: '4NRXx6U8ABQ',
-    artworkUrl: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
-  }, 3),
-  normalizeToTrack({
-    id: 'yt-wave-5',
-    title: 'In The End',
-    artist: 'Linkin Park',
-    album: 'Hybrid Theory',
-    duration: '3:36',
-    durationSec: 216,
-    source: 'YT',
-    sourceId: 'eVTXPUF4Oz4',
-    artworkUrl: 'https://i.ytimg.com/vi/eVTXPUF4Oz4/hqdefault.jpg',
-  }, 4),
-  normalizeToTrack({
-    id: 'yt-wave-6',
-    title: 'Close Eyes',
-    artist: 'DVRST',
-    album: 'Close Eyes',
-    duration: '2:12',
-    durationSec: 132,
-    source: 'YT',
-    sourceId: 'COz9lDCFHjw',
-    artworkUrl: 'https://i.ytimg.com/vi/COz9lDCFHjw/hqdefault.jpg',
-  }, 5),
-];
+const WAVE_CACHE_KEY = 'otofy_daily_wave_cache_v2';
 
-export async function generateWaveTracks(favoriteArtists: string[]): Promise<Track[]> {
+interface WaveCache {
+  date: string;
+  artistsKey: string;
+  tracks: Track[];
+}
+
+export function getCachedWave(favoriteArtists: string[]): Track[] | null {
+  try {
+    const raw = localStorage.getItem(WAVE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed: WaveCache = JSON.parse(raw);
+    const today = new Date().toDateString();
+    const currentArtistsKey = [...favoriteArtists].sort().join('|');
+
+    if (
+      parsed.date === today &&
+      parsed.artistsKey === currentArtistsKey &&
+      Array.isArray(parsed.tracks) &&
+      parsed.tracks.length >= 10
+    ) {
+      return parsed.tracks;
+    }
+  } catch {}
+  return null;
+}
+
+export function saveCachedWave(favoriteArtists: string[], tracks: Track[]) {
+  try {
+    const today = new Date().toDateString();
+    const artistsKey = [...favoriteArtists].sort().join('|');
+    const cache: WaveCache = {
+      date: today,
+      artistsKey,
+      tracks,
+    };
+    localStorage.setItem(WAVE_CACHE_KEY, JSON.stringify(cache));
+  } catch {}
+}
+
+export function invalidateWaveCache() {
+  try {
+    localStorage.removeItem(WAVE_CACHE_KEY);
+  } catch {}
+}
+
+export async function generateWaveTracks(favoriteArtists: string[], forceRefresh = false): Promise<Track[]> {
   const artists = (favoriteArtists && favoriteArtists.length > 0)
     ? favoriteArtists
     : ['The Weeknd', 'Linkin Park', 'Kordhell'];
 
-  const shuffledArtists = [...artists].sort(() => 0.5 - Math.random());
-  const selectedArtists = shuffledArtists.slice(0, 5);
+  if (!forceRefresh) {
+    const cached = getCachedWave(artists);
+    if (cached) {
+      return cached;
+    }
+  }
 
+  const primaryArtists = [...artists];
   const gatheredTracks: Track[] = [];
+  const similarArtistNames = new Set<string>();
 
-  for (const artist of selectedArtists) {
+  // 1. Fetch tracks for each favorite artist
+  for (const artist of primaryArtists) {
     try {
-      if (window.electronAPI?.searchMusic) {
-        const resp = await window.electronAPI.searchMusic(artist, 'YT');
-        const tracks = resp && typeof resp === 'object' && 'results' in resp ? resp.results : [];
-        if (Array.isArray(tracks) && tracks.length > 0) {
-          const mapped = tracks.slice(0, 4).map((t: any, idx: number) =>
-            normalizeToTrack(t, gatheredTracks.length + idx)
-          );
-          gatheredTracks.push(...mapped);
+      const searchResp = await apiSearchMusic(artist, 'YT');
+      if (searchResp.results && searchResp.results.length > 0) {
+        const artistTracks = searchResp.results.filter(
+          (t) =>
+            t.artist.toLowerCase().includes(artist.toLowerCase()) ||
+            artist.toLowerCase().includes(t.artist.toLowerCase())
+        );
+        const tracksToUse =
+          artistTracks.length >= 4 ? artistTracks.slice(0, 14) : searchResp.results.slice(0, 12);
+        gatheredTracks.push(...tracksToUse);
+
+        // Discover similar artists from related tracks
+        if (tracksToUse.length > 0) {
+          const sampleTrack = tracksToUse[0];
+          const cleanId = (sampleTrack.sourceId || sampleTrack.id).replace(/^(yt-|sc-)/, '');
+          const related = await apiGetRelatedTracks(cleanId, 'YT', sampleTrack.artist, sampleTrack.title);
+          for (const rel of related.slice(0, 8)) {
+            if (rel.artist && !primaryArtists.some((a) => a.toLowerCase() === rel.artist.toLowerCase())) {
+              similarArtistNames.add(rel.artist);
+              gatheredTracks.push(rel);
+            }
+          }
         }
       }
     } catch (err) {
@@ -116,22 +116,36 @@ export async function generateWaveTracks(favoriteArtists: string[]): Promise<Tra
     }
   }
 
-  const uniqueTracks: Track[] = [];
-  const seenIds = new Set<string>();
+  // 2. Fetch tracks from up to 3 discovered similar artists
+  const discoveredArtists = Array.from(similarArtistNames).slice(0, 3);
+  for (const simArtist of discoveredArtists) {
+    try {
+      const simResp = await apiSearchMusic(simArtist, 'YT');
+      if (simResp.results && simResp.results.length > 0) {
+        gatheredTracks.push(...simResp.results.slice(0, 6));
+      }
+    } catch {}
+  }
 
-  for (const track of gatheredTracks.sort(() => 0.5 - Math.random())) {
-    if (!seenIds.has(track.id)) {
-      seenIds.add(track.id);
-      uniqueTracks.push({
-        ...track,
-        number: uniqueTracks.length + 1,
-      });
+  // 3. De-duplicate and randomize
+  const uniqueMap = new Map<string, Track>();
+  for (const track of gatheredTracks) {
+    const key = `${track.title.toLowerCase().trim()}___${track.artist.toLowerCase().trim()}`;
+    if (!uniqueMap.has(key) && !uniqueMap.has(track.id)) {
+      uniqueMap.set(key, track);
+      uniqueMap.set(track.id, track);
     }
   }
 
-  if (uniqueTracks.length === 0) {
-    return FALLBACK_WAVE_TRACKS;
+  const uniqueList = Array.from(new Set(Array.from(uniqueMap.values())));
+
+  const finalTracks: Track[] = uniqueList
+    .sort(() => 0.5 - Math.random())
+    .map((t, idx) => normalizeToTrack(t, idx));
+
+  if (finalTracks.length >= 10) {
+    saveCachedWave(artists, finalTracks);
   }
 
-  return uniqueTracks;
+  return finalTracks;
 }

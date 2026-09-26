@@ -16,7 +16,9 @@ import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useToastStore } from '../store/toastStore';
+import { useTranslation } from '../i18n';
 import { db } from '../db/database';
+import { apiGetRelatedTracks, apiGetGenreTracks } from '../services/musicApiService';
 
 interface SuggestedTracksSectionProps {
   playlist: Playlist;
@@ -33,6 +35,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
   const [addedTrackIds, setAddedTrackIds] = useState<Set<string>>(new Set());
   const [anchorTrackName, setAnchorTrackName] = useState<string>('');
 
+  const { t, language } = useTranslation();
   const playerStore = usePlayerStore();
   const libraryStore = useLibraryStore();
   const settingsStore = useSettingsStore();
@@ -52,7 +55,6 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
     try {
       // 1. Identify Anchor Track: check listening history for the most played or most recent track in this playlist
       const historyItems = await db.history.orderBy('playedAt').reverse().limit(300).toArray().catch(() => []);
-      const historyTrackIds = new Set(historyItems.map((h) => h.trackId));
 
       let anchorTrack: Track | undefined;
       for (const h of historyItems) {
@@ -64,7 +66,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
       }
 
       if (!anchorTrack) {
-        // Fallback: pick the first track or a random prominent track
+        // Fallback: pick the first track
         anchorTrack = tracks[0];
       }
 
@@ -91,11 +93,11 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
       const candidates: Track[] = [];
 
       // 3. Vector A: Fetch related / radio tracks for the Anchor Track
-      if (window.electronAPI?.getRelatedTracks && anchorTrack.id) {
+      if (anchorTrack.id) {
         try {
           const rawId = anchorTrack.sourceId || anchorTrack.id;
           const cleanId = rawId.replace(/^(yt-|sc-|dm-yt-\d+-|dm-sc-\d+-|dm-)/, '');
-          const related = await window.electronAPI.getRelatedTracks(
+          const related = await apiGetRelatedTracks(
             cleanId,
             anchorTrack.source === 'SC' ? 'SC' : 'YT',
             anchorTrack.artist,
@@ -110,10 +112,10 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
       }
 
       // 4. Vector B: Supplement with top genre tracks if fewer than 25 candidates
-      if (candidates.length < 25 && window.electronAPI?.getGenreTracks) {
+      if (candidates.length < 25) {
         const seedQuery = topArtists[0] || anchorTrack.artist || 'music';
         try {
-          const genreTracks = await window.electronAPI.getGenreTracks(`${seedQuery} radio`);
+          const genreTracks = await apiGetGenreTracks(`${seedQuery} radio`);
           if (Array.isArray(genreTracks)) {
             candidates.push(...genreTracks);
           }
@@ -199,13 +201,15 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
   const handleAddTrack = async (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
     if (addedTrackIds.has(track.id)) return;
+    const addedText = t.suggested?.added || 'Added to playlist';
+    const errorText = language === 'ru' ? 'Ошибка' : 'Error';
 
     try {
       await libraryStore.addTrackToPlaylist(playlist.id, track);
       setAddedTrackIds((prev) => new Set(prev).add(track.id));
-      toastStore.success('Добавлено в плейлист', `«${track.title}» добавлен в «${playlist.title}»`);
+      toastStore.success(addedText, `«${track.title}» -> «${playlist.title}»`);
     } catch (err) {
-      toastStore.error('Ошибка', 'Не удалось добавить трек в плейлист');
+      toastStore.error(errorText, 'Failed to add track to playlist');
     }
   };
 
@@ -221,6 +225,10 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
     return null;
   }
 
+  const subtitleText = anchorTrackName
+    ? (t.suggested?.basedOn || "Based on '{name}' and this playlist style").replace('{name}', anchorTrackName)
+    : (t.suggested?.defaultSubtitle || 'Similar tracks tailored to your listening taste');
+
   return (
     <section
       id="playlist-suggested-tracks-section"
@@ -231,13 +239,11 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-amber-400" />
             <h3 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white tracking-tight">
-              Рекомендуемые треки
+              {t.suggested?.title || 'Recommended Tracks'}
             </h3>
           </div>
           <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
-            {anchorTrackName
-              ? `На основе трека «${anchorTrackName}» и стиля этого плейлиста`
-              : 'Похожие треки от исполнителей, которых вы слушаете'}
+            {subtitleText}
           </p>
         </div>
 
@@ -245,7 +251,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
           onClick={loadSuggestions}
           disabled={isLoading}
           className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white transition-all cursor-pointer"
-          title="Обновить рекомендации"
+          title={t.suggested?.refresh || 'Refresh recommendations'}
         >
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
         </button>
@@ -254,7 +260,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
       {isLoading && suggestedTracks.length === 0 && (
         <div className="flex items-center justify-center py-8 text-white/50 text-sm gap-2">
           <Loader2 size={16} className="animate-spin" />
-          <span>Подбираем похожие треки...</span>
+          <span>{t.suggested?.findingTracks || 'Finding similar tracks...'}</span>
         </div>
       )}
 
@@ -328,8 +334,12 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                       : 'bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-[#0F172A] dark:text-white border-white/80 dark:border-white/10 active:scale-95'
                   }`}
-                  title={isAdded ? 'Добавлено в плейлист' : 'Добавить в этот плейлист'}
-                  aria-label="Добавить трек в плейлист"
+                  title={
+                    isAdded
+                      ? t.suggested?.added || 'Added to playlist'
+                      : t.suggested?.addToPlaylist || 'Add to playlist'
+                  }
+                  aria-label="Add track to playlist"
                 >
                   {isAdded ? (
                     <Check size={14} strokeWidth={2.5} />
@@ -349,7 +359,11 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
             onClick={() => setIsExpanded((prev) => !prev)}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[#475569] dark:text-white/80 border border-black/5 dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
           >
-            <span>{isExpanded ? 'Скрыть' : `Показать больше (+${suggestedTracks.length - 5})`}</span>
+            <span>
+              {isExpanded
+                ? t.suggested?.hide || 'Hide'
+                : `${t.suggested?.showMore || 'Show more'} (+${suggestedTracks.length - 5})`}
+            </span>
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>

@@ -2,22 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Play,
-  Pause,
   Loader2,
-  Compass,
-  Radio,
   Search,
 } from 'lucide-react';
 import type { MoodsAndGenresSection, MoodOrGenreItem, Track } from '../types';
 import { usePlayerStore } from '../store/playerStore';
 import { useToastStore } from '../store/toastStore';
 import { useTranslation } from '../i18n';
+import { apiGetMoodsAndGenres, apiGetGenreTracks } from '../services/musicApiService';
 
 interface MoodsAndGenresViewProps {
   onBack: () => void;
 }
 
-const FALLBACK_SECTIONS: MoodsAndGenresSection[] = [
+const FALLBACK_SECTIONS_RU: MoodsAndGenresSection[] = [
   {
     title: 'Рекомендации',
     items: [
@@ -74,35 +72,78 @@ const FALLBACK_SECTIONS: MoodsAndGenresSection[] = [
   },
 ];
 
+const FALLBACK_SECTIONS_EN: MoodsAndGenresSection[] = [
+  {
+    title: 'Featured Recommendations',
+    items: [
+      { id: 'rec-1', title: 'Feel Good', params: '', browseId: '', stripeColor: '#00a513' },
+      { id: 'rec-2', title: 'Rock & Alt', params: '', browseId: '', stripeColor: '#e24b00' },
+      { id: 'rec-3', title: '80s Hits', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'rec-4', title: 'K-Pop Pulse', params: '', browseId: '', stripeColor: '#b47bff' },
+      { id: 'rec-5', title: 'Commute & Travel', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'rec-6', title: 'Country & Americana', params: '', browseId: '', stripeColor: '#337dff' },
+    ],
+  },
+  {
+    title: 'Moods & Moments',
+    items: [
+      { id: 'mood-1', title: 'Road Trip', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'mood-2', title: 'Party Vibes', params: '', browseId: '', stripeColor: '#b47bff' },
+      { id: 'mood-3', title: 'Sad & Melancholy', params: '', browseId: '', stripeColor: '#8c8c8c' },
+      { id: 'mood-4', title: 'Energy Boost', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'mood-5', title: 'Deep Focus', params: '', browseId: '', stripeColor: '#337dff' },
+      { id: 'mood-6', title: 'Relax & Chill', params: '', browseId: '', stripeColor: '#00a513' },
+      { id: 'mood-7', title: 'Romance', params: '', browseId: '', stripeColor: '#e24b00' },
+      { id: 'mood-8', title: 'Sleep & Ambient', params: '', browseId: '', stripeColor: '#337dff' },
+      { id: 'mood-9', title: 'Workout & Gym', params: '', browseId: '', stripeColor: '#ff8500' },
+      { id: 'mood-10', title: 'Feel Good', params: '', browseId: '', stripeColor: '#00a513' },
+      { id: 'mood-11', title: 'Gaming', params: '', browseId: '', stripeColor: '#8c8c8c' },
+    ],
+  },
+  {
+    title: 'Genres',
+    items: [
+      { id: 'g-1', title: 'Hip-Hop', params: '', browseId: '', stripeColor: '#ff8500' },
+      { id: 'g-2', title: 'Rock', params: '', browseId: '', stripeColor: '#e24b00' },
+      { id: 'g-3', title: 'Pop', params: '', browseId: '', stripeColor: '#b47bff' },
+      { id: 'g-4', title: 'Electronic & Dance', params: '', browseId: '', stripeColor: '#337dff' },
+      { id: 'g-5', title: 'R&B & Soul', params: '', browseId: '', stripeColor: '#b47bff' },
+      { id: 'g-6', title: 'Indie & Alternative', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'g-7', title: 'Metal', params: '', browseId: '', stripeColor: '#8c8c8c' },
+      { id: 'g-8', title: 'Jazz', params: '', browseId: '', stripeColor: '#337dff' },
+      { id: 'g-9', title: 'Classical', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'g-10', title: 'Latin', params: '', browseId: '', stripeColor: '#ffc200' },
+      { id: 'g-11', title: 'Folk & Acoustic', params: '', browseId: '', stripeColor: '#00a513' },
+      { id: 'g-12', title: 'Blues', params: '', browseId: '', stripeColor: '#337dff' },
+    ],
+  },
+];
+
 export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }) => {
-  const [sections, setSections] = useState<MoodsAndGenresSection[]>(FALLBACK_SECTIONS);
+  const { t, language } = useTranslation();
+  const defaultSections = language === 'ru' ? FALLBACK_SECTIONS_RU : FALLBACK_SECTIONS_EN;
+  const [sections, setSections] = useState<MoodsAndGenresSection[]>(defaultSections);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
 
   const playerStore = usePlayerStore();
   const toastStore = useToastStore();
-  const { t } = useTranslation();
 
   useEffect(() => {
     let isMounted = true;
-    if (window.electronAPI?.getMoodsAndGenres) {
-      window.electronAPI
-        .getMoodsAndGenres()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setSections(data);
-          }
-        })
-        .catch((err) => {
-          console.warn('[MoodsAndGenres] Failed to fetch:', err);
-        })
-        .finally(() => {
-          if (isMounted) setIsLoading(false);
-        });
-    } else {
-      setIsLoading(false);
-    }
+    apiGetMoodsAndGenres()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setSections(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('[MoodsAndGenres] Failed to fetch:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
     return () => {
       isMounted = false;
@@ -111,33 +152,35 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
 
   const handlePlayCategory = async (item: MoodOrGenreItem) => {
     setLoadingItemId(item.id);
-    try {
-      let tracks: Track[] = [];
-      if (window.electronAPI?.getGenreTracks) {
-        tracks = await window.electronAPI.getGenreTracks(item.title);
-      }
+    const stationTitle = t.moods?.stationStarted || 'Station Started';
+    const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
+    const noTracksPrefix = t.moods?.noTracksFound || 'No tracks found for';
 
+    try {
+      const tracks = await apiGetGenreTracks(item.title);
       if (tracks && tracks.length > 0) {
-        toastStore.success('Станция запущена', `Воспроизведение: «${item.title}» (${tracks.length} треков)`);
+        toastStore.success(stationTitle, `${item.title} (${tracks.length})`);
         playerStore.playTrack(tracks[0], tracks);
       } else {
-        toastStore.error('Ошибка', `Не удалось найти треки для «${item.title}»`);
+        toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
       }
     } catch (err) {
-      toastStore.error('Ошибка', 'Не удалось загрузить станцию');
+      toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
     } finally {
       setLoadingItemId(null);
     }
   };
 
-  const filteredSections = sections.map((sec) => {
-    if (!searchFilter.trim()) return sec;
-    const q = searchFilter.toLowerCase().trim();
-    return {
-      ...sec,
-      items: sec.items.filter((item) => item.title.toLowerCase().includes(q)),
-    };
-  }).filter((sec) => sec.items.length > 0);
+  const filteredSections = sections
+    .map((sec) => {
+      if (!searchFilter.trim()) return sec;
+      const q = searchFilter.toLowerCase().trim();
+      return {
+        ...sec,
+        items: sec.items.filter((item) => item.title.toLowerCase().includes(q)),
+      };
+    })
+    .filter((sec) => sec.items.length > 0);
 
   return (
     <div
@@ -150,12 +193,12 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
             <button
               onClick={onBack}
               className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-              title="Назад"
+              title={t.moods?.back || t.nav.back}
             >
               <ArrowLeft size={20} />
             </button>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Настроения и жанры
+              {t.moods?.title || 'Moods & Genres'}
             </h1>
           </div>
 
@@ -163,7 +206,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
               type="text"
-              placeholder="Поиск по жанрам..."
+              placeholder={t.moods?.searchPlaceholder || 'Filter moods & genres...'}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full h-9 pl-9 pr-3 rounded-full bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.16] border border-white/10 text-xs text-white placeholder:text-white/40 focus:outline-none transition-all"
