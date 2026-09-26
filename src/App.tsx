@@ -11,6 +11,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { GenreCatalogScreen } from './components/GenreCatalogScreen';
 import { MoodsAndGenresView } from './components/MoodsAndGenresView';
 import { OnboardingModal } from './components/OnboardingModal';
+import { WaveGeneratingModal } from './components/WaveGeneratingModal';
 import { SuggestedTracksSection } from './components/SuggestedTracksSection';
 import { SettingsScreen } from './components/SettingsScreen';
 import { StationItem, MadeForYouItem } from './data/homeData';
@@ -105,6 +106,8 @@ export default function App() {
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
   const isOnboardingModalOpen = useSettingsStore((s) => s.isOnboardingModalOpen);
   const setIsOnboardingModalOpen = useSettingsStore((s) => s.setIsOnboardingModalOpen);
+  const isWaveGeneratingModalOpen = useSettingsStore((s) => s.isWaveGeneratingModalOpen);
+  const setIsWaveGeneratingModalOpen = useSettingsStore((s) => s.setIsWaveGeneratingModalOpen);
 
   useEffect(() => {
     document.documentElement.lang = currentLanguage;
@@ -1460,6 +1463,12 @@ export default function App() {
         <OnboardingModal
           isOpen={!onboardingCompleted || isOnboardingModalOpen}
           onClose={() => setIsOnboardingModalOpen(false)}
+        />
+      )}
+      {isWaveGeneratingModalOpen && (
+        <WaveGeneratingModal
+          isOpen={isWaveGeneratingModalOpen}
+          onClose={() => setIsWaveGeneratingModalOpen(false)}
         />
       )}
 

@@ -49,6 +49,7 @@ export interface SettingsState {
   favoriteArtists: string[];
   favoriteArtistAvatars: Record<string, string>;
   isOnboardingModalOpen: boolean;
+  isWaveGeneratingModalOpen: boolean;
 
   // Actions
   setAutoplay: (autoplay: boolean) => void;
@@ -68,6 +69,7 @@ export interface SettingsState {
   setFavoriteArtists: (artists: string[], avatars?: Record<string, string>) => void;
   setFavoriteArtistAvatar: (artist: string, avatarUrl: string) => void;
   setIsOnboardingModalOpen: (open: boolean) => void;
+  setIsWaveGeneratingModalOpen: (open: boolean) => void;
   resetOnboarding: () => void;
   initFromSystem: () => Promise<void>;
 }
@@ -92,6 +94,7 @@ export const useSettingsStore = create<SettingsState>()(
       favoriteArtists: [],
       favoriteArtistAvatars: {},
       isOnboardingModalOpen: false,
+      isWaveGeneratingModalOpen: false,
 
       setOnboardingCompleted: (onboardingCompleted) => set({ onboardingCompleted }),
       setFavoriteArtists: (favoriteArtists, avatars) =>
@@ -109,12 +112,14 @@ export const useSettingsStore = create<SettingsState>()(
           },
         })),
       setIsOnboardingModalOpen: (isOnboardingModalOpen) => set({ isOnboardingModalOpen }),
+      setIsWaveGeneratingModalOpen: (isWaveGeneratingModalOpen) => set({ isWaveGeneratingModalOpen }),
       resetOnboarding: () =>
         set({
           onboardingCompleted: false,
           favoriteArtists: [],
           favoriteArtistAvatars: {},
           isOnboardingModalOpen: true,
+          isWaveGeneratingModalOpen: false,
         }),
 
       setLanguage: (language) => set({ language }),

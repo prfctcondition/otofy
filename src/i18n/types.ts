@@ -173,6 +173,15 @@ export interface TranslationSchema {
     listen: string;
     stationStarted: string;
     artistsCount: string;
+    generatingTitle?: string;
+    stepAnalyzing?: string;
+    stepMatching?: string;
+    stepFlow?: string;
+    stepDone?: string;
+    updatingTitle?: string;
+    updatingDesc?: string;
+    updatedTitle?: string;
+    saveChanges?: string;
   };
   onboarding: {
     headerBadge: string;

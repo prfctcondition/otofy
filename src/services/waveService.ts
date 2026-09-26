@@ -68,7 +68,13 @@ export function invalidateWaveCache() {
   } catch {}
 }
 
-export async function generateWaveTracks(favoriteArtists: string[], forceRefresh = false): Promise<Track[]> {
+export type WaveProgressCallback = (step: 'analyzing' | 'matching' | 'flow' | 'ready' | 'done', percent: number) => void;
+
+export async function generateWaveTracks(
+  favoriteArtists: string[],
+  forceRefresh = false,
+  onProgress?: WaveProgressCallback
+): Promise<Track[]> {
   const artists = (favoriteArtists && favoriteArtists.length > 0)
     ? favoriteArtists
     : ['The Weeknd', 'Linkin Park', 'Kordhell'];
@@ -76,58 +82,88 @@ export async function generateWaveTracks(favoriteArtists: string[], forceRefresh
   if (!forceRefresh) {
     const cached = getCachedWave(artists);
     if (cached) {
+      if (onProgress) {
+        onProgress('done', 100);
+      }
       return cached;
     }
   }
+
+  if (onProgress) onProgress('analyzing', 20);
 
   const primaryArtists = [...artists];
   const gatheredTracks: Track[] = [];
   const similarArtistNames = new Set<string>();
 
-  // 1. Fetch tracks for each favorite artist
-  for (const artist of primaryArtists) {
-    try {
+  // 1. Fetch tracks for each favorite artist in parallel
+  const artistResults = await Promise.allSettled(
+    primaryArtists.map(async (artist) => {
       const searchResp = await apiSearchMusic(artist, 'YT');
-      if (searchResp.results && searchResp.results.length > 0) {
-        const artistTracks = searchResp.results.filter(
-          (t) =>
-            t.artist.toLowerCase().includes(artist.toLowerCase()) ||
-            artist.toLowerCase().includes(t.artist.toLowerCase())
-        );
-        const tracksToUse =
-          artistTracks.length >= 4 ? artistTracks.slice(0, 14) : searchResp.results.slice(0, 12);
-        gatheredTracks.push(...tracksToUse);
+      const results = searchResp.results || [];
+      const artistTracks = results.filter(
+        (t) =>
+          t.artist.toLowerCase().includes(artist.toLowerCase()) ||
+          artist.toLowerCase().includes(t.artist.toLowerCase())
+      );
+      const tracksToUse =
+        artistTracks.length >= 4 ? artistTracks.slice(0, 14) : results.slice(0, 12);
+      return { artist, tracksToUse };
+    })
+  );
 
-        // Discover similar artists from related tracks
-        if (tracksToUse.length > 0) {
-          const sampleTrack = tracksToUse[0];
-          const cleanId = (sampleTrack.sourceId || sampleTrack.id).replace(/^(yt-|sc-)/, '');
-          const related = await apiGetRelatedTracks(cleanId, 'YT', sampleTrack.artist, sampleTrack.title);
-          for (const rel of related.slice(0, 8)) {
-            if (rel.artist && !primaryArtists.some((a) => a.toLowerCase() === rel.artist.toLowerCase())) {
-              similarArtistNames.add(rel.artist);
-              gatheredTracks.push(rel);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[WaveService] Failed to fetch tracks for ${artist}:`, err);
+  if (onProgress) onProgress('matching', 55);
+
+  const seedTracks: Track[] = [];
+  for (const res of artistResults) {
+    if (res.status === 'fulfilled' && res.value.tracksToUse.length > 0) {
+      gatheredTracks.push(...res.value.tracksToUse);
+      seedTracks.push(res.value.tracksToUse[0]);
     }
   }
 
-  // 2. Fetch tracks from up to 3 discovered similar artists
-  const discoveredArtists = Array.from(similarArtistNames).slice(0, 3);
-  for (const simArtist of discoveredArtists) {
-    try {
-      const simResp = await apiSearchMusic(simArtist, 'YT');
-      if (simResp.results && simResp.results.length > 0) {
-        gatheredTracks.push(...simResp.results.slice(0, 6));
+  // 2. Fetch related / radio tracks in parallel for seeds to discover similar artists
+  const sampleSeeds = seedTracks.slice(0, 3);
+  if (sampleSeeds.length > 0) {
+    const relatedResults = await Promise.allSettled(
+      sampleSeeds.map(async (seed) => {
+        const cleanId = (seed.sourceId || seed.id).replace(/^(yt-|sc-)/, '');
+        return await apiGetRelatedTracks(cleanId, 'YT', seed.artist, seed.title);
+      })
+    );
+
+    for (const relRes of relatedResults) {
+      if (relRes.status === 'fulfilled' && Array.isArray(relRes.value)) {
+        for (const rel of relRes.value.slice(0, 8)) {
+          if (rel.artist && !primaryArtists.some((a) => a.toLowerCase() === rel.artist.toLowerCase())) {
+            similarArtistNames.add(rel.artist);
+            gatheredTracks.push(rel);
+          }
+        }
       }
-    } catch {}
+    }
   }
 
-  // 3. De-duplicate and randomize
+  if (onProgress) onProgress('flow', 80);
+
+  // 3. Fetch tracks from up to 2 discovered similar artists in parallel if needed
+  const discoveredArtists = Array.from(similarArtistNames).slice(0, 2);
+  if (discoveredArtists.length > 0) {
+    const simResults = await Promise.allSettled(
+      discoveredArtists.map(async (simArtist) => {
+        const simResp = await apiSearchMusic(simArtist, 'YT');
+        return simResp.results ? simResp.results.slice(0, 6) : [];
+      })
+    );
+    for (const sRes of simResults) {
+      if (sRes.status === 'fulfilled' && Array.isArray(sRes.value)) {
+        gatheredTracks.push(...sRes.value);
+      }
+    }
+  }
+
+  if (onProgress) onProgress('ready', 95);
+
+  // 4. De-duplicate and randomize
   const uniqueMap = new Map<string, Track>();
   for (const track of gatheredTracks) {
     const key = `${track.title.toLowerCase().trim()}___${track.artist.toLowerCase().trim()}`;
@@ -146,6 +182,8 @@ export async function generateWaveTracks(favoriteArtists: string[], forceRefresh
   if (finalTracks.length >= 10) {
     saveCachedWave(artists, finalTracks);
   }
+
+  if (onProgress) onProgress('done', 100);
 
   return finalTracks;
 }

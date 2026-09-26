@@ -269,6 +269,7 @@ export const SettingsScreen: React.FC = () => {
                             <img
                               src={avatar}
                               alt={artistName}
+                              referrerPolicy="no-referrer"
                               className="w-full h-full object-cover"
                               loading="lazy"
                               onError={(e) => {

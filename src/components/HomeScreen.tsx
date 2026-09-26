@@ -138,7 +138,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           creator: 'Otofy',
           description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
           iconName: 'waves',
-          gradientFrom: '#4C1D95',
+          gradientFrom: '#1E293B',
           gradientTo: '#0F172A',
         });
         await playerStore.playTrack(tracks[0], tracks);
@@ -269,6 +269,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                             key={artistName}
                             src={avatar}
                             alt={artistName}
+                            referrerPolicy="no-referrer"
                             className="inline-block h-4 w-4 rounded-full ring-1 ring-white dark:ring-black object-cover"
                             loading="lazy"
                           />
