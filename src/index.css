@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -88,10 +88,10 @@
 }
 
 .liquid-glass-pill-active {
-  background: #0F172A;
+  background: #142347;
   color: #FFFFFF;
-  border: 1.2px solid #0F172A;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  border: 1.2px solid #142347;
+  box-shadow: 0 4px 14px rgba(20, 35, 71, 0.25);
 }
 
 /* OLED Pure Black & Obsidian Glass Palette */
@@ -216,4 +216,26 @@
 
 .animate-fade-in {
   animation: otofyFadeIn 0.4s ease-out forwards;
+}
+
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus,
+button:focus-visible,
+button:active,
+[type="button"]:focus,
+[type="button"]:focus-visible,
+[type="button"]:active,
+[type="reset"]:focus,
+[type="reset"]:focus-visible,
+[type="reset"]:active,
+[type="submit"]:focus,
+[type="submit"]:focus-visible,
+[type="submit"]:active {
+  outline: none !important;
 }

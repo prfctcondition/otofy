@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Download,
   X,
@@ -235,7 +235,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           creator: otofyData.creator || 'Otofy User',
           artworkUrl: otofyData.artworkUrl,
           gradientFrom: '#1E293B',
-          gradientTo: '#0F172A',
+          gradientTo: '#142347',
           iconName: 'disc',
         });
 
@@ -266,7 +266,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             sourceId: item.sourceId,
             iconName: 'music',
             gradientFrom: '#1E293B',
-            gradientTo: '#0F172A',
+            gradientTo: '#142347',
             isLiked: false,
             artworkUrl:
               item.source === 'YT' && item.sourceId
@@ -290,7 +290,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           creator: remoteData.author || (activeTab === 'yt' ? 'YouTube Music' : 'SoundCloud'),
           artworkUrl: remoteData.artworkUrl,
           gradientFrom: activeTab === 'yt' ? '#DC2626' : '#EA580C',
-          gradientTo: '#0F172A',
+          gradientTo: '#142347',
           iconName: activeTab === 'yt' ? 'music' : 'waves',
         });
 
@@ -310,7 +310,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             dateAdded: new Date().toISOString(),
             iconName: 'music',
             gradientFrom: '#1E293B',
-            gradientTo: '#0F172A',
+            gradientTo: '#142347',
             artworkUrl: t.artworkUrl || remoteData.artworkUrl,
           };
           await addTrackToPlaylist(newPl.id, track);
@@ -431,11 +431,11 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
         {/* Modal Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
+            <div className="p-2.5 bg-[#142347] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
               <Download size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Import Playlist</h2>
+              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">Import Playlist</h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
                 Universal hub: Spotify, YouTube Music, SoundCloud & Otofy Share
               </p>
@@ -443,7 +443,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -455,11 +455,11 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             onClick={() => handleTabChange('spotify')}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'spotify'
-                ? 'bg-white dark:bg-white/20 text-[#0F172A] dark:text-white shadow-xs'
-                : 'text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white'
+                ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
+                : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-[#0F172A] dark:bg-white shrink-0" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#142347] dark:bg-white shrink-0" />
             <span className="truncate">Spotify</span>
           </button>
 
@@ -467,8 +467,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             onClick={() => handleTabChange('yt')}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'yt'
-                ? 'bg-white dark:bg-white/20 text-[#0F172A] dark:text-white shadow-xs'
-                : 'text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white'
+                ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
+                : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Youtube size={14} className="text-rose-500 shrink-0" />
@@ -479,8 +479,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             onClick={() => handleTabChange('sc')}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'sc'
-                ? 'bg-white dark:bg-white/20 text-[#0F172A] dark:text-white shadow-xs'
-                : 'text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white'
+                ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
+                : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Cloud size={14} className="text-amber-500 shrink-0" />
@@ -491,8 +491,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             onClick={() => handleTabChange('otofy')}
             className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'otofy'
-                ? 'bg-white dark:bg-white/20 text-[#0F172A] dark:text-white shadow-xs'
-                : 'text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white'
+                ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
+                : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Share2 size={14} className="text-slate-500 shrink-0" />
@@ -528,13 +528,13 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                     ? 'https://soundcloud.com/.../sets/...'
                     : 'OTO-xxxx-xxxx'
                 }
-                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-slate-400 dark:focus:border-white/30 rounded-xl focus:outline-none text-xs font-sans text-[#0F172A] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-slate-400 dark:focus:border-white/30 rounded-xl focus:outline-none text-xs font-sans text-[#142347] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all disabled:opacity-50"
                 autoFocus
               />
               <button
                 onClick={handleInspect}
                 disabled={isInspecting || isMatching || isImporting || !inputValue.trim()}
-                className="px-5 py-3 bg-[#0F172A] dark:bg-white dark:text-black hover:bg-black dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                className="px-5 py-3 bg-[#142347] dark:bg-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
               >
                 {isInspecting ? (
                   <>
@@ -560,8 +560,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 space-y-3 shadow-xs animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Download size={16} className="text-[#0F172A] dark:text-white animate-bounce" />
-                  <span className="font-bold text-[#0F172A] dark:text-white">
+                  <Download size={16} className="text-[#142347] dark:text-white animate-bounce" />
+                  <span className="font-bold text-[#142347] dark:text-white">
                     Importing: {directImportProgress.current} / {directImportProgress.total} tracks...
                   </span>
                 </div>
@@ -575,7 +575,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
               {/* Progress Bar Track */}
               <div className="w-full h-2.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden relative">
                 <div
-                  className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-all duration-150"
+                  className="h-full bg-[#142347] dark:bg-white rounded-full transition-all duration-150"
                   style={{
                     width: `${
                       directImportProgress.total > 0
@@ -590,7 +590,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                 <span className="text-[#64748B] dark:text-white/60 truncate max-w-[340px]">
                   {directImportProgress.currentTrackTitle || 'Saving to library...'}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
                   {directImportProgress.current} of {directImportProgress.total}
                 </span>
               </div>
@@ -602,8 +602,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 space-y-3 shadow-xs animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-[#0F172A] dark:text-white animate-pulse" />
-                  <span className="font-bold text-[#0F172A] dark:text-white">
+                  <Sparkles size={16} className="text-[#142347] dark:text-white animate-pulse" />
+                  <span className="font-bold text-[#142347] dark:text-white">
                     Importing: {matchProgress.current} / {matchProgress.total} tracks...
                   </span>
                 </div>
@@ -615,7 +615,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
               {/* Progress Bar Track */}
               <div className="w-full h-2.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden relative">
                 <div
-                  className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-all duration-150"
+                  className="h-full bg-[#142347] dark:bg-white rounded-full transition-all duration-150"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -625,8 +625,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                   Searching: {matchProgress.currentTrackTitle || 'Connecting...'}
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
-                    ✓ {matchProgress.matched} confirmed
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
+                    âœ“ {matchProgress.matched} confirmed
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
                     ? {matchProgress.unresolved} need review
@@ -647,19 +647,19 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                     className="w-14 h-14 rounded-xl object-cover bg-slate-100 dark:bg-white/10 shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-white/10 text-[#0F172A] dark:text-white flex items-center justify-center font-bold shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-white/10 text-[#142347] dark:text-white flex items-center justify-center font-bold shrink-0">
                     <Music size={22} />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-[#0F172A] dark:text-white text-sm truncate">
+                  <h4 className="font-bold text-[#142347] dark:text-white text-sm truncate">
                     {spotifyData.title}
                   </h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60 truncate">
-                    by {spotifyData.creator} • {spotifyData.trackCount} tracks
+                    by {spotifyData.creator} â€¢ {spotifyData.trackCount} tracks
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
                       Ready to auto-match
                     </span>
                     <span className="text-[10px] text-[#64748B] dark:text-white/50">
@@ -680,7 +680,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {`${Math.floor(t.durationSec / 60)}:${(t.durationSec % 60).toString().padStart(2, '0')}`}
@@ -697,7 +697,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
               <button
                 onClick={handleSpotifyMatchAndImport}
                 disabled={isMatching}
-                className="w-full py-3.5 bg-[#0F172A] hover:bg-slate-800 active:bg-slate-900 dark:bg-white dark:hover:bg-white/90 text-white dark:text-black rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-[#142347] hover:bg-[#101b38] active:bg-[#0c142b] dark:bg-white dark:hover:bg-white/90 text-white dark:text-black rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Sparkles size={16} />
                 <span>Start Import & Match Engine ({spotifyData.tracks.length} tracks)</span>
@@ -721,13 +721,13 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-[#0F172A] dark:text-white text-sm truncate">
+                  <h4 className="font-bold text-[#142347] dark:text-white text-sm truncate">
                     {remoteData.title}
                   </h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60 truncate">
-                    by {remoteData.author} • {remoteData.tracks.length} tracks
+                    by {remoteData.author} â€¢ {remoteData.tracks.length} tracks
                   </p>
-                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
                     Ready to import
                   </span>
                 </div>
@@ -743,7 +743,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {t.duration}
@@ -760,7 +760,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
               <button
                 onClick={handleDirectImport}
                 disabled={isImporting}
-                className="w-full py-3.5 bg-[#0F172A] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-white/90 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-[#142347] dark:bg-white text-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isImporting ? (
                   <span>Importing playlist...</span>
@@ -776,12 +776,12 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
             <div className="p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-[#0F172A] dark:text-white text-sm">{otofyData.title}</h4>
+                  <h4 className="font-bold text-[#142347] dark:text-white text-sm">{otofyData.title}</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
-                    by {otofyData.creator} • {otofyData.tracks.length} tracks
+                    by {otofyData.creator} â€¢ {otofyData.tracks.length} tracks
                   </p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
                   Ready to import
                 </span>
               </div>
@@ -796,7 +796,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {t.duration || '0:00'}
@@ -813,7 +813,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
               <button
                 onClick={handleDirectImport}
                 disabled={isImporting}
-                className="w-full py-3.5 bg-[#0F172A] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-white/90 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-[#142347] dark:bg-white text-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isImporting ? (
                   <span>Importing playlist...</span>
@@ -826,8 +826,8 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
           {/* Success Banner */}
           {success && (
-            <div className="flex items-center gap-2 text-[#0F172A] dark:text-white bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 p-3 rounded-xl text-xs font-semibold animate-in fade-in">
-              <CheckCircle2 size={16} className="shrink-0 text-[#0F172A] dark:text-white" />
+            <div className="flex items-center gap-2 text-[#142347] dark:text-white bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 p-3 rounded-xl text-xs font-semibold animate-in fade-in">
+              <CheckCircle2 size={16} className="shrink-0 text-[#142347] dark:text-white" />
               <span>{successMessage || 'Playlist imported successfully!'}</span>
             </div>
           )}

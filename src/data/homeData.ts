@@ -1,4 +1,4 @@
-export interface QuickAccessItem {
+﻿export interface QuickAccessItem {
   id: string;
   title: string;
   subtitle?: string;
@@ -62,10 +62,10 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
     id: 'qa-history',
     title: 'History',
     subtitle: 'Recently played tracks',
-    color: '#0F172A',
+    color: '#142347',
     icon: 'history',
     gradientFrom: '#1E293B',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
     playlistId: 'pl-history',
   },
   {
@@ -155,7 +155,7 @@ export const RECOMMENDED_STATIONS: StationItem[] = [
     id: 'station-synth',
     title: 'Synthwave 80s',
     artistsSummary: 'With The Midnight, FM-84, Gunship, Timecop1983',
-    bgColor: '#0F172A',
+    bgColor: '#142347',
     textColor: '#FFFFFF',
     badgeLabel: 'RADIO',
     badgeBg: '#334155',
@@ -198,7 +198,7 @@ export const MADE_FOR_YOU_ITEMS: MadeForYouItem[] = [
     title: 'Daily Mix 1',
     mixNumber: '1',
     badgeColor: '#06B6D4',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     subtitle: 'PANDEMXNIUM, Kordhell, DVRST and more.',
     cardVariant: 'mix',
     bgGradient: 'from-slate-900 via-zinc-800 to-stone-900',
@@ -218,7 +218,7 @@ export const MADE_FOR_YOU_ITEMS: MadeForYouItem[] = [
     title: 'Daily Mix 3',
     mixNumber: '3',
     badgeColor: '#F59E0B',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     subtitle: 'DVRST, Interworld, Pharmacist, Hensonn and more.',
     cardVariant: 'mix',
     bgGradient: 'from-amber-950 via-orange-950 to-neutral-900',
@@ -238,7 +238,7 @@ export const MADE_FOR_YOU_ITEMS: MadeForYouItem[] = [
     title: 'Daily Mix 5',
     mixNumber: '5',
     badgeColor: '#0284C7',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     subtitle: 'Brian Eno, Marconi Union, Hammock and more.',
     cardVariant: 'mix',
     bgGradient: 'from-slate-950 via-teal-950 to-slate-900',

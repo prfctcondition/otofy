@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation, SupportedLanguage } from '../i18n';
 
@@ -73,8 +73,8 @@ export const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
               onClick={() => handleSelect(item.code)}
               className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
                 isActive
-                  ? 'bg-black/5 dark:bg-white/15 text-[#0F172A] dark:text-white font-semibold'
-                  : 'text-[#64748B] dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white'
+                  ? 'bg-black/5 dark:bg-white/15 text-[#142347] dark:text-white font-semibold'
+                  : 'text-[#64748B] dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
                 </span>
               </div>
               {isActive && (
-                <Check size={14} className="text-[#0F172A] dark:text-white shrink-0" />
+                <Check size={14} className="text-[#142347] dark:text-white shrink-0" />
               )}
             </button>
           );

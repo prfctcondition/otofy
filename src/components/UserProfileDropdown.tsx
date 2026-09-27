@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { Settings, Sliders, LogOut, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../i18n';
 
@@ -75,17 +75,17 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           {userAvatar ? (
             <img src={userAvatar} alt={userName} className="w-full h-full rounded-full object-cover" />
           ) : (
-            <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-sm font-bold text-[#0F172A] dark:text-white uppercase">
+            <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-sm font-bold text-[#142347] dark:text-white uppercase">
               {userName ? userName.charAt(0) : 'U'}
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-[#0F172A] dark:text-white truncate">
+          <p className="text-xs font-bold text-[#142347] dark:text-white truncate">
             {userName || 'Local User'}
           </p>
           <div className="flex items-center gap-1 mt-0.5">
-            <ShieldCheck size={11} className="text-[#0F172A] dark:text-white shrink-0" />
+            <ShieldCheck size={11} className="text-[#142347] dark:text-white shrink-0" />
             <span className="text-[10px] text-[#64748B] dark:text-white/60 font-medium truncate">
               {t.profile.otofyDesktop}
             </span>
@@ -101,7 +101,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             onClose();
             onOpenSettings();
           }}
-          className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+          className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#142347] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
         >
           <Settings size={15} className="text-[#64748B] dark:text-white/70" />
           <span>{t.profile.settings}</span>
@@ -114,7 +114,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
               onClose();
               onOpenEqualizer();
             }}
-            className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+            className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#142347] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 flex items-center gap-2.5 transition-colors cursor-pointer"
           >
             <Sliders size={15} className="text-[#64748B] dark:text-white/70" />
             <span>{t.profile.equalizer}</span>

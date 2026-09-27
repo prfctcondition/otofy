@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Disc,
   Music,
@@ -151,7 +151,7 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
       style={{
         width: computedSize,
         height: computedSize,
-        background: hasImage ? '#0F172A' : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+        background: hasImage ? '#142347' : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
       }}
     >
       {/* Real Image Artwork */}

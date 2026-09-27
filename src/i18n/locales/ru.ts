@@ -281,6 +281,9 @@ export const ru: TranslationSchema = {
     saveChanges: 'Сохранить изменения',
     remix: 'Ремикс',
     remixDesc: 'Пересобрать волну с новыми треками',
+    tracks: 'Треки',
+    viewTracks: 'Открыть список треков Моей волны',
+    removeFromWave: 'Удалить из Моей волны',
   },
   onboarding: {
     headerBadge: 'Персонализация Otofy',

@@ -1,4 +1,4 @@
-import { Track, Playlist, ArtistInfo } from '../types';
+﻿import { Track, Playlist, ArtistInfo } from '../types';
 
 export const FILTER_PILLS = [
   'All',
@@ -40,7 +40,7 @@ export const MOCK_PLAYLISTS: Playlist[] = [
     duration: '2h 18m',
     iconName: 'user',
     gradientFrom: '#334155',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
   },
   {
     id: 'pl-banjo-pickin',
@@ -73,7 +73,7 @@ export const MOCK_PLAYLISTS: Playlist[] = [
     duration: '3h 30m',
     iconName: 'headphones',
     gradientFrom: '#1E293B',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
   },
   {
     id: 'pl-finnish',
@@ -243,7 +243,7 @@ export const MOCK_TRACKS: Track[] = [
     sourceLabel: 'YouTube Music',
     iconName: 'mic',
     gradientFrom: '#14532D',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
     isLiked: false,
   },
   {
@@ -307,7 +307,7 @@ export const MOCK_TRACKS: Track[] = [
     sourceLabel: 'Master Audio',
     iconName: 'waves',
     gradientFrom: '#312E81',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
     isLiked: true,
   },
   {

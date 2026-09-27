@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   Minimize2,
@@ -193,7 +193,7 @@ export const FullscreenLyricsModal: React.FC = () => {
   };
 
   const bgFrom = activeTrack?.gradientFrom || '#1E1B4B';
-  const bgTo = activeTrack?.gradientTo || '#0F172A';
+  const bgTo = activeTrack?.gradientTo || '#142347';
 
   return (
     <div

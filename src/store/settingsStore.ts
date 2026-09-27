@@ -85,8 +85,8 @@ export const useSettingsStore = create<SettingsState>()(
       normalizeVolume: false,
       monoAudio: false,
       audioOutputDeviceId: 'default',
-      autoLaunch: 'no',
-      closeToTray: false,
+      autoLaunch: 'yes',
+      closeToTray: true,
       downloadsPath: '',
       hardwareAcceleration: true,
       language: getInitialLanguage(),
@@ -211,6 +211,17 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'otofy-settings',
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 2) {
+          return {
+            ...persistedState,
+            autoLaunch: persistedState?.autoLaunch === 'no' || !persistedState?.autoLaunch ? 'yes' : persistedState.autoLaunch,
+            closeToTray: persistedState?.closeToTray === false || persistedState?.closeToTray === undefined ? true : persistedState.closeToTray,
+          };
+        }
+        return persistedState;
+      },
     }
   )
 );

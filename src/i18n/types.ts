@@ -184,6 +184,9 @@ export interface TranslationSchema {
     saveChanges?: string;
     remix?: string;
     remixDesc?: string;
+    tracks?: string;
+    viewTracks?: string;
+    removeFromWave?: string;
   };
   onboarding: {
     headerBadge: string;

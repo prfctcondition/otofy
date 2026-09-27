@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Cloud, X, Youtube, Radio, CheckCircle2, AlertCircle, RefreshCw, LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import repo from '../db/repository';
@@ -226,17 +226,17 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
+            <div className="p-2.5 bg-[#142347] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
               <Cloud size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Account & Cloud Sync</h2>
+              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">Account & Cloud Sync</h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">Connect accounts to bypass rate limits and sync your libraries</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -244,13 +244,13 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         {/* Info Card */}
         <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 mb-5 flex items-start gap-3.5 backdrop-blur-md">
-          <div className="p-2.5 rounded-xl bg-slate-900/10 dark:bg-white/10 text-[#0F172A] dark:text-white border border-slate-900/20 dark:border-white/20 shrink-0 mt-0.5">
+          <div className="p-2.5 rounded-xl bg-slate-900/10 dark:bg-white/10 text-[#142347] dark:text-white border border-slate-900/20 dark:border-white/20 shrink-0 mt-0.5">
             <ShieldCheck size={20} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">Account Free by Default</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white rounded-full border border-slate-300 dark:border-white/20">
+              <h4 className="text-sm font-bold text-[#142347] dark:text-white">Account Free by Default</h4>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white rounded-full border border-slate-300 dark:border-white/20">
                 Optional
               </span>
             </div>
@@ -269,7 +269,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
             </div>
             <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-[#0F172A] dark:bg-white h-full transition-all duration-300 rounded-full"
+                className="bg-[#142347] dark:bg-white h-full transition-all duration-300 rounded-full"
                 style={{ width: `${Math.max(syncPercent, 5)}%` }}
               />
             </div>
@@ -278,7 +278,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         {/* Status Banners */}
         {!isSyncing && statusMessage && (
-          <div className="mb-4 flex items-center gap-2 text-[#0F172A] dark:text-white bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 p-3 rounded-xl text-xs font-medium">
+          <div className="mb-4 flex items-center gap-2 text-[#142347] dark:text-white bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 p-3 rounded-xl text-xs font-medium">
             <CheckCircle2 size={16} className="shrink-0" />
             <span>{statusMessage}</span>
           </div>
@@ -301,7 +301,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   <Youtube size={22} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">YouTube Music</h4>
+                  <h4 className="text-sm font-bold text-[#142347] dark:text-white">YouTube Music</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
                     {ytConnected ? ytUser : 'Connect Google account to sync playlists and prevent bot challenge'}
                   </p>
@@ -309,7 +309,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               </div>
 
               {ytConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>
@@ -363,7 +363,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
                   <Radio size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-white">SoundCloud</h4>
+                  <h4 className="text-sm font-bold text-[#142347] dark:text-white">SoundCloud</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
                     {scConnected ? scUser : 'Sign in to sync your SoundCloud playlists and liked tracks'}
                   </p>
@@ -371,7 +371,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
               </div>
 
               {scConnected && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20 flex items-center gap-1">
                   <CheckCircle2 size={12} />
                   Connected
                 </span>
@@ -420,7 +420,7 @@ export const AccountSyncModal: React.FC<AccountSyncModalProps> = ({ isOpen, onCl
 
         <button
           onClick={onClose}
-          className="w-full py-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[#0F172A] dark:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+          className="w-full py-3 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[#142347] dark:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
         >
           Close
         </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   X,
   Heart,
@@ -46,16 +46,16 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
       {/* Panel Header */}
       <div className="p-3.5 flex items-center justify-between border-b border-black/[0.05] dark:border-white/10 relative z-10">
         <span
-          className="text-xs font-bold text-[#0F172A] dark:text-white truncate uppercase tracking-wider pr-2 flex items-center gap-1.5"
+          className="text-xs font-bold text-[#142347] dark:text-white truncate uppercase tracking-wider pr-2 flex items-center gap-1.5"
           title={track.title}
         >
-          <Sparkles size={12} className="text-[#0F172A] dark:text-white" />
+          <Sparkles size={12} className="text-[#142347] dark:text-white" />
           {track.title}
         </span>
         <button
           id="close-right-panel-btn"
           onClick={onClose}
-          className="p-1 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors shrink-0"
+          className="p-1 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors shrink-0"
           title="Close panel"
           aria-label="Close"
         >
@@ -86,12 +86,12 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
         {/* Track Title, Artist, & Quick Actions */}
         <div className="flex items-start justify-between gap-2 pt-1">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-[#0F172A] dark:text-white truncate leading-tight">
+            <h2 className="text-lg font-bold text-[#142347] dark:text-white truncate leading-tight">
               {track.title}
             </h2>
             <p
               onClick={() => onSelectArtist?.(track.artist)}
-              className="text-xs text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer truncate mt-0.5 font-normal transition-colors"
+              className="text-xs text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:underline cursor-pointer truncate mt-0.5 font-normal transition-colors"
               title={`View ${track.artist}`}
             >
               {track.artist}
@@ -103,7 +103,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
               className={`p-1.5 rounded-full transition-colors ${
                 track.isLiked
                   ? 'text-rose-500 hover:text-rose-600'
-                  : 'text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white'
+                  : 'text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white'
               }`}
               title={track.isLiked ? 'Liked' : 'Like'}
             >
@@ -114,13 +114,13 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
             </button>
             <button
               onClick={() => toggleLyricsModal()}
-              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Lyrics & Karaoke"
             >
               <Mic2 size={18} />
             </button>
             <button
-              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white transition-colors"
+              className="p-1.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white transition-colors"
               title="Add to playlist"
             >
               <Plus size={18} />
@@ -144,7 +144,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
               <div>
                 <span
                   onClick={() => onSelectArtist?.(artistData.name)}
-                  className="text-sm font-bold text-[#0F172A] dark:text-white hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer block transition-colors"
+                  className="text-sm font-bold text-[#142347] dark:text-white hover:text-[#142347] dark:hover:text-white hover:underline cursor-pointer block transition-colors"
                   title={`View ${artistData.name}`}
                 >
                   {artistData.name}
@@ -157,8 +157,8 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
                 onClick={() => setIsFollowing(!isFollowing)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
                   isFollowing
-                    ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black border-[#0F172A] dark:border-white shadow-[0_4px_14px_rgba(15,23,42,0.25)]'
-                    : 'bg-white/65 dark:bg-white/[0.08] text-[#0F172A] dark:text-white border-white/95 dark:border-white/15 hover:bg-white dark:hover:bg-white/20 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
+                    ? 'bg-[#142347] dark:bg-white text-white dark:text-black border-[#142347] dark:border-white shadow-[0_4px_14px_rgba(20, 35, 71,0.25)]'
+                    : 'bg-white/65 dark:bg-white/[0.08] text-[#142347] dark:text-white border-white/95 dark:border-white/15 hover:bg-white dark:hover:bg-white/20 shadow-[inset_0_1px_1.5px_#FFFFFF,0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-none'
                 }`}
               >
                 {isFollowing ? 'Following' : 'Follow'}
@@ -178,7 +178,7 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
               <span className="text-[11px] font-bold text-[#94A3B8] dark:text-white/60 uppercase tracking-wider">
                 Next in queue
               </span>
-              <span className="text-[11px] text-[#0F172A] dark:text-white font-semibold cursor-pointer hover:underline">
+              <span className="text-[11px] text-[#142347] dark:text-white font-semibold cursor-pointer hover:underline">
                 Open queue
               </span>
             </div>
@@ -197,14 +197,14 @@ export const RightInspectionPanel: React.FC<RightInspectionPanelProps> = ({
                 className="shrink-0 border border-white/80 dark:border-white/20 shadow-sm"
               />
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-[#0F172A] dark:text-white truncate block">
+                <span className="text-xs font-semibold text-[#142347] dark:text-white truncate block">
                   {nextTrack.title}
                 </span>
                 <span className="text-[11px] text-[#64748B] dark:text-white/70 truncate block">
                   {nextTrack.artist}
                 </span>
               </div>
-              <div className="w-6 h-6 rounded-full bg-[#0F172A] dark:bg-white text-white dark:text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shrink-0 shadow-md">
+              <div className="w-6 h-6 rounded-full bg-[#142347] dark:bg-white text-white dark:text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shrink-0 shadow-md">
                 <Play size={10} fill="currentColor" className="ml-0.5" />
               </div>
             </div>

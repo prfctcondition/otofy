@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Pin,
   PinOff,
@@ -142,11 +142,11 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
       ref={menuRef}
       id="playlist-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-56 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
+      className="fixed z-[9999] w-56 py-1.5 rounded-2xl bg-white/92 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] text-[#142347] dark:text-white text-xs font-medium select-none native-context-menu"
     >
       {/* Playlist Header preview */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
-        <p className="font-bold text-[13px] truncate text-[#0F172A] dark:text-white">
+        <p className="font-bold text-[13px] truncate text-[#142347] dark:text-white">
           {playlist.title}
         </p>
         <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">
@@ -182,8 +182,8 @@ export const PlaylistContextMenu: React.FC<PlaylistContextMenuProps> = ({
       >
         {copied ? (
           <>
-            <Check size={15} className="text-[#0F172A] dark:text-white" />
-            <span className="text-[#0F172A] dark:text-white font-bold">Code copied!</span>
+            <Check size={15} className="text-[#142347] dark:text-white" />
+            <span className="text-[#142347] dark:text-white font-bold">Code copied!</span>
           </>
         ) : (
           <>

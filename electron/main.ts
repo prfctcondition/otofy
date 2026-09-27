@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
+﻿import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import dns from 'dns';
@@ -45,12 +45,17 @@ interface AppConfig {
 }
 
 function loadAppConfig(): AppConfig {
+  const defaults: AppConfig = { hardwareAcceleration: true, closeToTray: true, autoLaunch: 'yes' };
   try {
     if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      return {
+        ...defaults,
+        ...parsed,
+      };
     }
   } catch {}
-  return { hardwareAcceleration: true, closeToTray: false, autoLaunch: 'no' };
+  return defaults;
 }
 
 function saveAppConfig(cfg: Partial<AppConfig>) {
@@ -64,7 +69,7 @@ function saveAppConfig(cfg: Partial<AppConfig>) {
 }
 
 const initialConfig = loadAppConfig();
-let closeToTray = initialConfig.closeToTray ?? false;
+let closeToTray = initialConfig.closeToTray ?? true;
 
 function getDefaultDownloadsPath(): string {
   const cfg = loadAppConfig();
@@ -206,7 +211,7 @@ function createWindow() {
     frame: false,
     transparent: false,
     paintWhenInitiallyHidden: false,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#142347',
   });
 
   mainWindow.on('maximize', () => {
@@ -1318,6 +1323,23 @@ app.whenReady().then(() => {
 
   if (closeToTray) {
     createTray();
+  }
+
+  if (app.isPackaged && initialConfig.autoLaunch !== 'no') {
+    try {
+      const loginSettings = app.getLoginItemSettings();
+      if (!loginSettings.openAtLogin) {
+        const openAsHidden = initialConfig.autoLaunch === 'minimized';
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          openAsHidden,
+          path: process.execPath,
+          args: openAsHidden ? ['--autostart', '--hidden', '--minimized'] : ['--autostart'],
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to ensure initial login item settings:', err);
+    }
   }
 
   // Hardware media keys are natively handled by Chromium HardwareMediaKeyHandling and Windows SMTC.

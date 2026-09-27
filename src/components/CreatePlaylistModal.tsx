@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { Plus, X, Upload, Trash2, ListMusic } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
@@ -9,13 +9,13 @@ interface CreatePlaylistModalProps {
 }
 
 const GRADIENTS = [
-  { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
+  { from: '#334155', to: '#142347', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
   { from: '#64748B', to: '#1E293B', name: 'Steel Slate' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
   { from: '#E879F9', to: '#C026D3', name: 'Fuchsia Pink' },
   { from: '#FBBF24', to: '#EAB308', name: 'Amber Yellow' },
-  { from: '#475569', to: '#0F172A', name: 'Slate Dark' },
+  { from: '#475569', to: '#142347', name: 'Slate Dark' },
 ];
 
 export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClose }) => {
@@ -107,11 +107,11 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
       <div className="bg-white/95 dark:bg-black backdrop-blur-3xl border border-white dark:border-white/10 rounded-3xl w-full max-w-md flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.18),inset_0_1px_2px_#FFFFFF] dark:shadow-[0_25px_60px_rgba(0,0,0,0.9)]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
+            <div className="p-2.5 bg-[#142347] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
               {initialTracks?.length ? <ListMusic size={22} /> : <Plus size={22} />}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">Create Playlist</h2>
+              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">Create Playlist</h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
                 {initialTracks?.length
                   ? `Add ${initialTracks.length} ${initialTracks.length === 1 ? 'track' : 'tracks'} from queue to new playlist`
@@ -121,7 +121,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -137,7 +137,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="My Awesome Playlist"
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#142347] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
               autoFocus
             />
           </div>
@@ -151,7 +151,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
               value={creator}
               onChange={(e) => setCreator(e.target.value)}
               placeholder="You"
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#142347] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
             />
           </div>
 
@@ -172,7 +172,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
                   }}
                   className={`w-9 h-9 rounded-full transition-all shadow-xs cursor-pointer ${
                     selectedGradient === idx && !customArtwork
-                      ? 'scale-110 ring-3 ring-[#0F172A] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
+                      ? 'scale-110 ring-3 ring-[#142347] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
                       : 'hover:scale-105 opacity-80 hover:opacity-100'
                   }`}
                   title={grad.name}
@@ -237,7 +237,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
               </div>
             )}
             <div className="min-w-0">
-              <h4 className="font-bold text-[#0F172A] dark:text-white text-base truncate">
+              <h4 className="font-bold text-[#142347] dark:text-white text-base truncate">
                 {title || 'Playlist Title'}
               </h4>
               <p className="text-xs text-[#64748B] dark:text-white/60 truncate">by {creator || 'You'}</p>
@@ -247,7 +247,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen
           <button
             onClick={handleCreate}
             disabled={!title.trim()}
-            className="w-full py-3.5 mt-4 px-4 bg-[#0F172A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3.5 mt-4 px-4 bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {initialTracks?.length
               ? `Create & Add ${initialTracks.length} ${initialTracks.length === 1 ? 'Track' : 'Tracks'}`

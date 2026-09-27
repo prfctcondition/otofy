@@ -21,6 +21,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore, IDLE_DOWNLOAD } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
+import { useToastStore } from '../store/toastStore';
 import { useTranslation } from '../i18n';
 
 interface DenseTrackTableProps {
@@ -257,14 +258,14 @@ const TrackRow = React.memo<TrackRowProps>(({
       className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative border select-none ${
         isReorderable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       } ${
-        isDragged ? 'opacity-40 scale-[0.99] border-dashed border-[#0F172A]/40 bg-[#0F172A]/5 dark:border-white/40 dark:bg-white/5' : ''
+        isDragged ? 'opacity-40 scale-[0.99] border-dashed border-[#142347]/40 bg-[#142347]/5 dark:border-white/40 dark:bg-white/5' : ''
       } ${
         isDragOver && dropPosition === 'above'
-          ? 'before:content-[""] before:absolute before:top-[-2px] before:left-2 before:right-2 before:h-[3px] before:bg-[#0F172A] dark:before:bg-white before:rounded-full before:z-30 before:shadow-[0_0_8px_rgba(15,23,42,0.4)] dark:before:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
+          ? 'before:content-[""] before:absolute before:top-[-2px] before:left-2 before:right-2 before:h-[3px] before:bg-[#142347] dark:before:bg-white before:rounded-full before:z-30 before:shadow-[0_0_8px_rgba(20, 35, 71,0.4)] dark:before:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
           : ''
       } ${
         isDragOver && dropPosition === 'below'
-          ? 'after:content-[""] after:absolute after:bottom-[-2px] after:left-2 after:right-2 after:h-[3px] after:bg-[#0F172A] dark:after:bg-white after:rounded-full after:z-30 after:shadow-[0_0_8px_rgba(15,23,42,0.4)] dark:after:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
+          ? 'after:content-[""] after:absolute after:bottom-[-2px] after:left-2 after:right-2 after:h-[3px] after:bg-[#142347] dark:after:bg-white after:rounded-full after:z-30 after:shadow-[0_0_8px_rgba(20, 35, 71,0.4)] dark:after:shadow-[0_0_8px_rgba(255,255,255,0.7)]'
           : ''
       } ${
         isSelected
@@ -274,7 +275,7 @@ const TrackRow = React.memo<TrackRowProps>(({
           : ''
       } ${
         isCurrent
-          ? 'text-[#0F172A] dark:text-white font-semibold'
+          ? 'text-[#142347] dark:text-white font-semibold'
           : 'text-[#334155] dark:text-white/80'
       }`}
     >
@@ -292,7 +293,7 @@ const TrackRow = React.memo<TrackRowProps>(({
                 onDoubleClick(track);
               }
             }}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[#0F172A] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[#142347] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
             title={isCurrent && isPlaying ? t.player.pause : t.player.play}
           >
             {isCurrent && isPlaying ? (
@@ -302,12 +303,12 @@ const TrackRow = React.memo<TrackRowProps>(({
             )}
           </button>
         ) : isCurrent && isBuffering ? (
-          <Loader2 size={14} className="animate-spin text-[#0F172A] dark:text-white" title="Loading audio..." />
+          <Loader2 size={14} className="animate-spin text-[#142347] dark:text-white" title="Loading audio..." />
         ) : isCurrent && isPlaying ? (
           <div className="flex items-end gap-0.5 h-3.5" title="Playing">
-            <span className="w-0.5 bg-[#0F172A] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
-            <span className="w-0.5 bg-[#0F172A]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
-            <span className="w-0.5 bg-[#0F172A]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
+            <span className="w-0.5 bg-[#142347] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
+            <span className="w-0.5 bg-[#142347]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
+            <span className="w-0.5 bg-[#142347]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
           </div>
         ) : (
           !hideTrackNumber && (
@@ -315,13 +316,13 @@ const TrackRow = React.memo<TrackRowProps>(({
               {isReorderable && (
                 <GripVertical
                   size={12}
-                  className="text-[#94A3B8] dark:text-white/40 group-hover:text-[#0F172A] dark:group-hover:text-white transition-colors shrink-0 -ml-1 mr-0.5"
+                  className="text-[#94A3B8] dark:text-white/40 group-hover:text-[#142347] dark:group-hover:text-white transition-colors shrink-0 -ml-1 mr-0.5"
                   title="Drag to reorder"
                 />
               )}
               <span
                 className={`text-xs ${
-                  isCurrent ? 'text-[#0F172A] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
+                  isCurrent ? 'text-[#142347] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
                 }`}
               >
                 {index + 1}
@@ -346,7 +347,7 @@ const TrackRow = React.memo<TrackRowProps>(({
         <div className="flex flex-col min-w-0 flex-1">
           <span
             className={`text-sm truncate ${
-              isCurrent ? 'font-bold text-[#0F172A] dark:text-white' : 'font-semibold text-[#0F172A] dark:text-white'
+              isCurrent ? 'font-bold text-[#142347] dark:text-white' : 'font-semibold text-[#142347] dark:text-white'
             }`}
           >
             {track.title}
@@ -358,7 +359,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             browseId={track.artistBrowseId}
             onSelectArtist={onSelectArtist}
             className="text-xs text-[#64748B] dark:text-white/80 truncate"
-            artistClassName="cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors"
+            artistClassName="cursor-pointer hover:underline hover:text-[#142347] dark:hover:text-white transition-colors"
           />
         </div>
       </div>
@@ -374,7 +375,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             }
           }}
           className={`text-xs text-[#64748B] dark:text-white/80 truncate transition-colors ${
-            track.album ? 'hover:text-[#0F172A] dark:hover:text-white hover:underline cursor-pointer' : ''
+            track.album ? 'hover:text-[#142347] dark:hover:text-white hover:underline cursor-pointer' : ''
           }`}
           title={track.album ? `View album ${track.album}` : undefined}
         >
@@ -403,7 +404,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             track.isLiked
               ? 'text-rose-500 hover:text-rose-600'
               : isHovered
-              ? 'text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white'
+              ? 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white'
               : 'opacity-0'
           }`}
           title={track.isLiked ? t.player.unlike : t.player.like}
@@ -437,7 +438,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().pauseTrack(track.id);
             }}
-            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.12] hover:bg-amber-500/20 text-[10px] font-semibold text-[#0F172A] dark:text-white hover:text-amber-500 transition-colors cursor-pointer shrink-0"
+            className="group/dl flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.12] hover:bg-amber-500/20 text-[10px] font-semibold text-[#142347] dark:text-white hover:text-amber-500 transition-colors cursor-pointer shrink-0"
             title={`Downloading... ${Math.round(dlStatus.progress)}% (Click to pause)`}
           >
             <Loader2 size={12} className="animate-spin shrink-0 group-hover/dl:hidden" />
@@ -465,7 +466,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               useDownloadStore.getState().resumeTrack(track.id);
             }}
-            className="p-1 rounded-full text-amber-500 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+            className="p-1 rounded-full text-amber-500 hover:text-[#142347] dark:hover:text-white transition-colors cursor-pointer shrink-0"
             title="Download paused (Click to resume)"
           >
             <Pause size={15} />
@@ -478,7 +479,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               e.stopPropagation();
               openDownloadedFile(track);
             }}
-            className="p-1 rounded-full text-[#0F172A] dark:text-white hover:opacity-80 transition-colors cursor-pointer shrink-0"
+            className="p-1 rounded-full text-[#142347] dark:text-white hover:opacity-80 transition-colors cursor-pointer shrink-0"
             title="Downloaded (Click to show in folder)"
           >
             <Check size={15} strokeWidth={2.5} />
@@ -495,7 +496,7 @@ const TrackRow = React.memo<TrackRowProps>(({
               dlStatus.status === 'error'
                 ? 'text-rose-500 hover:text-rose-400 opacity-100'
                 : isHovered
-                ? 'text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white opacity-100'
+                ? 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white opacity-100'
                 : 'opacity-0'
             }`}
             title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
@@ -515,7 +516,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             e.stopPropagation();
             onOpenContextMenu(e, track);
           }}
-          className={`p-1 rounded-full text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white transition-colors shrink-0 ${
+          className={`p-1 rounded-full text-[#94A3B8] hover:text-[#142347] dark:hover:text-white transition-colors shrink-0 ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
           title="More actions"
@@ -551,6 +552,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
   const playlists = useLibraryStore((s) => s.playlists);
   const tracklistSortBy = useLibraryStore((s) => s.tracklistSortBy);
   const reorderCurrentPlaylistTracks = useLibraryStore((s) => s.reorderCurrentPlaylistTracks);
+  const removeTrackFromPlaylist = useLibraryStore((s) => s.removeTrackFromPlaylist);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
   const checkStatus = useDownloadStore((s) => s.checkStatus);
 
@@ -567,7 +569,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
     viewingPlaylist?.type === 'Artist' ||
     activePlaylist?.type === 'Artist'
   );
-  const isReorderable = Boolean(isUserPlaylist(activePlaylist) && tracklistSortBy === 'custom' && !isLoading);
+  const isReorderable = Boolean((isUserPlaylist(activePlaylist) || activePlaylist?.id === 'view-my-wave') && tracklistSortBy === 'custom' && !isLoading);
 
   const tableRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef<boolean>(false);
@@ -901,11 +903,53 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
         if (currentTracks && currentTracks.length > 0) {
           setSelectedTrackIds(new Set(currentTracks.map((t) => t.id)));
         }
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeEl = document.activeElement;
+        if (
+          activeEl &&
+          (activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            (activeEl as HTMLElement).isContentEditable)
+        ) {
+          return;
+        }
+        const effectivePlaylistId = selectedPlaylistId || activePlaylist?.id;
+        const canDeleteFromPl =
+          effectivePlaylistId === 'view-my-wave' ||
+          (effectivePlaylistId &&
+            effectivePlaylistId !== 'pl-liked' &&
+            effectivePlaylistId !== 'home' &&
+            !effectivePlaylistId.startsWith('artist-') &&
+            !effectivePlaylistId.startsWith('album-') &&
+            !effectivePlaylistId.startsWith('mix-'));
+
+        if (canDeleteFromPl && effectivePlaylistId) {
+          const selected = Array.from(selectedTrackIdsRef.current);
+          if (selected.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            selected.forEach((id) => removeTrackFromPlaylist(effectivePlaylistId, id));
+            clearSelection();
+            if (effectivePlaylistId === 'view-my-wave') {
+              useToastStore.getState().info(
+                t.wave?.title || 'Моя волна',
+                selected.length > 1
+                  ? `Удалено ${selected.length} треков`
+                  : t.wave?.removeFromWave || 'Трек удален из Моей волны'
+              );
+            } else {
+              useToastStore.getState().info(
+                'Removed',
+                `Removed ${selected.length} tracks from playlist.`
+              );
+            }
+          }
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [clearSelection, stopAutoScrollLoop]);
+  }, [clearSelection, stopAutoScrollLoop, selectedPlaylistId, activePlaylist, removeTrackFromPlaylist, t]);
 
   const handleContainerClick = (e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey) return;
@@ -1040,10 +1084,10 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
       <div className="space-y-1 mt-1.5">
         {isLoading ? (
           <div className="py-20 px-4 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-white/10 border border-black/10 dark:border-white/15 flex items-center justify-center text-[#0F172A] dark:text-white mb-3 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-white/10 border border-black/10 dark:border-white/15 flex items-center justify-center text-[#142347] dark:text-white mb-3 shadow-xs">
               <Loader2 size={24} className="animate-spin" />
             </div>
-            <h4 className="text-sm font-bold text-[#0F172A] dark:text-white mb-0.5">Loading tracks...</h4>
+            <h4 className="text-sm font-bold text-[#142347] dark:text-white mb-0.5">Loading tracks...</h4>
             <p className="text-xs text-[#64748B] dark:text-white/70">Fetching songs and metadata</p>
           </div>
         ) : tracks.length === 0 ? (
@@ -1051,7 +1095,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
             <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-white/10 border border-white/80 dark:border-white/15 flex items-center justify-center text-[#64748B] dark:text-white/70 mb-3 shadow-xs">
               <Clock size={28} className="opacity-80" />
             </div>
-            <h4 className="text-base font-bold text-[#0F172A] dark:text-white mb-1">No songs in this collection</h4>
+            <h4 className="text-base font-bold text-[#142347] dark:text-white mb-1">No songs in this collection</h4>
             <p className="text-xs text-[#64748B] dark:text-white/70 max-w-sm leading-relaxed">
               Use the top search bar to find and add ad-free songs from YouTube Music & SoundCloud, or import an Otofy share code.
             </p>
@@ -1092,7 +1136,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
             <button
               onClick={onLoadMoreTracks}
               disabled={isLoadingMoreTracks}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-white/80 dark:bg-white/[0.08] hover:bg-white/95 dark:hover:bg-white/[0.14] text-[#0F172A] dark:text-white border border-white/90 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer bg-white/80 dark:bg-white/[0.08] hover:bg-white/95 dark:hover:bg-white/[0.14] text-[#142347] dark:text-white border border-white/90 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1.5px_#FFFFFF] dark:shadow-none hover:shadow-md active:scale-95 disabled:opacity-50"
             >
               {isLoadingMoreTracks ? (
                 <>
@@ -1126,7 +1170,7 @@ export const DenseTrackTable: React.FC<DenseTrackTableProps> = ({
             zIndex: 999999,
             transform: 'translate3d(0, 0, 0)',
           }}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-2xl border select-none bg-[#0F172A] text-white border-slate-700/50 shadow-slate-950/40 dark:bg-black dark:text-white dark:border-white/20 dark:shadow-[0_10px_25px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-100"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-2xl border select-none bg-[#142347] text-white border-slate-700/50 shadow-slate-950/40 dark:bg-black dark:text-white dark:border-white/20 dark:shadow-[0_10px_25px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-100"
         >
           <GripVertical size={13} className="text-white/60 shrink-0 -ml-1" />
           <span className="max-w-[200px] truncate">{leadTrack.title}</span>

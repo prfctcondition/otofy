@@ -227,6 +227,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
   const userPlaylists = playlists.filter((p) => p.id !== 'pl-liked');
 
   const isCurrentLikedSongs = currentPlaylistId === 'pl-liked';
+  const isWave = currentPlaylistId === 'view-my-wave';
   const canRemoveFromCurrent =
     currentPlaylistId &&
     currentPlaylistId !== 'pl-liked' &&
@@ -338,11 +339,11 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       ref={menuRef}
       id="track-context-menu"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
-      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-black backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-[#0F172A] dark:text-white text-xs font-medium select-none native-context-menu"
+      className="fixed z-[9999] w-64 py-1.5 rounded-2xl bg-white/92 dark:bg-black backdrop-blur-3xl border border-white/95 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-[#142347] dark:text-white text-xs font-medium select-none native-context-menu"
     >
       {/* Track / Selection Header preview in menu */}
       <div className="px-3 py-2 border-b border-black/[0.06] dark:border-white/10 mb-1">
-        <p className="font-bold text-[13px] truncate text-[#0F172A] dark:text-white">
+        <p className="font-bold text-[13px] truncate text-[#142347] dark:text-white">
           {isMulti ? `${activeTracks.length} tracks selected` : track.title}
         </p>
         <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">
@@ -358,7 +359,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         }}
         className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
       >
-        <Play size={15} className="text-[#0F172A] dark:text-white fill-[#0F172A] dark:fill-white" />
+        <Play size={15} className="text-[#142347] dark:text-white fill-[#142347] dark:fill-white" />
         <span>{isMulti ? `${t.menu.playSelection} (${activeTracks.length})` : t.menu.playNow}</span>
       </button>
 
@@ -371,7 +372,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           }}
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
         >
-          <Radio size={15} className="text-[#0F172A] dark:text-white" />
+          <Radio size={15} className="text-[#142347] dark:text-white" />
           <span>{t.menu.startRadio}</span>
         </button>
       )}
@@ -412,20 +413,42 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
       {canRemoveFromCurrent && onRemoveFromPlaylist && (
         <button
           onClick={() => {
-            if (isMulti) {
-              activeTracks.forEach((t) => onRemoveFromPlaylist(currentPlaylistId!, t.id));
-              useToastStore
-                .getState()
-                .info('Removed', `Removed ${activeTracks.length} tracks from this playlist.`);
+            if (isWave) {
+              if (isMulti) {
+                activeTracks.forEach((t) => onRemoveFromPlaylist(currentPlaylistId!, t.id));
+                useToastStore
+                  .getState()
+                  .info(t.wave?.title || 'Моя волна', `Удалено ${activeTracks.length} треков`);
+              } else {
+                onRemoveFromPlaylist(currentPlaylistId!, track.id);
+                useToastStore
+                  .getState()
+                  .info(t.wave?.title || 'Моя волна', t.wave?.removeFromWave || 'Трек удален из Моей волны');
+              }
             } else {
-              onRemoveFromPlaylist(currentPlaylistId!, track.id);
+              if (isMulti) {
+                activeTracks.forEach((t) => onRemoveFromPlaylist(currentPlaylistId!, t.id));
+                useToastStore
+                  .getState()
+                  .info('Removed', `Removed ${activeTracks.length} tracks from this playlist.`);
+              } else {
+                onRemoveFromPlaylist(currentPlaylistId!, track.id);
+              }
             }
             onClose();
           }}
           className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-rose-500/10 text-rose-500 transition-colors text-left cursor-pointer"
         >
           <Trash2 size={15} />
-          <span>{isMulti ? `${t.menu.removeFromPlaylist} (${activeTracks.length})` : t.menu.removeFromPlaylist}</span>
+          <span>
+            {isWave
+              ? isMulti
+                ? `${t.wave?.removeFromWave || 'Удалить из Моей волны'} (${activeTracks.length})`
+                : t.wave?.removeFromWave || 'Удалить из Моей волны'
+              : isMulti
+              ? `${t.menu.removeFromPlaylist} (${activeTracks.length})`
+              : t.menu.removeFromPlaylist}
+          </span>
         </button>
       )}
 
@@ -468,7 +491,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                   <span className="truncate">Liked Songs</span>
                 </div>
                 {containingPlaylistIds.has('pl-liked') && (
-                  <Check size={14} className="text-[#0F172A] dark:text-white shrink-0" />
+                  <Check size={14} className="text-[#142347] dark:text-white shrink-0" />
                 )}
               </button>
             )}
@@ -483,11 +506,11 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
                   <button
                     key={pl.id}
                     onClick={() => handlePlaylistToggle(pl.id)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-[#0F172A] dark:text-white"
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left cursor-pointer text-[#142347] dark:text-white"
                   >
                     <span className="truncate pr-2">{pl.title}</span>
                     {isTrackInPl && (
-                      <Check size={14} className="text-[#0F172A] dark:text-white shrink-0" />
+                      <Check size={14} className="text-[#142347] dark:text-white shrink-0" />
                     )}
                   </button>
                 );
@@ -503,9 +526,9 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
           onCreatePlaylistWithTrack(track);
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#0F172A] dark:text-white font-semibold cursor-pointer"
+        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#142347] dark:text-white font-semibold cursor-pointer"
       >
-        <FolderPlus size={15} className="text-[#0F172A] dark:text-white" />
+        <FolderPlus size={15} className="text-[#142347] dark:text-white" />
         <span>{isMulti ? `${t.menu.createPlaylistWithSelection} (${activeTracks.length})` : t.menu.createPlaylistWithTrack}</span>
       </button>
 
@@ -533,7 +556,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               openDownloadedFile(track);
               onClose();
             }}
-            className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#0F172A] dark:text-white font-medium cursor-pointer"
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors text-left text-[#142347] dark:text-white font-medium cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
               <Check size={15} />
@@ -553,7 +576,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         </>
       ) : dlStatus.status === 'downloading' ? (
         <>
-          <div className="w-full flex items-center justify-between px-3 py-2 text-[#0F172A] dark:text-white font-semibold text-[11px]">
+          <div className="w-full flex items-center justify-between px-3 py-2 text-[#142347] dark:text-white font-semibold text-[11px]">
             <div className="flex items-center gap-2">
               <Loader2 size={14} className="animate-spin shrink-0" />
               <span>Downloading ({Math.round(dlStatus.progress)}%)</span>
@@ -622,7 +645,7 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
               useDownloadStore.getState().resumeTrack(track.id);
               onClose();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-[#0F172A] dark:text-white font-medium transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-black/[0.05] dark:hover:bg-white/10 text-[#142347] dark:text-white font-medium transition-colors text-left cursor-pointer"
           >
             <Play size={14} fill="currentColor" />
             <span>{t.menu.resumeDownload}</span>
@@ -701,8 +724,8 @@ export const TrackContextMenu: React.FC<TrackContextMenuProps> = ({
         >
           {copied ? (
             <>
-              <Check size={15} className="text-[#0F172A] dark:text-white" />
-              <span className="text-[#0F172A] dark:text-white font-bold">{t.menu.copied}</span>
+              <Check size={15} className="text-[#142347] dark:text-white" />
+              <span className="text-[#142347] dark:text-white font-bold">{t.menu.copied}</span>
             </>
           ) : (
             <>

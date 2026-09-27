@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 
 export type ThemeMode = 'dark' | 'light';
 
@@ -20,7 +20,7 @@ const applyThemeToDocument = (theme: ThemeMode) => {
   } else {
     root.classList.remove('dark');
     document.body.style.backgroundColor = '#E2E8F0';
-    document.body.style.color = '#0F172A';
+    document.body.style.color = '#142347';
   }
 };
 

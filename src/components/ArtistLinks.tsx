@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { splitArtists } from '../utils/trackUtils';
 
 interface ArtistLinksProps {
@@ -21,7 +21,7 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   browseId,
   onSelectArtist,
   className = 'text-xs text-[#64748B] dark:text-white/80 truncate',
-  artistClassName = 'cursor-pointer hover:underline hover:text-[#0F172A] dark:hover:text-white transition-colors',
+  artistClassName = 'cursor-pointer hover:underline hover:text-[#142347] dark:hover:text-white transition-colors',
   separatorClassName = 'text-[#94A3B8] dark:text-white/40',
   prefix,
   suffix,

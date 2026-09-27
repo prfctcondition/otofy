@@ -1,4 +1,4 @@
-import type { Track, DailyMixConfig } from '../types';
+﻿import type { Track, DailyMixConfig } from '../types';
 import type { StationItem } from '../data/homeData';
 import repo from '../db/repository';
 import db from '../db/database';
@@ -87,7 +87,7 @@ export const GENRE_PRESETS: GenrePreset[] = [
     mixNumber: 1,
     subtitle: 'PANDEMXNIUM, Kordhell, DVRST, Hensonn and more.',
     badgeColor: '#06B6D4',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     cardVariant: 'mix',
     bgGradient: 'from-slate-900 via-zinc-800 to-stone-900',
     searchQueries: ['drift phonk dark bass slowed', 'kordhell phonk live'],
@@ -130,7 +130,7 @@ export const GENRE_PRESETS: GenrePreset[] = [
     mixNumber: 2,
     subtitle: 'ChilledCow, Kupla, idealism, Jinsang and more.',
     badgeColor: '#EAB308',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     cardVariant: 'mix',
     bgGradient: 'from-neutral-900 via-stone-800 to-amber-950',
     searchQueries: ['lofi hip hop chill beats study', 'kupla lofi beats'],
@@ -173,7 +173,7 @@ export const GENRE_PRESETS: GenrePreset[] = [
     mixNumber: 3,
     subtitle: 'The Midnight, Gunship, Timecop1983, FM-84 and more.',
     badgeColor: '#F97316',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     cardVariant: 'mix',
     bgGradient: 'from-cyan-900 via-blue-800 to-teal-950',
     searchQueries: ['the midnight synthwave retrowave', 'synthwave 80s outrun'],
@@ -216,7 +216,7 @@ export const GENRE_PRESETS: GenrePreset[] = [
     mixNumber: 4,
     subtitle: 'BONES, Xavier Wulf, Suicideboys, Yung Lean and more.',
     badgeColor: '#EC4899',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     cardVariant: 'mix',
     bgGradient: 'from-zinc-900 via-purple-900 to-neutral-950',
     searchQueries: ['bones underground rap sesh', 'cloud rap lofi hip hop'],
@@ -249,7 +249,7 @@ export const GENRE_PRESETS: GenrePreset[] = [
     mixNumber: 5,
     subtitle: 'Brian Eno, Stars of the Lid, Hammock, Tim Hecker and more.',
     badgeColor: '#0284C7',
-    badgeTextColor: '#0F172A',
+    badgeTextColor: '#142347',
     cardVariant: 'mix',
     bgGradient: 'from-slate-950 via-teal-950 to-slate-900',
     searchQueries: ['ambient deep sleep meditation music', 'ambient spatial relaxation'],
@@ -632,7 +632,7 @@ export async function generateDailyMixes(): Promise<DailyMixConfig[]> {
         artworkUrl: fb.artworkUrl,
         iconName: 'music' as const,
         gradientFrom: '#334155',
-        gradientTo: '#0F172A',
+        gradientTo: '#142347',
         isLiked: false,
       }));
       const existingTitles = new Set(mixTracks.map((t) => t.title.toLowerCase()));
@@ -756,7 +756,7 @@ export async function getStationTracks(station: StationItem): Promise<Track[]> {
     album: `${station.title} Radio`,
     iconName: 'radio' as const,
     gradientFrom: '#1E293B',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
   }));
 
   for (const t of stationTracks) {

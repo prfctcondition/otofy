@@ -140,7 +140,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             disabled={!canGoBack}
             className={`p-1.5 rounded-full transition-all duration-150 ${
               canGoBack
-                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
+                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white cursor-pointer text-[#142347] dark:text-white'
                 : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
             title={t.nav.back}
@@ -154,7 +154,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             disabled={!canGoForward}
             className={`p-1.5 rounded-full transition-all duration-150 ${
               canGoForward
-                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#0F172A] dark:hover:text-white cursor-pointer text-[#0F172A] dark:text-white'
+                ? 'hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white cursor-pointer text-[#142347] dark:text-white'
                 : 'text-[#94A3B8]/40 dark:text-white/20 cursor-not-allowed'
             }`}
             title={t.nav.forward}
@@ -167,34 +167,34 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="nav-home-button"
           onClick={onNavigateHome}
-          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+          className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center p-0 leading-none border transition-all ${
             currentView === 'home'
-              ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
-              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
+              ? 'bg-white dark:bg-white/15 text-[#142347] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
+              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
           }`}
           title={t.nav.home}
           aria-label={t.nav.home}
         >
-          <Home size={18} />
+          <Home size={18} className="shrink-0" />
         </button>
 
         <button
           id="nav-explore-button"
           onClick={onNavigateCatalog}
-          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+          className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center p-0 leading-none border transition-all ${
             currentView === 'catalog'
-              ? 'bg-white dark:bg-white/15 text-[#0F172A] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
-              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
+              ? 'bg-white dark:bg-white/15 text-[#142347] dark:text-white border-white dark:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none ring-2 ring-black/20 dark:ring-white/30'
+              : 'bg-white/65 dark:bg-white/[0.06] hover:bg-white/85 dark:hover:bg-white/[0.12] text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white border-white/95 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-none'
           }`}
-          title="Навигация (Настроения и жанры)"
-          aria-label="Навигация"
+          title={t.moods?.title || 'Moods & Genres'}
+          aria-label={t.moods?.title || 'Moods & Genres'}
         >
-          <Compass size={18} />
+          <Compass size={18} className="shrink-0" />
         </button>
       </div>
 
       <div className="flex-1 max-w-xl mx-auto flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' as any }}>
-        <div className="relative flex items-center flex-1 h-10 px-3.5 rounded-full bg-white/60 dark:bg-white/[0.06] hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/[0.12] backdrop-blur-xl border border-white/90 dark:border-white/10 focus-within:border-[#0F172A]/30 dark:focus-within:border-white/30 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none transition-all duration-200">
+        <div className="relative flex items-center flex-1 h-10 px-3.5 rounded-full bg-white/60 dark:bg-white/[0.06] hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/[0.12] backdrop-blur-xl border border-white/90 dark:border-white/10 focus-within:border-[#142347]/30 dark:focus-within:border-white/30 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none transition-all duration-200">
           <Search size={17} className="text-[#64748B] dark:text-white/70 shrink-0 mr-2.5" />
           <input
             id="global-search-input"
@@ -203,7 +203,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             placeholder={t.nav.searchPlaceholder}
-            className="w-full bg-transparent text-sm text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#142347] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -212,7 +212,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 searchStore.setQuery('');
                 searchStore.clearResults();
               }}
-              className="p-1 rounded-full text-[#94A3B8] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
+              className="p-1 rounded-full text-[#94A3B8] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
               title={t.nav.clearSearch}
               aria-label={t.nav.clearSearch}
             >
@@ -227,31 +227,33 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="theme-toggle-btn"
           onClick={toggleTheme}
-          className="relative inline-flex items-center justify-center gap-1 w-14 h-7 p-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 transition-all duration-200 cursor-pointer select-none"
+          className="relative inline-flex items-center w-[54px] h-[28px] px-[2px] py-[1px] rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 border border-black/10 dark:border-white/15 transition-all duration-200 cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none box-border"
           title={theme === 'dark' ? t.nav.themeLight : t.nav.themeDark}
           aria-label="Toggle Theme"
         >
           {/* Sliding indicator */}
           <div
-            className={`absolute left-0.5 top-0.5 w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition-transform duration-200 ease-out pointer-events-none transform ${
-              theme === 'dark' ? 'translate-x-7' : 'translate-x-0'
+            className={`absolute left-[2px] top-[1px] w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.15)] transition-transform duration-200 ease-out pointer-events-none transform ${
+              theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
             }`}
           />
-          <div className="relative z-10 w-6 h-6 inline-flex items-center justify-center p-0 m-0">
-            <Sun
-              size={14}
-              className={`transition-colors duration-200 shrink-0 ${
-                theme === 'light' ? 'text-amber-500' : 'text-zinc-400 dark:text-white/40'
-              }`}
-            />
-          </div>
-          <div className="relative z-10 w-6 h-6 inline-flex items-center justify-center p-0 m-0">
-            <Moon
-              size={14}
-              className={`transition-colors duration-200 shrink-0 ${
-                theme === 'dark' ? 'text-black' : 'text-zinc-400'
-              }`}
-            />
+          <div className="relative z-10 flex items-center justify-between w-full h-full">
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              <Sun
+                size={14}
+                className={`transition-colors duration-200 shrink-0 ${
+                  theme === 'light' ? 'text-[#142347]' : 'text-zinc-400 dark:text-white/40'
+                }`}
+              />
+            </div>
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              <Moon
+                size={14}
+                className={`transition-colors duration-200 shrink-0 ${
+                  theme === 'dark' ? 'text-black' : 'text-zinc-400 dark:text-white/40'
+                }`}
+              />
+            </div>
           </div>
         </button>
 
@@ -259,7 +261,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         <button
           id="account-sync-btn"
           onClick={() => useLibraryStore.getState().toggleSyncModal()}
-          className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-2 rounded-full text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title={t.nav.accountSync}
           aria-label={t.nav.accountSync}
         >
@@ -272,8 +274,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             onClick={() => setIsLanguageMenuOpen((v) => !v)}
             className={`p-2 rounded-full transition-colors cursor-pointer ${
               isLanguageMenuOpen
-                ? 'text-[#0F172A] dark:text-white font-bold bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
-                : 'text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
+                ? 'text-[#142347] dark:text-white font-bold bg-white/90 dark:bg-white/15 border border-white dark:border-white/20 shadow-sm'
+                : 'text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
             }`}
             title={t.nav.selectLanguage}
             aria-label={t.nav.selectLanguage}
@@ -301,7 +303,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#0F172A] dark:text-white uppercase">
+              <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center text-xs font-bold text-[#142347] dark:text-white uppercase">
                 {userName ? userName.charAt(0) : 'U'}
               </div>
             )}
@@ -323,7 +325,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="window-minimize-btn"
               onClick={handleMinimize}
-              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
               title={t.nav.minimize}
               aria-label={t.nav.minimize}
             >
@@ -332,7 +334,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <button
               id="window-maximize-btn"
               onClick={handleMaximize}
-              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 transition-colors"
               title={isMaximized ? t.nav.restore : t.nav.maximize}
               aria-label={isMaximized ? t.nav.restore : t.nav.maximize}
             >

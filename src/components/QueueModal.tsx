@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { ListMusic, X, Play, Trash2, Music, Volume2, FolderPlus, Plus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -91,7 +91,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
       month: 'short',
       day: 'numeric',
     });
-    const defaultTitle = `Queue Mix · ${dateStr}`;
+    const defaultTitle = `Queue Mix Â· ${dateStr}`;
     const newPl = await createPlaylistFromTracks(defaultTitle, queue);
     onClose();
     useContextMenuStore.getState().openEditPlaylist(newPl);
@@ -117,11 +117,11 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-black/[0.06] dark:border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#0F172A] dark:bg-white text-white dark:text-black flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-[#142347] dark:bg-white text-white dark:text-black flex items-center justify-center shadow-md">
               <ListMusic size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#0F172A] dark:text-white leading-tight">
+              <h2 className="text-xl font-bold text-[#142347] dark:text-white leading-tight">
                 {t.queueModal?.title || 'Play Queue'}
               </h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
@@ -139,7 +139,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                     setOpenDropdownId(null);
                     setIsAddQueueOpen((prev) => !prev);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black shadow-xs hover:shadow transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:hover:bg-white/90 text-white dark:text-black shadow-xs hover:shadow transition-all cursor-pointer"
                   title={t.queueModal?.addToPlaylist || 'Add to playlist'}
                 >
                   <FolderPlus size={14} />
@@ -159,10 +159,10 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
 
                     <button
                       onClick={() => handleCreateNewPlaylistFromQueue()}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold text-[#0F172A] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold text-[#142347] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-[#0F172A]/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                        <Plus size={14} className="text-[#0F172A] dark:text-white" />
+                      <div className="w-6 h-6 rounded-lg bg-[#142347]/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                        <Plus size={14} className="text-[#142347] dark:text-white" />
                       </div>
                       <span className="truncate">{t.queueModal?.createNewPlaylist || 'Create new playlist'}</span>
                     </button>
@@ -182,7 +182,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         <button
                           key={pl.id}
                           onClick={() => handleAddAllQueueToPlaylist(pl.id)}
-                          className="w-full flex items-center justify-between px-3.5 py-2 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-between px-3.5 py-2 text-left text-xs font-semibold text-[#142347] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                         >
                           <span className="truncate pr-2">{pl.title}</span>
                           <span className="text-[10px] text-slate-400 dark:text-white/40 shrink-0 font-normal">
@@ -228,7 +228,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                   {t.queueModal?.nowPlaying || 'Now Playing'}
                 </span>
                 {isPlaying && (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0F172A] dark:text-white bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-white/15">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-[#142347] dark:text-white bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-white/15">
                     <Volume2 size={13} className="animate-pulse" />
                     {t.queueModal?.playing || 'Playing'}
                   </span>
@@ -247,7 +247,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                     <PlaceholderArtwork
                       icon={currentPlaying.iconName || 'music'}
                       gradientFrom={currentPlaying.gradientFrom || '#334155'}
-                      gradientTo={currentPlaying.gradientTo || '#0F172A'}
+                      gradientTo={currentPlaying.gradientTo || '#142347'}
                       size={48}
                       rounded="rounded-xl"
                     />
@@ -255,7 +255,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-[#0F172A] dark:text-white truncate">
+                  <h4 className="text-sm font-bold text-[#142347] dark:text-white truncate">
                     {currentPlaying.title}
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-white/70 truncate mt-0.5">
@@ -273,7 +273,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         e.stopPropagation();
                         setOpenDropdownId(openDropdownId === 'now-playing' ? null : 'now-playing');
                       }}
-                      className="p-1.5 rounded-lg text-slate-500 dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-white/15 transition-all cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-500 dark:text-white/60 hover:text-[#142347] dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-white/15 transition-all cursor-pointer"
                       title={t.queueModal?.addToPlaylist || 'Add to playlist'}
                     >
                       <FolderPlus size={15} />
@@ -295,7 +295,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                             <button
                               key={pl.id}
                               onClick={() => handleAddTrackToPlaylist(pl.id, currentPlaying)}
-                              className="w-full px-3 py-1.5 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 truncate transition-colors cursor-pointer"
+                              className="w-full px-3 py-1.5 text-left text-xs font-semibold text-[#142347] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 truncate transition-colors cursor-pointer"
                             >
                               {pl.title}
                             </button>
@@ -337,7 +337,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         </span>
                         <button
                           onClick={() => jumpToQueueIndex(actualIndex)}
-                          className="w-5 hidden group-hover:flex items-center justify-center text-[#0F172A] dark:text-white hover:scale-110 transition-transform cursor-pointer"
+                          className="w-5 hidden group-hover:flex items-center justify-center text-[#142347] dark:text-white hover:scale-110 transition-transform cursor-pointer"
                           title={t.queueModal?.playNow || 'Play now'}
                         >
                           <Play size={14} fill="currentColor" />
@@ -354,7 +354,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                             <PlaceholderArtwork
                               icon={track.iconName || 'music'}
                               gradientFrom={track.gradientFrom || '#334155'}
-                              gradientTo={track.gradientTo || '#0F172A'}
+                              gradientTo={track.gradientTo || '#142347'}
                               size={40}
                               rounded="rounded-lg"
                             />
@@ -362,7 +362,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
+                          <p className="text-xs font-bold text-[#142347] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors">
                             {track.title}
                           </p>
                           <p className="text-[11px] text-slate-500 dark:text-white/60 truncate mt-0.5">
@@ -382,7 +382,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                               e.stopPropagation();
                               setOpenDropdownId(openDropdownId === `queue-${actualIndex}` ? null : `queue-${actualIndex}`);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 dark:text-white/50 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-all cursor-pointer"
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 dark:text-white/50 hover:text-[#142347] dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-all cursor-pointer"
                             title={t.queueModal?.addToPlaylist || 'Add to playlist'}
                           >
                             <FolderPlus size={14} />
@@ -405,7 +405,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
                                   <button
                                     key={pl.id}
                                     onClick={() => handleAddTrackToPlaylist(pl.id, track)}
-                                    className="w-full px-3 py-1.5 text-left text-xs font-semibold text-[#0F172A] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 truncate transition-colors cursor-pointer"
+                                    className="w-full px-3 py-1.5 text-left text-xs font-semibold text-[#142347] dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 truncate transition-colors cursor-pointer"
                                   >
                                     {pl.title}
                                   </button>

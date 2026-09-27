@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Waves, Sparkles, User, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
@@ -63,7 +63,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
             description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
             iconName: 'waves',
             gradientFrom: '#1E293B',
-            gradientTo: '#0F172A',
+            gradientTo: '#142347',
           });
           await playerStore.playTrack(tracks[0], tracks);
           toastStore.success(stationTitle, `${waveName} (${tracks.length})`);
@@ -105,14 +105,14 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
   return (
     <div
       id="wave-generating-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#F8FAFC]/95 dark:bg-[#060608]/95 backdrop-blur-3xl select-none animate-fade-in text-[#0F172A] dark:text-white"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#F8FAFC]/95 dark:bg-[#060608]/95 backdrop-blur-3xl select-none animate-fade-in text-[#142347] dark:text-white"
     >
       <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-black/[0.03] dark:bg-white/[0.04] blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-black/[0.02] dark:bg-white/[0.03] blur-3xl" />
 
       <div className="relative z-10 w-full max-w-xl flex flex-col items-center text-center">
         <div className="relative mb-8">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-[0_12px_40px_rgba(15,23,42,0.25)] dark:shadow-[0_0_50px_rgba(255,255,255,0.25)] transition-transform duration-300 scale-100 hover:scale-105">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#142347] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-[0_12px_40px_rgba(20, 35, 71,0.25)] dark:shadow-[0_0_50px_rgba(255,255,255,0.25)] transition-transform duration-300 scale-100 hover:scale-105">
             <Waves size={44} />
           </div>
 
@@ -120,14 +120,14 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 mb-6 h-6">
-          <div className="w-1 h-3 rounded-full bg-[#0F172A] dark:bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-1 h-5 rounded-full bg-[#0F172A] dark:bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-1 h-6 rounded-full bg-[#0F172A] dark:bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
-          <div className="w-1 h-4 rounded-full bg-[#0F172A] dark:bg-white animate-bounce" style={{ animationDelay: '450ms' }} />
-          <div className="w-1 h-2 rounded-full bg-[#0F172A] dark:bg-white animate-bounce" style={{ animationDelay: '200ms' }} />
+          <div className="w-1 h-3 rounded-full bg-[#142347] dark:bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-1 h-5 rounded-full bg-[#142347] dark:bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-1 h-6 rounded-full bg-[#142347] dark:bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="w-1 h-4 rounded-full bg-[#142347] dark:bg-white animate-bounce" style={{ animationDelay: '450ms' }} />
+          <div className="w-1 h-2 rounded-full bg-[#142347] dark:bg-white animate-bounce" style={{ animationDelay: '200ms' }} />
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-[#0F172A] dark:text-white">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-[#142347] dark:text-white">
           {t.wave?.generatingTitle || 'Creating Your Wave'}
         </h2>
 
@@ -138,7 +138,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
         <div className="w-full max-w-md mt-6">
           <div className="flex items-center justify-between text-xs font-semibold mb-2 text-[#64748B] dark:text-white/60">
             <span className="flex items-center gap-1.5">
-              <Sparkles size={13} className="text-[#0F172A] dark:text-white" />
+              <Sparkles size={13} className="text-[#142347] dark:text-white" />
               <span>{t.wave?.badge || 'Personal Stream'}</span>
             </span>
             <span className="font-mono tabular-nums font-bold">
@@ -148,7 +148,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
 
           <div className="w-full h-2 rounded-full bg-black/[0.08] dark:bg-white/10 overflow-hidden shadow-inner">
             <div
-              className="h-full bg-[#0F172A] dark:bg-white rounded-full transition-all duration-300 ease-out"
+              className="h-full bg-[#142347] dark:bg-white rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -176,7 +176,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
                       <User size={13} className="text-slate-600 dark:text-white/70" />
                     )}
                   </div>
-                  <span className="text-xs font-semibold text-[#0F172A] dark:text-white/90 truncate max-w-[120px]">
+                  <span className="text-xs font-semibold text-[#142347] dark:text-white/90 truncate max-w-[120px]">
                     {artistName}
                   </span>
                 </div>

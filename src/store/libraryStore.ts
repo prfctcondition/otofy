@@ -13,7 +13,14 @@ import repo from '../db/repository';
 import { usePlayerStore, cleanTrackId } from './playerStore';
 import { useDownloadStore } from './downloadStore';
 import { useToastStore } from './toastStore';
+import { useSettingsStore } from './settingsStore';
 import { areTracksDuplicate, filterUniqueTracks } from '../utils/trackUtils';
+import {
+  getCachedWave,
+  removeTrackFromCachedWave,
+  saveCachedWaveTracks,
+  WAVE_PLAYLIST_ID,
+} from '../services/waveService';
 
 export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
   {
@@ -458,8 +465,24 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         isPinned: false,
         iconName: 'history',
         gradientFrom: '#334155',
-        gradientTo: '#0F172A',
+        gradientTo: '#142347',
         description: 'Your last 50 played tracks',
+      };
+    } else if (id === 'view-my-wave' || id === WAVE_PLAYLIST_ID) {
+      const favArtists = useSettingsStore.getState().favoriteArtists || [];
+      tracks = getCachedWave(favArtists) || [];
+      pl = {
+        id: 'view-my-wave',
+        title: 'Моя волна',
+        type: 'Playlist',
+        creator: 'Otofy',
+        songCount: tracks.length,
+        duration: `${tracks.length} tracks`,
+        isPinned: false,
+        iconName: 'waves',
+        gradientFrom: '#1E293B',
+        gradientTo: '#142347',
+        description: favArtists.length > 0 ? `На основе: ${favArtists.join(', ')}` : 'Бесконечный поток музыки',
       };
     } else {
       try {
@@ -888,7 +911,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       duration: `${tracks.length} tracks`,
       iconName: 'music',
       gradientFrom: '#334155',
-      gradientTo: '#0F172A',
+      gradientTo: '#142347',
     });
 
     for (const track of tracks) {
@@ -1036,7 +1059,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
       creator: data.creator || 'You',
       iconName: (data.iconName || 'music') as any,
       gradientFrom: data.gradientFrom || '#334155',
-      gradientTo: data.gradientTo || '#0F172A',
+      gradientTo: data.gradientTo || '#142347',
       artworkUrl: data.artworkUrl,
       description: data.description,
     });
@@ -1209,6 +1232,24 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   removeTrackFromPlaylist: async (playlistId, trackId) => {
+    if (playlistId === 'view-my-wave' || playlistId === WAVE_PLAYLIST_ID || get().viewingPlaylist?.id === 'view-my-wave') {
+      removeTrackFromCachedWave(trackId);
+      const remainingTracks = get().currentPlaylistTracks.filter(
+        (t) => t.id !== trackId && t.sourceId !== trackId
+      );
+      set((s) => ({
+        currentPlaylistTracks: remainingTracks,
+        viewingPlaylist: s.viewingPlaylist
+          ? {
+              ...s.viewingPlaylist,
+              songCount: remainingTracks.length,
+              duration: `${remainingTracks.length} tracks`,
+            }
+          : null,
+      }));
+      return;
+    }
+
     const targetPlaylist = get().playlists.find((p) => p.id === playlistId);
     const isYtCloud = playlistId.startsWith('pl-yt-') || targetPlaylist?.syncSource === 'youtube';
     const isScCloud = playlistId.startsWith('pl-sc-') || targetPlaylist?.syncSource === 'soundcloud';
@@ -1311,6 +1352,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   },
 
   updatePlaylistTracks: async (playlistId, updatedTracks) => {
+    if (playlistId === 'view-my-wave' || playlistId === WAVE_PLAYLIST_ID || get().viewingPlaylist?.id === 'view-my-wave') {
+      saveCachedWaveTracks(updatedTracks);
+    }
     set((s) => ({
       currentPlaylistTracks: [...updatedTracks],
       history: s.history.map((entry) =>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import { useToastStore, Toast } from '../store/toastStore';
 
@@ -33,7 +33,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       case 'warning':
         return <AlertTriangle size={18} className="text-amber-600 shrink-0" />;
       case 'success':
-        return <CheckCircle2 size={18} className="text-[#0F172A] dark:text-white shrink-0" />;
+        return <CheckCircle2 size={18} className="text-[#142347] dark:text-white shrink-0" />;
       case 'info':
       default:
         return <Info size={18} className="text-sky-600 shrink-0" />;
@@ -47,10 +47,10 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       case 'warning':
         return 'border-amber-300/80 dark:border-amber-500/30 bg-white/90 dark:bg-[#120e08]/90 text-amber-950 dark:text-amber-200 shadow-[0_10px_25px_-5px_rgba(245,158,11,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
       case 'success':
-        return 'border-slate-300/80 dark:border-white/20 bg-white/95 dark:bg-[#0C0C10]/95 text-[#0F172A] dark:text-white shadow-[0_10px_25px_-5px_rgba(15,23,42,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-slate-300/80 dark:border-white/20 bg-white/95 dark:bg-[#0C0C10]/95 text-[#142347] dark:text-white shadow-[0_10px_25px_-5px_rgba(20, 35, 71,0.15),0_4px_10px_rgba(0,0,0,0.05)]';
       case 'info':
       default:
-        return 'border-white/90 dark:border-white/10 bg-white/90 dark:bg-[#0C0C10]/95 text-[#0F172A] dark:text-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.12),0_4px_10px_rgba(0,0,0,0.05)]';
+        return 'border-white/90 dark:border-white/10 bg-white/90 dark:bg-[#0C0C10]/95 text-[#142347] dark:text-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.12),0_4px_10px_rgba(0,0,0,0.05)]';
     }
   };
 
@@ -74,7 +74,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
                 toast.action?.onClick();
                 onDismiss();
               }}
-              className="px-3 py-1 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+              className="px-3 py-1 rounded-xl text-xs font-bold bg-[#142347] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
             >
               {toast.action.label}
             </button>

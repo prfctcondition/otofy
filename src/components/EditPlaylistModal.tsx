@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Edit3, X, Upload, Trash2, Check } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import type { Playlist } from '../types';
@@ -10,13 +10,13 @@ interface EditPlaylistModalProps {
 }
 
 const GRADIENTS = [
-  { from: '#334155', to: '#0F172A', name: 'Titanium Graphite' },
+  { from: '#334155', to: '#142347', name: 'Titanium Graphite' },
   { from: '#38BDF8', to: '#06B6D4', name: 'Sky Cyan' },
   { from: '#64748B', to: '#1E293B', name: 'Steel Slate' },
   { from: '#FB7185', to: '#F97316', name: 'Rose Orange' },
   { from: '#E879F9', to: '#C026D3', name: 'Fuchsia Pink' },
   { from: '#FBBF24', to: '#EAB308', name: 'Amber Yellow' },
-  { from: '#475569', to: '#0F172A', name: 'Slate Dark' },
+  { from: '#475569', to: '#142347', name: 'Slate Dark' },
 ];
 
 export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
@@ -115,11 +115,11 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white text-white dark:text-black rounded-2xl text-white shadow-md">
+            <div className="p-2.5 bg-[#142347] dark:bg-white text-white dark:text-black rounded-2xl text-white shadow-md">
               <Edit3 size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#0F172A] dark:text-white leading-tight">
+              <h2 className="text-xl font-bold text-[#142347] dark:text-white leading-tight">
                 Edit Details
               </h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
@@ -129,7 +129,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -147,7 +147,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Playlist name"
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#142347] dark:text-white font-semibold text-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all"
               autoFocus
             />
           </div>
@@ -162,7 +162,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add an optional description"
-              className="w-full px-4 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#0F172A] dark:text-white text-xs font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all resize-none"
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 focus:bg-white dark:focus:bg-white/[0.1] focus:border-black/30 dark:focus:border-white/40 rounded-xl focus:outline-none text-[#142347] dark:text-white text-xs font-normal placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all resize-none"
             />
           </div>
 
@@ -182,7 +182,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
                   }}
                   className={`w-8 h-8 rounded-full transition-all shadow-xs cursor-pointer ${
                     selectedGradient === idx && !customArtwork
-                      ? 'scale-110 ring-3 ring-[#0F172A] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
+                      ? 'scale-110 ring-3 ring-[#142347] dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-black'
                       : 'hover:scale-105 opacity-80 hover:opacity-100'
                   }`}
                   title={grad.name}
@@ -247,7 +247,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h4 className="font-bold text-[#0F172A] dark:text-white text-sm truncate">
+              <h4 className="font-bold text-[#142347] dark:text-white text-sm truncate">
                 {title || 'Playlist Title'}
               </h4>
               <p className="text-xs text-[#64748B] dark:text-white/60 truncate">
@@ -260,7 +260,7 @@ export const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
           <button
             onClick={handleSave}
             disabled={!title.trim()}
-            className="w-full py-3 mt-2 px-4 bg-[#0F172A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3 mt-2 px-4 bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
           >
             <Check size={16} />
             <span>Save Changes</span>

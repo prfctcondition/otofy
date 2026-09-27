@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import type { Playlist } from '../types';
 
@@ -39,9 +39,9 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <Trash2 size={24} />
         </div>
 
-        <h3 className="text-lg font-bold text-[#0F172A] dark:text-white mb-1">Delete Playlist?</h3>
+        <h3 className="text-lg font-bold text-[#142347] dark:text-white mb-1">Delete Playlist?</h3>
         <p className="text-xs text-[#64748B] dark:text-white/60 leading-relaxed mb-6">
-          Are you sure you want to delete <span className="font-semibold text-[#0F172A] dark:text-white">"{playlist.title}"</span>? This will permanently remove it from your library.
+          Are you sure you want to delete <span className="font-semibold text-[#142347] dark:text-white">"{playlist.title}"</span>? This will permanently remove it from your library.
         </p>
 
         <div className="grid grid-cols-2 gap-3 w-full">

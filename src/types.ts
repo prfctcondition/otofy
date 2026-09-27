@@ -123,7 +123,7 @@ export const isSystemPlaylist = (
 ): boolean => {
   if (!playlist) return false;
   const id = playlist.id;
-  if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history') return true;
+  if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history' || id === 'view-my-wave') return true;
   if (id.startsWith('pl-downloads') || id.startsWith('pl-cached') || id.startsWith('pl-liked') || id.startsWith('pl-history')) return true;
   if (playlist.creator === 'System') return true;
   const title = playlist.title?.trim().toLowerCase();
@@ -145,7 +145,8 @@ export const isUserPlaylist = (
     id.startsWith('radio-') ||
     id.startsWith('pl-downloads') ||
     id.startsWith('pl-cached') ||
-    id.startsWith('pl-history')
+    id.startsWith('pl-history') ||
+    id === 'view-my-wave'
   ) {
     return false;
   }

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Disc, Sparkles, User, Play } from 'lucide-react';
 import type { ArtistDetails } from '../types';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
@@ -31,10 +31,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {hasAlbums && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-              <Disc size={18} className="text-[#0F172A] dark:text-white" />
+            <h3 className="text-base font-bold text-[#142347] dark:text-white flex items-center gap-2">
+              <Disc size={18} className="text-[#142347] dark:text-white" />
               Albums & Discography
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white">
                 {details.albums.length}
               </span>
             </h3>
@@ -63,14 +63,14 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
 
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#142347] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
                         <Play size={16} fill="currentColor" className="ml-0.5" />
                       </div>
                     </div>
                   </div>
 
                   {/* Album Info */}
-                  <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-black dark:group-hover:text-white transition-colors" title={album.title}>
+                  <span className="text-xs font-bold text-[#142347] dark:text-white truncate leading-tight group-hover:text-black dark:group-hover:text-white transition-colors" title={album.title}>
                     {album.title}
                   </span>
                   <span className="text-[11px] text-[#64748B] dark:text-white/70 mt-0.5">
@@ -87,10 +87,10 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {hasSingles && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-              <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
+            <h3 className="text-base font-bold text-[#142347] dark:text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-[#142347] dark:text-white" />
               Singles & EPs
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white">
                 {details.singles!.length}
               </span>
             </h3>
@@ -116,13 +116,13 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                     className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#0F172A] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
+                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white text-[#142347] dark:text-black flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
                       <Play size={16} fill="currentColor" className="ml-0.5" />
                     </div>
                   </div>
                 </div>
 
-                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate leading-tight group-hover:text-pink-700 dark:group-hover:text-pink-400 transition-colors" title={single.title}>
+                <span className="text-xs font-bold text-[#142347] dark:text-white truncate leading-tight group-hover:text-pink-700 dark:group-hover:text-pink-400 transition-colors" title={single.title}>
                   {single.title}
                 </span>
                 <span className="text-[11px] text-[#64748B] dark:text-white/70 mt-0.5">
@@ -138,8 +138,8 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
       {/* Fans Might Also Like (Related Artists) */}
       {hasRelated && (
         <section className="space-y-3">
-          <h3 className="text-base font-bold text-[#0F172A] dark:text-white flex items-center gap-2">
-            <User size={18} className="text-[#0F172A] dark:text-white" />
+          <h3 className="text-base font-bold text-[#142347] dark:text-white flex items-center gap-2">
+            <User size={18} className="text-[#142347] dark:text-white" />
             Fans Might Also Like
           </h3>
 
@@ -161,7 +161,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
                     className="w-full h-full"
                   />
                 </div>
-                <span className="text-xs font-bold text-[#0F172A] dark:text-white truncate w-full group-hover:underline transition-colors" title={rel.name}>
+                <span className="text-xs font-bold text-[#142347] dark:text-white truncate w-full group-hover:underline transition-colors" title={rel.name}>
                   {rel.name}
                 </span>
                 <span className="text-[10px] text-[#64748B] dark:text-white/70 mt-0.5 uppercase tracking-wider font-semibold">
@@ -181,7 +181,7 @@ export const ArtistDiscographySection: React.FC<ArtistDiscographySectionProps> =
               About {details.artist}
             </h4>
             {details.subscribers && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white border border-black/10 dark:border-white/10">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white border border-black/10 dark:border-white/10">
                 {details.subscribers}
               </span>
             )}

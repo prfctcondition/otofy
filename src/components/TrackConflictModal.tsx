@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, HelpCircle, Play, Pause, Check, Music } from 'lucide-react';
 import type { Track, TrackAlternative } from '../types';
@@ -112,7 +112,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
               <HelpCircle size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#0F172A] dark:text-white leading-tight">Resolve Track Match</h2>
+              <h2 className="text-xl font-bold text-[#142347] dark:text-white leading-tight">Resolve Track Match</h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
                 Duration difference exceeded 10 seconds. Pick the best matching candidate.
               </p>
@@ -120,7 +120,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -137,11 +137,11 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                 <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                   Original Track (Target)
                 </div>
-                <div className="text-sm font-bold text-[#0F172A] dark:text-white truncate">
+                <div className="text-sm font-bold text-[#142347] dark:text-white truncate">
                   {track.title}
                 </div>
                 <div className="text-xs text-[#64748B] dark:text-white/70 truncate">
-                  {track.artist} • <span className="font-mono">{track.duration}</span>
+                  {track.artist} â€¢ <span className="font-mono">{track.duration}</span>
                 </div>
               </div>
             </div>
@@ -187,7 +187,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                       className="w-11 h-11 rounded-xl object-cover shrink-0 bg-slate-100 dark:bg-white/10 shadow-xs"
                     />
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-[#0F172A] dark:text-white truncate">
+                      <div className="text-xs font-bold text-[#142347] dark:text-white truncate">
                         {alt.title}
                       </div>
                       <div className="text-[11px] text-[#64748B] dark:text-white/70 truncate">
@@ -200,7 +200,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                         <span
                           className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                             diffSec <= 10
-                              ? 'bg-slate-200 dark:bg-white/15 text-[#0F172A] dark:text-white'
+                              ? 'bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white'
                               : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
                           }`}
                         >
@@ -213,14 +213,14 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleTogglePreview(alt.id, undefined, alt.sourceId)}
-                      className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[#0F172A] dark:text-white transition-colors cursor-pointer"
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[#142347] dark:text-white transition-colors cursor-pointer"
                       title={isPlaying ? 'Pause preview' : 'Play preview'}
                     >
                       {isPlaying ? <Pause size={15} /> : <Play size={15} />}
                     </button>
                     <button
                       onClick={() => handleSelectAlternative(alt)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0F172A] dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-white/90 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#142347] dark:bg-white text-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 text-xs font-bold transition-all shadow-sm cursor-pointer"
                     >
                       <Check size={14} strokeWidth={2.5} />
                       <span>Select</span>
@@ -248,7 +248,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                 await keepCurrentTrackMatch(track.id);
                 onClose();
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-[#0F172A] dark:text-white font-semibold transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-[#142347] dark:text-white font-semibold transition-colors cursor-pointer"
               title="Confirm current audio match and permanently dismiss alternatives"
             >
               Don't change (Keep current)

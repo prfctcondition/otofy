@@ -15,7 +15,7 @@ export function normalizeToTrack(raw: any, index: number = 0): Track {
     sourceLabel: raw.sourceLabel || 'YouTube',
     iconName: 'waves',
     gradientFrom: '#4C1D95',
-    gradientTo: '#0F172A',
+    gradientTo: '#142347',
     artworkUrl: raw.artworkUrl || '',
     sourceId: raw.sourceId || raw.id,
   };
@@ -23,26 +23,26 @@ export function normalizeToTrack(raw: any, index: number = 0): Track {
 
 const WAVE_CACHE_KEY = 'otofy_daily_wave_cache_v2';
 
+export const WAVE_PLAYLIST_ID = 'view-my-wave';
+
 interface WaveCache {
   date: string;
   artistsKey: string;
   tracks: Track[];
 }
 
-export function getCachedWave(favoriteArtists: string[]): Track[] | null {
+export function getCachedWave(favoriteArtists?: string[]): Track[] | null {
   try {
     const raw = localStorage.getItem(WAVE_CACHE_KEY);
     if (!raw) return null;
     const parsed: WaveCache = JSON.parse(raw);
-    const today = new Date().toDateString();
-    const currentArtistsKey = [...favoriteArtists].sort().join('|');
-
-    if (
-      parsed.date === today &&
-      parsed.artistsKey === currentArtistsKey &&
-      Array.isArray(parsed.tracks) &&
-      parsed.tracks.length >= 10
-    ) {
+    if (Array.isArray(parsed.tracks) && parsed.tracks.length > 0) {
+      if (favoriteArtists && favoriteArtists.length > 0) {
+        const currentArtistsKey = [...favoriteArtists].sort().join('|');
+        if (parsed.artistsKey && parsed.artistsKey !== currentArtistsKey) {
+          return null;
+        }
+      }
       return parsed.tracks;
     }
   } catch {}
@@ -60,6 +60,39 @@ export function saveCachedWave(favoriteArtists: string[], tracks: Track[]) {
     };
     localStorage.setItem(WAVE_CACHE_KEY, JSON.stringify(cache));
   } catch {}
+}
+
+export function saveCachedWaveTracks(tracks: Track[]) {
+  try {
+    const raw = localStorage.getItem(WAVE_CACHE_KEY);
+    if (raw) {
+      const parsed: WaveCache = JSON.parse(raw);
+      parsed.tracks = tracks;
+      localStorage.setItem(WAVE_CACHE_KEY, JSON.stringify(parsed));
+      return;
+    }
+    const today = new Date().toDateString();
+    const cache: WaveCache = {
+      date: today,
+      artistsKey: '',
+      tracks,
+    };
+    localStorage.setItem(WAVE_CACHE_KEY, JSON.stringify(cache));
+  } catch {}
+}
+
+export function removeTrackFromCachedWave(trackId: string): Track[] {
+  try {
+    const raw = localStorage.getItem(WAVE_CACHE_KEY);
+    if (!raw) return [];
+    const parsed: WaveCache = JSON.parse(raw);
+    if (Array.isArray(parsed.tracks)) {
+      parsed.tracks = parsed.tracks.filter((t) => t.id !== trackId && t.sourceId !== trackId);
+      localStorage.setItem(WAVE_CACHE_KEY, JSON.stringify(parsed));
+      return parsed.tracks;
+    }
+  } catch {}
+  return [];
 }
 
 export function invalidateWaveCache() {

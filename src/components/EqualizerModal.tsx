@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { Sliders, X, Activity } from 'lucide-react';
 import { useEqStore } from '../store/eqStore';
 import { EQ_BANDS, EQ_PRESETS } from '../audio/presets';
@@ -111,7 +111,7 @@ const VerticalEqSlider: React.FC<VerticalEqSliderProps> = ({
       <div className="w-1.5 h-full rounded-full bg-slate-200/90 dark:bg-white/20 relative overflow-hidden">
         {/* Subtle active fill from 0dB */}
         <div
-          className="absolute left-0 right-0 bg-[#0F172A] dark:bg-white/90 rounded-full transition-all duration-75"
+          className="absolute left-0 right-0 bg-[#142347] dark:bg-white/90 rounded-full transition-all duration-75"
           style={{
             top: `${fillTop}%`,
             height: `${fillHeight}%`,
@@ -124,7 +124,7 @@ const VerticalEqSlider: React.FC<VerticalEqSliderProps> = ({
 
       {/* Thumb: 18px circle 100% centered horizontally on the rail (left: 50%, transform: translate(-50%, -50%)) */}
       <div
-        className="absolute left-1/2 w-[18px] h-[18px] rounded-full bg-[#0F172A] dark:bg-white border-[2.5px] border-white dark:border-[#0C0C10] shadow-[0_2px_6px_rgba(0,0,0,0.35)] pointer-events-none transition-transform duration-75 group-hover:scale-110 group-active:scale-120"
+        className="absolute left-1/2 w-[18px] h-[18px] rounded-full bg-[#142347] dark:bg-white border-[2.5px] border-white dark:border-[#0C0C10] shadow-[0_2px_6px_rgba(0,0,0,0.35)] pointer-events-none transition-transform duration-75 group-hover:scale-110 group-active:scale-120"
         style={{
           top: `${percentFromTop}%`,
           transform: 'translate(-50%, -50%)',
@@ -169,8 +169,8 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
           grad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
           grad.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
         } else {
-          grad.addColorStop(0, 'rgba(15, 23, 42, 0.25)');
-          grad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+          grad.addColorStop(0, 'rgba(20, 35, 71, 0.25)');
+          grad.addColorStop(1, 'rgba(20, 35, 71, 0.85)');
         }
 
         ctx.fillStyle = grad;
@@ -194,13 +194,13 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#0F172A] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
+            <div className="p-2.5 bg-[#142347] dark:bg-white rounded-2xl text-white dark:text-black shadow-md">
               <Sliders size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white leading-tight">10-Band Equalizer</h2>
+              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">10-Band Equalizer</h2>
               <p className="text-xs text-[#64748B] dark:text-white/70 flex items-center gap-1.5 mt-0.5">
-                <Activity size={12} className="text-[#0F172A] dark:text-white animate-pulse" />
+                <Activity size={12} className="text-[#142347] dark:text-white animate-pulse" />
                 Web Audio Parametric Engine (-12dB to +12dB)
               </p>
             </div>
@@ -215,13 +215,13 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                   checked={isEnabled}
                   onChange={() => toggleEnabled()}
                 />
-                <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-[#0F172A] dark:bg-white' : 'bg-[#94A3B8] dark:bg-white/20'}`} />
+                <div className={`block w-13 h-7 rounded-full transition-colors ${isEnabled ? 'bg-[#142347] dark:bg-white' : 'bg-[#94A3B8] dark:bg-white/20'}`} />
                 <div className={`dot absolute left-1 top-1 bg-white dark:bg-black w-5 h-5 rounded-full transition-transform shadow-sm ${isEnabled ? 'transform translate-x-6' : ''}`} />
               </div>
             </label>
             <button
               onClick={onClose}
-              className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+              className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               title="Close Equalizer"
             >
               <X size={20} />
@@ -245,7 +245,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
         >
           {EQ_BANDS.map((bandConfig, i) => (
             <div key={bandConfig.frequency} className="flex flex-col items-center gap-2">
-              <div className="text-[11px] font-mono font-bold text-[#0F172A] dark:text-white bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded-md min-w-[2.8rem] text-center shadow-xs">
+              <div className="text-[11px] font-mono font-bold text-[#142347] dark:text-white bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded-md min-w-[2.8rem] text-center shadow-xs">
                 {bands[i] > 0 ? '+' : ''}
                 {bands[i].toFixed(1)}
               </div>
@@ -279,8 +279,8 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({ isOpen, onClose 
                   onClick={() => applyPreset(preset.name)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#0F172A] dark:bg-white text-white dark:text-black shadow-md'
-                      : 'bg-slate-100 dark:bg-white/[0.06] hover:bg-white dark:hover:bg-white/[0.12] text-[#334155] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs'
+                      ? 'bg-[#142347] dark:bg-white text-white dark:text-black shadow-md'
+                      : 'bg-slate-100 dark:bg-white/[0.06] hover:bg-white dark:hover:bg-white/[0.12] text-[#334155] dark:text-white/80 hover:text-[#142347] dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs'
                   }`}
                 >
                   {preset.name}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   X,
   Copy,
@@ -141,7 +141,7 @@ export const FlutterCodeModal: React.FC<FlutterCodeModalProps> = ({
         </div>
 
         {/* Code Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto bg-[#0F172A] font-mono text-xs leading-relaxed text-slate-200">
+        <div className="flex-1 p-6 overflow-y-auto bg-[#142347] font-mono text-xs leading-relaxed text-slate-200">
           <pre className="selection:bg-slate-500/40 selection:text-white">
             <code>{currentFile.code}</code>
           </pre>

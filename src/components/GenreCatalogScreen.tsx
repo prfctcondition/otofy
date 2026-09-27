@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   Flame,
   Coffee,
@@ -478,12 +478,12 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
               <div className="flex items-center gap-3 mb-1.5">
                 <button
                   onClick={onBack}
-                  className="p-2 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white transition-all shadow-xs flex items-center justify-center"
+                  className="p-2 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-[#142347] dark:text-white transition-all shadow-xs flex items-center justify-center"
                   title={t.catalog.backToHome}
                 >
                   <ArrowLeft size={18} />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#142347] dark:text-white">
                   {t.catalog.title}
                 </h1>
               </div>
@@ -502,7 +502,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 placeholder={t.catalog.filterPlaceholder}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#0F172A] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20 transition-all shadow-xs"
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-white/70 dark:bg-white/[0.06] border border-white/80 dark:border-white/10 text-[#142347] dark:text-white placeholder-[#94A3B8] dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20 transition-all shadow-xs"
               />
             </div>
           </div>
@@ -537,7 +537,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
 
                   {/* Title and Tagline */}
                   <div className="z-10 mt-3">
-                    <h3 className="text-base font-extrabold text-[#0F172A] dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 className="text-base font-extrabold text-[#142347] dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {genre.name}
                     </h3>
                     <p className="text-xs text-[#64748B] dark:text-white/70 line-clamp-2 mt-1 leading-snug">
@@ -561,7 +561,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                   <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-20">
                     <button
                       onClick={(e) => handleQuickPlayGenre(genre, e)}
-                      className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform"
+                      className="w-10 h-10 rounded-full bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center border-0 shadow-none hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                       title={t.catalog.playingToast.replace('{genre}', genre.name)}
                     >
                       <Play size={16} className="fill-white dark:fill-black translate-x-0.5" />
@@ -579,7 +579,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           <div>
             <button
               onClick={() => setSelectedGenre(null)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-xs font-bold text-[#0F172A] dark:text-white transition-all shadow-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 text-xs font-bold text-[#142347] dark:text-white transition-all shadow-xs"
             >
               <ArrowLeft size={14} />
               {t.catalog.backToAll}
@@ -625,7 +625,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                 <button
                   onClick={handlePlayAll}
                   disabled={isLoadingTracks || genreTracks.length === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 font-extrabold hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 text-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 font-extrabold hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 text-sm cursor-pointer"
                 >
                   <Play size={17} className="fill-white dark:fill-black" />
                   {t.catalog.playAll}
@@ -666,7 +666,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           {/* Tracks List */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-base font-bold text-[#0F172A] dark:text-white">
+              <h2 className="text-base font-bold text-[#142347] dark:text-white">
                 {t.catalog.genreTracks} ({genreTracks.length})
               </h2>
               {isLoadingTracks && (
@@ -730,7 +730,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
                             className={`text-xs sm:text-sm font-bold truncate leading-tight ${
                               isCurrent
                                 ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-[#0F172A] dark:text-white'
+                                : 'text-[#142347] dark:text-white'
                             }`}
                           >
                             {track.title}

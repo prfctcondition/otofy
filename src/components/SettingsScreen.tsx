@@ -53,7 +53,7 @@ export const SettingsScreen: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
   const [appVersion, setAppVersion] = useState<string>(
-    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.5'
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.6'
   );
 
   // Fetch cache size and audio output devices
@@ -202,13 +202,13 @@ export const SettingsScreen: React.FC = () => {
   return (
     <div
       id="settings-screen"
-      className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 select-none text-[#0F172A] dark:text-white"
+      className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 select-none text-[#142347] dark:text-white"
     >
       <div className="flex items-center gap-4 mb-8">
         <button
           id="settings-back-btn"
           onClick={navigateBack}
-          className="p-2.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-2.5 rounded-full text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title={t.settings?.backBtnTitle || 'Go back'}
         >
           <ArrowLeft size={20} />
@@ -226,7 +226,7 @@ export const SettingsScreen: React.FC = () => {
       <div className="max-w-4xl space-y-8 pb-16">
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Globe size={18} className="text-[#0F172A] dark:text-white" />
+            <Globe size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.appearance?.sectionTitle || 'Appearance & Language'}
             </h2>
@@ -271,7 +271,7 @@ export const SettingsScreen: React.FC = () => {
                   onClick={() => setTheme('light')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     theme === 'light'
-                      ? 'bg-white text-[#0F172A] shadow-xs'
+                      ? 'bg-white text-[#142347] shadow-xs'
                       : 'text-slate-600 dark:text-white/60 hover:text-black dark:hover:text-white'
                   }`}
                 >
@@ -297,7 +297,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Cloud size={18} className="text-[#0F172A] dark:text-white" />
+            <Cloud size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.cloud?.sectionTitle || 'Account & Cloud Sync'}
             </h2>
@@ -314,7 +314,7 @@ export const SettingsScreen: React.FC = () => {
             </div>
             <button
               onClick={() => useLibraryStore.getState().toggleSyncModal()}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#142347] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
             >
               <Cloud size={14} />
               <span>{t.settings?.cloud?.manageBtn || 'Manage Accounts'}</span>
@@ -324,7 +324,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
+            <Sparkles size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settingsPersonalization?.sectionTitle || 'Personalization & My Wave'}
             </h2>
@@ -379,7 +379,7 @@ export const SettingsScreen: React.FC = () => {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => settings.setIsOnboardingModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#142347] text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs"
               >
                 <Sparkles size={14} />
                 <span>{t.settingsPersonalization?.configureBtn || 'Configure Artists'}</span>
@@ -402,7 +402,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Radio size={18} className="text-[#0F172A] dark:text-white" />
+            <Radio size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.autoplay?.sectionTitle || 'Autoplay'}
             </h2>
@@ -421,7 +421,7 @@ export const SettingsScreen: React.FC = () => {
               id="toggle-autoplay-btn"
               onClick={() => settings.setAutoplay(!settings.autoplay)}
               className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                settings.autoplay ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                settings.autoplay ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
               }`}
             >
               <div
@@ -435,7 +435,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Sparkles size={18} className="text-[#0F172A] dark:text-white" />
+            <Sparkles size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.audioQuality?.sectionTitle || 'Audio Quality'}
             </h2>
@@ -476,7 +476,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-auto-adjust-quality-btn"
                 onClick={() => settings.setAutoAdjustQuality(!settings.autoAdjustQuality)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.autoAdjustQuality ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                  settings.autoAdjustQuality ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -491,7 +491,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Volume2 size={18} className="text-[#0F172A] dark:text-white" />
+            <Volume2 size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.playback?.sectionTitle || 'Playback'}
             </h2>
@@ -512,7 +512,7 @@ export const SettingsScreen: React.FC = () => {
                   id="toggle-crossfade-btn"
                   onClick={() => settings.setCrossfadeEnabled(!settings.crossfadeEnabled)}
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                    settings.crossfadeEnabled ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                    settings.crossfadeEnabled ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                   }`}
                 >
                   <div
@@ -529,7 +529,7 @@ export const SettingsScreen: React.FC = () => {
                     <span className="text-[#64748B] dark:text-white/70">
                       {t.settings?.playback?.crossfadeDuration || 'Crossfade transition duration:'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white">
+                    <span className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white">
                       {settings.crossfadeDuration}s
                     </span>
                   </div>
@@ -540,7 +540,7 @@ export const SettingsScreen: React.FC = () => {
                     step="1"
                     value={settings.crossfadeDuration}
                     onChange={(e) => settings.setCrossfadeDuration(Number(e.target.value))}
-                    className="w-full accent-[#0F172A] dark:accent-white cursor-pointer h-1.5 bg-slate-200 dark:bg-white/20 rounded-lg appearance-none"
+                    className="w-full accent-[#142347] dark:accent-white cursor-pointer h-1.5 bg-slate-200 dark:bg-white/20 rounded-lg appearance-none"
                   />
                 </div>
               )}
@@ -559,7 +559,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-normalize-volume-btn"
                 onClick={() => settings.setNormalizeVolume(!settings.normalizeVolume)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.normalizeVolume ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                  settings.normalizeVolume ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -583,7 +583,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-mono-audio-btn"
                 onClick={() => settings.setMonoAudio(!settings.monoAudio)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.monoAudio ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                  settings.monoAudio ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -621,7 +621,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Monitor size={18} className="text-[#0F172A] dark:text-white" />
+            <Monitor size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.startup?.sectionTitle || 'Startup and Window Behaviour'}
             </h2>
@@ -662,7 +662,7 @@ export const SettingsScreen: React.FC = () => {
                 id="toggle-close-to-tray-btn"
                 onClick={() => settings.setCloseToTray(!settings.closeToTray)}
                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  settings.closeToTray ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                  settings.closeToTray ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
                 }`}
               >
                 <div
@@ -677,7 +677,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <FolderDown size={18} className="text-[#0F172A] dark:text-white" />
+            <FolderDown size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.storage?.sectionTitle || 'Storage & Downloads'}
             </h2>
@@ -734,7 +734,7 @@ export const SettingsScreen: React.FC = () => {
                   <button
                     id="change-downloads-folder-btn"
                     onClick={handleChangeDownloadsFolder}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white hover:bg-black/10 dark:hover:bg-white/15 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <FolderSync size={13} />
                     <span>{t.settings?.storage?.changeFolder || 'Change'}</span>
@@ -750,7 +750,7 @@ export const SettingsScreen: React.FC = () => {
 
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
-            <Cpu size={18} className="text-[#0F172A] dark:text-white" />
+            <Cpu size={18} className="text-[#142347] dark:text-white" />
             <h2 className="text-base font-bold">
               {t.settings?.performance?.sectionTitle || 'System & Performance'}
             </h2>
@@ -769,7 +769,7 @@ export const SettingsScreen: React.FC = () => {
               id="toggle-hardware-acceleration-btn"
               onClick={handleToggleHwAccel}
               className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                settings.hardwareAcceleration ? 'bg-[#0F172A] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+                settings.hardwareAcceleration ? 'bg-[#142347] dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
               }`}
             >
               <div
@@ -784,12 +784,12 @@ export const SettingsScreen: React.FC = () => {
         <section className="bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <DownloadCloud size={18} className="text-[#0F172A] dark:text-white" />
+              <DownloadCloud size={18} className="text-[#142347] dark:text-white" />
               <h2 className="text-base font-bold">
                 {t.settings?.updates?.sectionTitle || 'App Updates'}
               </h2>
             </div>
-            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#0F172A] dark:text-white border border-black/5 dark:border-white/10">
+            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 dark:bg-white/10 rounded-xl text-[#142347] dark:text-white border border-black/5 dark:border-white/10">
               v{appVersion}
             </span>
           </div>
@@ -808,7 +808,7 @@ export const SettingsScreen: React.FC = () => {
                 id="check-updates-btn"
                 onClick={handleCheckUpdate}
                 disabled={isCheckingUpdate || isDownloadingUpdate}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#142347] dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
               >
                 <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin' : ''} />
                 <span>
@@ -888,8 +888,8 @@ export const SettingsScreen: React.FC = () => {
             )}
 
             {updateInfo && !updateInfo.hasUpdate && !updateInfo.error && (
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 flex items-center gap-2.5 text-[#0F172A] dark:text-white text-xs font-medium animate-in fade-in">
-                <CheckCircle2 size={16} className="shrink-0 text-[#0F172A] dark:text-white" />
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 flex items-center gap-2.5 text-[#142347] dark:text-white text-xs font-medium animate-in fade-in">
+                <CheckCircle2 size={16} className="shrink-0 text-[#142347] dark:text-white" />
                 <span>
                   {(t.settings?.updates?.upToDateBanner || 'Otofy is up to date ({version}).').replace('{version}', updateInfo.currentVersion)}
                 </span>
@@ -904,7 +904,7 @@ export const SettingsScreen: React.FC = () => {
           <div className="bg-white/95 dark:bg-[#111116] backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-amber-500">
               <AlertTriangle size={24} />
-              <h3 className="text-base font-bold text-[#0F172A] dark:text-white">
+              <h3 className="text-base font-bold text-[#142347] dark:text-white">
                 {t.settings?.restartModal?.title || 'Restart Required'}
               </h3>
             </div>
@@ -920,7 +920,7 @@ export const SettingsScreen: React.FC = () => {
               </button>
               <button
                 onClick={handleRelaunch}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0F172A] hover:bg-black dark:bg-white dark:hover:bg-white/90 text-white dark:text-black transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:hover:bg-white/90 text-white dark:text-black transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw size={14} />
                 <span>{t.settings?.restartModal?.restartNow || 'Restart Now'}</span>

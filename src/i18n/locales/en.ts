@@ -281,6 +281,9 @@ export const en: TranslationSchema = {
     saveChanges: 'Save changes',
     remix: 'Remix',
     remixDesc: 'Rebuild wave with fresh tracks',
+    tracks: 'Tracks',
+    viewTracks: 'View My Wave tracks',
+    removeFromWave: 'Remove from My Wave',
   },
   onboarding: {
     headerBadge: 'Otofy Setup',

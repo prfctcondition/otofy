@@ -33,8 +33,8 @@ import { useSettingsStore } from '../store/settingsStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
-import { generateWaveTracks, invalidateWaveCache } from '../services/waveService';
-import { apiGetMoodsAndGenres, apiGetGenreTracks } from '../services/musicApiService';
+import { generateWaveTracks, invalidateWaveCache, getCachedWave, WAVE_PLAYLIST_ID } from '../services/waveService';
+import { apiGetGenreTracks } from '../services/musicApiService';
 
 const MOOD_PILLS_CONFIG: Record<string, string[]> = {
   ru: ['В дороге', 'Заряд энергии', 'Отдых', 'Концентрация', 'Вечеринка', 'Романтика', 'Рок', 'Хип-хоп'],
@@ -103,14 +103,59 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (item.id === 'qa-liked') return t.library.likedSongs;
     if (item.id === 'qa-history') return t.home.history;
     if (item.id === 'qa-discover') return t.home.discoverWeekly;
-    if (item.id === 'qa-phonk') return `${t.home.dailyMix} 1 • Phonk`;
-    if (item.id === 'qa-lofi') return `${t.home.dailyMix} 2 • Lo-Fi`;
-    if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 • Synthwave`;
-    if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 • Hip-Hop`;
+    if (item.id === 'qa-phonk') return `${t.home.dailyMix} 1 â€¢ Phonk`;
+    if (item.id === 'qa-lofi') return `${t.home.dailyMix} 2 â€¢ Lo-Fi`;
+    if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 â€¢ Synthwave`;
+    if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 â€¢ Hip-Hop`;
     return item.title;
   };
 
-  const handleWaveClick = async () => {
+  const handleOpenWaveView = async () => {
+    if (favoriteArtists.length === 0) {
+      settingsStore.setIsOnboardingModalOpen(true);
+      return;
+    }
+    const waveName = t.wave?.title || 'My Wave';
+
+    const cached = getCachedWave(favoriteArtists);
+    if (cached && cached.length > 0) {
+      libraryStore.setCustomPlaylistView(waveName, cached, {
+        id: WAVE_PLAYLIST_ID,
+        type: 'Playlist',
+        creator: 'Otofy',
+        description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
+        iconName: 'waves',
+        gradientFrom: '#1E293B',
+        gradientTo: '#142347',
+      });
+      return;
+    }
+
+    setIsWaveLoading(true);
+    try {
+      const tracks = await generateWaveTracks(favoriteArtists);
+      if (tracks && tracks.length > 0) {
+        libraryStore.setCustomPlaylistView(waveName, tracks, {
+          id: WAVE_PLAYLIST_ID,
+          type: 'Playlist',
+          creator: 'Otofy',
+          description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
+          iconName: 'waves',
+          gradientFrom: '#1E293B',
+          gradientTo: '#142347',
+        });
+      }
+    } catch (e) {
+      console.warn('[HomeScreen] Failed to open My Wave tracks:', e);
+      const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
+      toastStore.error(errorTitle, 'Failed to load My Wave');
+    } finally {
+      setIsWaveLoading(false);
+    }
+  };
+
+  const handleWaveClick = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (favoriteArtists.length === 0) {
       settingsStore.setIsOnboardingModalOpen(true);
       return;
@@ -124,11 +169,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       const tracks = await generateWaveTracks(favoriteArtists);
       if (tracks && tracks.length > 0) {
         libraryStore.setCustomPlaylistView(waveName, tracks, {
+          id: WAVE_PLAYLIST_ID,
+          type: 'Playlist',
           creator: 'Otofy',
           description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
           iconName: 'waves',
           gradientFrom: '#1E293B',
-          gradientTo: '#0F172A',
+          gradientTo: '#142347',
         });
         await playerStore.playTrack(tracks[0], tracks);
         toastStore.success(stationTitle, `${waveName} (${tracks.length})`);
@@ -151,7 +198,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const handlePlayMood = async (item: MoodOrGenreItem) => {
-    const errorTitle = language === 'ru' ? 'Ошибка' : 'Error';
+    const errorTitle = language === 'ru' ? 'ÐžÑˆÐ¸Ð±ÐºÐ°' : 'Error';
     const stationTitle = t.moods?.stationStarted || 'Station Started';
     const noTracksPrefix = t.moods?.noTracksFound || 'No tracks found for';
 
@@ -163,15 +210,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           description: `${t.moods?.title || 'Moods & Genres'}: ${item.title}`,
           iconName: 'radio',
           gradientFrom: '#1E293B',
-          gradientTo: '#0F172A',
+          gradientTo: '#142347',
         });
         await playerStore.playTrack(tracks[0], tracks);
         toastStore.success(stationTitle, `${item.title} (${tracks.length})`);
       } else {
-        toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
+        toastStore.error(errorTitle, `${noTracksPrefix} Â«${item.title}Â»`);
       }
     } catch {
-      toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
+      toastStore.error(errorTitle, `${noTracksPrefix} Â«${item.title}Â»`);
     }
   };
 
@@ -231,18 +278,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   return (
     <div id="home-screen-view" className="flex-1 overflow-y-auto px-6 py-5 pb-20 relative select-none bg-transparent">
       <section id="my-wave-hero-section" className="relative z-10 mb-8">
-        <div className="relative overflow-hidden rounded-2xl bg-white/70 hover:bg-white/80 dark:bg-[#0C0C10]/90 dark:hover:bg-[#111116] backdrop-blur-2xl border border-black/[0.07] dark:border-white/10 p-5 sm:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group transition-all duration-200">
+        <div
+          onClick={handleOpenWaveView}
+          className="relative overflow-hidden rounded-2xl bg-white/70 hover:bg-white/80 dark:bg-[#0C0C10]/90 dark:hover:bg-[#111116] backdrop-blur-2xl border border-black/[0.07] hover:border-black/20 dark:border-white/10 dark:hover:border-white/20 p-5 sm:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 group transition-all duration-200 cursor-pointer"
+        >
           <div className="pointer-events-none absolute -top-16 -left-16 w-56 h-56 rounded-full bg-black/[0.02] dark:bg-white/[0.03] blur-3xl" />
           <div className="pointer-events-none absolute -bottom-16 right-1/4 w-56 h-56 rounded-full bg-black/[0.015] dark:bg-white/[0.02] blur-3xl" />
 
           <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md dark:shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden transition-transform group-hover:scale-105">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-[#142347] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md dark:shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden transition-transform group-hover:scale-105">
               <Waves size={30} />
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-black/[0.05] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:text-white/90 dark:border-white/10">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-black/[0.05] text-[#142347] border border-black/10 dark:bg-white/10 dark:text-white/90 dark:border-white/10">
                   {t.wave?.badge || 'Personal Stream'}
                 </span>
                 {favoriteArtists.length > 0 && (
@@ -270,7 +320,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 )}
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white tracking-tight flex items-center gap-2 truncate">
+              <h2 className="text-xl sm:text-2xl font-black text-[#142347] dark:text-white tracking-tight flex items-center gap-2 truncate">
                 {t.wave?.title || 'My Wave'}
               </h2>
 
@@ -292,9 +342,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div className="relative z-10 flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
             {favoriteArtists.length > 0 && (
               <button
-                onClick={handleRemixWave}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemixWave();
+                }}
                 disabled={isWaveLoading}
-                className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#142347] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                 title={t.wave?.remixDesc || 'Remix My Wave with fresh tracks'}
               >
                 <Shuffle size={14} className="text-slate-600 dark:text-white/70" />
@@ -303,8 +356,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             )}
 
             <button
-              onClick={() => settingsStore.setIsOnboardingModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#0F172A] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              onClick={(e) => {
+                e.stopPropagation();
+                settingsStore.setIsOnboardingModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] text-[#142347] border border-black/10 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white/90 dark:hover:text-white dark:border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
               title={t.wave?.tune || 'Tune'}
             >
               <Sparkles size={14} className="text-slate-600 dark:text-white/70" />
@@ -315,7 +371,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               id="play-my-wave-btn"
               onClick={handleWaveClick}
               disabled={isWaveLoading}
-              className="h-10 sm:h-11 px-5 rounded-xl bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_16px_rgba(15,23,42,0.2)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)] cursor-pointer shrink-0"
+              className="h-10 sm:h-11 px-5 rounded-xl bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 active:scale-95 transition-all font-bold text-sm flex items-center gap-2 shadow-[0_4px_16px_rgba(20, 35, 71,0.2)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.2)] cursor-pointer shrink-0"
               title={t.wave?.listen || 'Listen'}
             >
               {isWaveLoading ? (
@@ -350,7 +406,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
 
               <span
-                className="flex-1 px-3 text-[13px] font-semibold text-[#0F172A] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors tracking-tight"
+                className="flex-1 px-3 text-[13px] font-semibold text-[#142347] dark:text-white truncate group-hover:text-black dark:group-hover:text-white transition-colors tracking-tight"
                 title={getQuickAccessTitle(item)}
               >
                 {getQuickAccessTitle(item)}
@@ -367,7 +423,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       onSelectCollection(item, item.playlistId);
                     }
                   }}
-                  className="w-8 h-8 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.25)] dark:shadow-[0_4px_12px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center border-0 shadow-none hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                   title={`Play ${getQuickAccessTitle(item)}`}
                   aria-label={`Play ${getQuickAccessTitle(item)}`}
                 >
@@ -383,13 +439,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Compass size={18} className="text-slate-800 dark:text-white/70" />
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#142347] dark:text-white">
               {t.moods?.title || 'Moods & Genres'}
             </h2>
           </div>
           <button
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
             {t.moods?.allMoods || 'All Moods & Genres'}
           </button>
@@ -406,11 +462,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 className="w-1.5 h-6 rounded-full shrink-0 shadow-xs transition-transform group-hover:scale-y-110"
                 style={{ backgroundColor: pill.stripeColor }}
               />
-              <span className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-white/90 group-hover:text-black dark:group-hover:text-white truncate flex-1 min-w-0">
+              <span className="text-xs sm:text-sm font-semibold text-[#142347] dark:text-white/90 group-hover:text-black dark:group-hover:text-white truncate flex-1 min-w-0">
                 {pill.title}
               </span>
               <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
+                <div className="w-7 h-7 rounded-full bg-[#142347] text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform">
                   <Play size={11} className="fill-white dark:fill-black" />
                 </div>
               </div>
@@ -426,14 +482,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <p className="text-xs font-semibold text-[#64748B] dark:text-white/70 tracking-wide mb-1">
               {t.home.nonStopMusic}
             </p>
-            <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
+            <h2 className="text-xl font-bold tracking-tight text-[#142347] dark:text-white">
               {t.home.recommendedStations}
             </h2>
           </div>
           <button
             id="show-all-stations-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
             {t.home.showAll}
           </button>
@@ -486,7 +542,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       e.stopPropagation();
                       onPlayStation(station);
                     }}
-                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                    className="w-10 h-10 rounded-full bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center border-0 shadow-none hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     title={`${t.player.play} ${station.title}`}
                   >
                     <Play size={16} className="fill-white dark:fill-black" />
@@ -517,13 +573,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* 3. SECTION: MADE FOR YOU */}
       <section id="made-for-you-section" className="relative z-10">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
+          <h2 className="text-xl font-bold tracking-tight text-[#142347] dark:text-white">
             {t.home.madeForYou}
           </h2>
           <button
             id="show-all-made-for-you-btn"
             onClick={onShowAll}
-            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#0F172A] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
+            className="text-xs font-bold text-[#64748B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white px-3 py-1 rounded-full bg-white/50 dark:bg-white/[0.08] hover:bg-white/80 dark:hover:bg-white/[0.14] border border-white/80 dark:border-white/10 transition-all shadow-xs cursor-pointer"
           >
             {t.home.showAll}
           </button>
@@ -598,7 +654,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       e.stopPropagation();
                       onPlayMix(item);
                     }}
-                    className="w-10 h-10 rounded-full bg-[#0F172A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center shadow-[0_4px_14px_rgba(15,23,42,0.3)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                    className="w-10 h-10 rounded-full bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 flex items-center justify-center border-0 shadow-none hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     title={`${t.player.play} ${item.title}`}
                   >
                     <Play size={16} className="fill-white dark:fill-black" />

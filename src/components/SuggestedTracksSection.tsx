@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
   Plus,
@@ -238,7 +238,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles size={18} className="text-slate-800 dark:text-white shrink-0" />
-            <h3 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white tracking-tight truncate">
+            <h3 className="text-base sm:text-lg font-bold text-[#142347] dark:text-white tracking-tight truncate">
               {t.suggested?.title || 'Recommended Tracks'}
             </h3>
           </div>
@@ -253,7 +253,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
         <button
           onClick={loadSuggestions}
           disabled={isLoading}
-          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#64748B] dark:text-white/60 hover:text-[#0F172A] dark:hover:text-white transition-all cursor-pointer shrink-0"
+          className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white transition-all cursor-pointer shrink-0"
           title={t.suggested?.refresh || 'Refresh recommendations'}
         >
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
@@ -314,7 +314,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
                     className={`text-sm font-semibold truncate block ${
                       isCurrentActive
                         ? 'text-black dark:text-white font-bold'
-                        : 'text-[#0F172A] dark:text-white'
+                        : 'text-[#142347] dark:text-white'
                     }`}
                     title={track.title}
                   >

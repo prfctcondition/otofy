@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { Mic2, X, Music, Search, Sparkles, RefreshCw } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { getTrackLyrics, parseLrc, type LyricsResult, type LrcLine } from '../services/lyricsService';
@@ -129,7 +129,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-[#0F172A] dark:text-white truncate">
+                <h3 className="text-base font-bold text-[#142347] dark:text-white truncate">
                   {activeTrack?.title || 'No track selected'}
                 </h3>
                 {activeTrack?.sourceLabel && (
@@ -141,7 +141,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
               <p className="text-xs text-[#64748B] dark:text-white/70 truncate">
                 {activeTrack?.artist || 'Unknown Artist'}
                 {lyricsData?.syncedLyrics && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-[#0F172A] dark:text-white font-semibold">
+                  <span className="ml-2 inline-flex items-center gap-1 text-[#142347] dark:text-white font-semibold">
                     <Sparkles size={11} /> Synchronized
                   </span>
                 )}
@@ -151,7 +151,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
 
           <button
             onClick={onClose}
-            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
+            className="p-2 text-[#64748B] dark:text-white/70 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
             title="Close lyrics"
           >
             <X size={20} />
@@ -165,20 +165,20 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
         >
           {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-[#64748B] dark:text-white/70">
-              <RefreshCw size={24} className="animate-spin text-[#0F172A] dark:text-white" />
+              <RefreshCw size={24} className="animate-spin text-[#142347] dark:text-white" />
               <p className="text-xs font-semibold">Fetching lyrics from LRCLIB...</p>
             </div>
           ) : !activeTrack ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/70">
               <Mic2 size={36} className="text-slate-300 dark:text-white/20 mb-2" />
-              <p className="text-sm font-semibold text-[#0F172A] dark:text-white">Play a track to view lyrics</p>
+              <p className="text-sm font-semibold text-[#142347] dark:text-white">Play a track to view lyrics</p>
             </div>
           ) : lyricsData?.instrumental ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/70 gap-2">
-              <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 text-[#0F172A] dark:text-white flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white flex items-center justify-center shadow-inner">
                 <Music size={26} />
               </div>
-              <h4 className="text-lg font-bold text-[#0F172A] dark:text-white">♪ Instrumental ♪</h4>
+              <h4 className="text-lg font-bold text-[#142347] dark:text-white">â™ª Instrumental â™ª</h4>
               <p className="text-xs text-[#64748B] dark:text-white/70">This song has no vocal lyrics. Enjoy the music!</p>
             </div>
           ) : lyricsData?.parsedLines && lyricsData.parsedLines.length > 0 ? (
@@ -196,10 +196,10 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                     style={{ contentVisibility: 'auto', containIntrinsicSize: '0 48px' }}
                     className={`cursor-pointer transition-all duration-200 rounded-xl px-4 py-2 ${
                       isActive
-                        ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#0F172A] dark:border-white text-[#0F172A] dark:text-white font-black text-xl scale-[1.01] shadow-xs'
+                        ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#142347] dark:border-white text-[#142347] dark:text-white font-black text-xl scale-[1.01] shadow-xs'
                         : isPast
-                        ? 'text-[#64748B] dark:text-white/60 font-medium text-base hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
-                        : 'text-[#94A3B8] dark:text-white/40 font-medium text-base hover:text-[#0F172A] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
+                        ? 'text-[#64748B] dark:text-white/60 font-medium text-base hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
+                        : 'text-[#94A3B8] dark:text-white/40 font-medium text-base hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <span>{line.text}</span>
@@ -211,7 +211,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
             /* Plain Text Lyrics */
             <div className="space-y-3 py-4 max-w-lg mx-auto">
               {lyricsData.plainLyrics.split('\n').map((line, idx) => (
-                <p key={idx} className="text-[#0F172A] dark:text-white font-medium text-base leading-relaxed">
+                <p key={idx} className="text-[#142347] dark:text-white font-medium text-base leading-relaxed">
                   {line || <br />}
                 </p>
               ))}
@@ -220,7 +220,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
             /* Not Found + Manual Search */
             <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto py-8">
               <Mic2 size={36} className="text-slate-300 dark:text-white/20 mb-3" />
-              <h4 className="text-base font-bold text-[#0F172A] dark:text-white mb-1">No lyrics found</h4>
+              <h4 className="text-base font-bold text-[#142347] dark:text-white mb-1">No lyrics found</h4>
               <p className="text-xs text-[#64748B] dark:text-white/70 mb-5">
                 We couldn't automatically find lyrics for "{activeTrack.title}". Try searching with a different keyword:
               </p>
@@ -231,11 +231,11 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                   value={customSearch}
                   onChange={(e) => setCustomSearch(e.target.value)}
                   placeholder="Song name or artist..."
-                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-black/30 dark:focus:border-white/40 focus:bg-white dark:focus:bg-white/[0.1]"
+                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-[#142347] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-white/40 focus:outline-none focus:border-black/30 dark:focus:border-white/40 focus:bg-white dark:focus:bg-white/[0.1]"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#0F172A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-white/90 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Search size={13} />
                   <span>Search</span>

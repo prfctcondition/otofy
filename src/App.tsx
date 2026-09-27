@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ViewportMode, Track, Playlist, ArtistDetails, SourceType, IconType } from './types';
 import { TopNavbar } from './components/TopNavbar';
 import { LeftLibraryDock } from './components/LeftLibraryDock';
@@ -308,7 +308,7 @@ export default function App() {
             const currentDetails = libraryStore.currentArtistDetails;
             const releaseCount = (currentDetails?.albums?.length || 0) + (currentDetails?.singles?.length || 0);
             const subs = currentDetails?.subscribers;
-            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` • ${subs}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` â€¢ ${subs}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
 
             useLibraryStore.setState({
               currentPlaylistTracks: combined,
@@ -535,7 +535,7 @@ export default function App() {
         creator: 'Otofy',
         description: 'Electronic music selection',
         iconName: safeIcon,
-        gradientFrom: item.gradientFrom || '#0F172A',
+        gradientFrom: item.gradientFrom || '#142347',
         gradientTo: item.gradientTo || '#020617',
       });
       libraryStore.setIsLoadingTracks(true);
@@ -545,7 +545,7 @@ export default function App() {
           creator: 'Otofy',
           description: tracks.length > 0 ? `${tracks.length} tracks` : 'Curated electronic selection',
           iconName: safeIcon,
-          gradientFrom: item.gradientFrom || '#0F172A',
+          gradientFrom: item.gradientFrom || '#142347',
           gradientTo: item.gradientTo || '#020617',
         });
       } catch (err) {
@@ -570,7 +570,7 @@ export default function App() {
           creator: 'Otofy',
           description: 'Electronic music selection',
           iconName: 'disc',
-          gradientFrom: '#0F172A',
+          gradientFrom: '#142347',
           gradientTo: '#020617',
         });
         libraryStore.setIsLoadingTracks(true);
@@ -580,7 +580,7 @@ export default function App() {
             creator: 'Otofy',
             description: tracks.length > 0 ? `${tracks.length} tracks` : 'Curated electronic selection',
             iconName: 'disc',
-            gradientFrom: '#0F172A',
+            gradientFrom: '#142347',
             gradientTo: '#020617',
           });
         } catch (err) {
@@ -649,6 +649,9 @@ export default function App() {
           return;
         }
         e.preventDefault();
+        if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+          document.activeElement.blur();
+        }
         playerStore.togglePlay();
       }
     };
@@ -686,7 +689,7 @@ export default function App() {
       description: station.artistsSummary,
       iconName: 'radio',
       gradientFrom: '#1E293B',
-      gradientTo: '#0F172A',
+      gradientTo: '#142347',
     });
     libraryStore.setIsLoadingTracks(true);
     try {
@@ -696,7 +699,7 @@ export default function App() {
         description: station.artistsSummary,
         iconName: 'radio',
         gradientFrom: '#1E293B',
-        gradientTo: '#0F172A',
+        gradientTo: '#142347',
       });
     } catch (e) {
       console.warn('[App] Open station error:', e);
@@ -715,7 +718,7 @@ export default function App() {
           description: station.artistsSummary,
           iconName: 'radio',
           gradientFrom: '#1E293B',
-          gradientTo: '#0F172A',
+          gradientTo: '#142347',
         });
         setActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
         await playerStore.playTrack(stationTracks[0], stationTracks);
@@ -842,7 +845,7 @@ export default function App() {
 
             if (details.topTracks && details.topTracks.length > 0) {
               const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-              artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+              artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` â€¢ ${details.subscribers}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
 
               const mappedTracks: Track[] = details.topTracks.map((r, idx) => ({
                 id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -898,7 +901,7 @@ export default function App() {
               libraryStore.setCurrentArtistDetails(details);
               if (details.topTracks && details.topTracks.length > 0) {
                 const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-                artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+                artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` â€¢ ${details.subscribers}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
 
                 const mappedTracks: Track[] = details.topTracks.map((r: any, idx: number) => ({
                   id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -1093,7 +1096,7 @@ export default function App() {
       libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
         id: albumViewId,
         type: 'Album',
-        creator: `${initialArtist}${savedAlbum.year ? ` • ${savedAlbum.year}` : ''}`,
+        creator: `${initialArtist}${savedAlbum.year ? ` â€¢ ${savedAlbum.year}` : ''}`,
         iconName: 'disc',
         artworkUrl: initialCover,
         playlistId: savedAlbum.playlistId,
@@ -1184,7 +1187,7 @@ export default function App() {
         libraryStore.setCustomPlaylistView(resolvedTitle, albumTracks, {
           id: albumViewId,
           type: 'Album',
-          creator: `${resolvedArtist}${albumData.year ? ` • ${albumData.year}` : ''}`,
+          creator: `${resolvedArtist}${albumData.year ? ` â€¢ ${albumData.year}` : ''}`,
           iconName: 'disc',
           artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
           playlistId: albumData.playlistId || savedAlbum?.playlistId,
@@ -1240,7 +1243,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-[#E2E8F0] dark:bg-[#000000] text-[#0F172A] dark:text-white font-sans antialiased select-none">
+    <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-[#E2E8F0] dark:bg-[#000000] text-[#142347] dark:text-white font-sans antialiased select-none">
       {/* Background Ambient Lighting (Static, 0% GPU load) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div

@@ -1,4 +1,4 @@
-import innertubeService, { extractThumbnailUrl, parseDurationToSec } from './innertubeService.js';
+﻿import innertubeService, { extractThumbnailUrl, parseDurationToSec } from './innertubeService.js';
 import { cleanArtistAndTitle } from './trackParser.js';
 
 export interface SpotifyTrackItem {
@@ -367,7 +367,7 @@ export async function matchSpotifyTracks(
         thumbnail: bestCandidate?.artworkUrl,
         iconName: 'music',
         gradientFrom: '#1E293B',
-        gradientTo: '#0F172A',
+        gradientTo: '#142347',
         unresolved: !isConfirmed,
         needsMatch: !isConfirmed,
         alternatives: candidates.slice(0, 3),
