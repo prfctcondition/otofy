@@ -94,7 +94,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
   const setTracklistSort = useLibraryStore((s) => s.setTracklistSort);
   const currentArtistDetails = useLibraryStore((s) => s.currentArtistDetails);
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed(playlist.title || ''));
-  const albumArtist = playlist.creator?.split('â€¢')[0]?.trim() || playlist.creator;
+  const albumArtist = playlist.creator?.split(/[•·]|\u00E2\u20AC\u00A2/)[0]?.trim() || playlist.creator;
   const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved(playlist.id, playlist.title, albumArtist));
 
   const allDownloaded = useMemo(() => {
@@ -238,7 +238,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
 
     let audience = currentArtistDetails?.subscribers;
     if (!audience && playlist.creator) {
-      const parts = playlist.creator.split('â€¢');
+      const parts = playlist.creator.split(/[•·]|\u00E2\u20AC\u00A2/);
       for (const p of parts) {
         const trimmed = p.trim();
         if (/([0-9.,KkMmBb]+)/.test(trimmed) && !trimmed.includes('Official') && !trimmed.includes('Releases')) {
@@ -372,20 +372,20 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#142347] dark:bg-white animate-pulse" />
                   {playlist.syncSource === 'youtube'
-                    ? 'Synced â€¢ YouTube Music'
+                    ? 'Synced • YouTube Music'
                     : playlist.syncSource === 'soundcloud'
-                    ? 'Synced â€¢ SoundCloud'
+                    ? 'Synced • SoundCloud'
                     : 'Synced'}
                 </span>
               )}
-              <span className="text-[#94A3B8] dark:text-white/40">Â·</span>
+              <span className="text-[#94A3B8] dark:text-white/40">·</span>
               <span className="text-xs text-[#64748B] dark:text-white/80 font-medium flex items-center gap-1">
                 <Sparkles size={12} className="text-[#142347] dark:text-white" />
                 Hi-Res Master Audio
               </span>
               {playlist.externalUrl && (
                 <>
-                  <span className="text-[#94A3B8] dark:text-white/40">Â·</span>
+                  <span className="text-[#94A3B8] dark:text-white/40">·</span>
                   <a
                     href={playlist.externalUrl}
                     target="_blank"
@@ -464,9 +464,9 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               )}
               {playlist.type !== 'Artist' && (
                 <>
-                  <span>Â·</span>
+                  <span>·</span>
                   <span>{playlist.type === 'Album' ? t.library.albumSingle : t.hero.publicPlaylist}</span>
-                  <span>Â·</span>
+                  <span>·</span>
                   <span className="font-semibold text-[#142347] dark:text-white">
                     {totalSongCount} {t.hero.songsCount}, {formattedDuration}
                   </span>
@@ -600,7 +600,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
               </button>
             )}
 
-            {/* External Official Link Button (YouTube Music â†— / SoundCloud â†—) */}
+            {/* External Official Link Button (YouTube Music ↗ / SoundCloud ↗) */}
             {(playlist.type === 'Artist' || playlist.type === 'Album') && (
               (() => {
                 let targetUrl = playlist.externalUrl || (playlist as any).artistUrl;
@@ -833,7 +833,7 @@ export const LiquidHeroHeader: React.FC<LiquidHeroHeaderProps> = ({
                           <ExternalLink size={15} className="text-[#64748B] dark:text-white/70" />
                           <span>{menuLabel}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400 dark:text-white/40">â†—</span>
+                        <span className="text-[10px] text-slate-400 dark:text-white/40">↗</span>
                       </button>
                     );
                   })()}

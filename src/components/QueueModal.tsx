@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ListMusic, X, Play, Trash2, Music, Volume2, FolderPlus, Plus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -91,7 +91,7 @@ export const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
       month: 'short',
       day: 'numeric',
     });
-    const defaultTitle = `Queue Mix Â· ${dateStr}`;
+    const defaultTitle = `Queue Mix · ${dateStr}`;
     const newPl = await createPlaylistFromTracks(defaultTitle, queue);
     onClose();
     useContextMenuStore.getState().openEditPlaylist(newPl);

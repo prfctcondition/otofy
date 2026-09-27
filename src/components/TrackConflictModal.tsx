@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, HelpCircle, Play, Pause, Check, Music } from 'lucide-react';
 import type { Track, TrackAlternative } from '../types';
@@ -141,7 +141,7 @@ export const TrackConflictModal: React.FC<TrackConflictModalProps> = ({ isOpen, 
                   {track.title}
                 </div>
                 <div className="text-xs text-[#64748B] dark:text-white/70 truncate">
-                  {track.artist} â€¢ <span className="font-mono">{track.duration}</span>
+                  {track.artist} • <span className="font-mono">{track.duration}</span>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Mic2, X, Music, Search, Sparkles, RefreshCw, Check, ArrowLeft } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import {
@@ -267,7 +267,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
             <div className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white flex items-center justify-center shadow-inner">
               <Music size={22} />
             </div>
-            <h4 className="text-base font-bold text-[#142347] dark:text-white">â™ª Instrumental â™ª</h4>
+            <h4 className="text-base font-bold text-[#142347] dark:text-white">♪ Instrumental ♪</h4>
             <p className="text-xs text-[#64748B] dark:text-white/60">No vocal lyrics in this track.</p>
           </div>
         ) : lyricsData?.parsedLines && lyricsData.parsedLines.length > 0 ? (

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowUpCircle, Download, X, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react';
 import type { UpdateCheckResult, UpdateDownloadProgress } from '../types';
 
@@ -187,7 +187,7 @@ export const UpdateAvailableModal: React.FC<UpdateAvailableModalProps> = ({
             <span className="px-2 py-0.5 rounded-lg bg-slate-200/70 dark:bg-neutral-900 text-[#475569] dark:text-neutral-300 font-semibold border border-slate-300/60 dark:border-neutral-800">
               v{updateInfo.currentVersion.replace(/^v/i, '')}
             </span>
-            <span className="text-[#64748B] dark:text-neutral-600 font-sans font-bold">â†’</span>
+            <span className="text-[#64748B] dark:text-neutral-600 font-sans font-bold">→</span>
             <span className="text-[#64748B] dark:text-neutral-500 text-[11px] font-sans font-medium">
               Latest:
             </span>

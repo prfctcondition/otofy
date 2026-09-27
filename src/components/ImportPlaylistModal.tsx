@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download,
   X,
@@ -656,7 +656,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                     {spotifyData.title}
                   </h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60 truncate">
-                    by {spotifyData.creator} â€¢ {spotifyData.trackCount} tracks
+                    by {spotifyData.creator} • {spotifyData.trackCount} tracks
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
@@ -680,7 +680,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {`${Math.floor(t.durationSec / 60)}:${(t.durationSec % 60).toString().padStart(2, '0')}`}
@@ -725,7 +725,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                     {remoteData.title}
                   </h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60 truncate">
-                    by {remoteData.author} â€¢ {remoteData.tracks.length} tracks
+                    by {remoteData.author} • {remoteData.tracks.length} tracks
                   </p>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
                     Ready to import
@@ -743,7 +743,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {t.duration}
@@ -778,7 +778,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                 <div>
                   <h4 className="font-bold text-[#142347] dark:text-white text-sm">{otofyData.title}</h4>
                   <p className="text-xs text-[#64748B] dark:text-white/60">
-                    by {otofyData.creator} â€¢ {otofyData.tracks.length} tracks
+                    by {otofyData.creator} • {otofyData.tracks.length} tracks
                   </p>
                 </div>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
@@ -796,7 +796,7 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                       <span className="text-[#94A3B8] dark:text-white/50 font-mono mr-1.5">
                         {idx + 1}.
                       </span>
-                      {t.title} â€“ <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
+                      {t.title} – <span className="text-[#64748B] dark:text-white/60">{t.artist}</span>
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono font-bold text-[#64748B] dark:text-white/80">
                       {t.duration || '0:00'}

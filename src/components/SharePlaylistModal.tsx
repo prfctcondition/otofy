@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Share2, X, Copy, Check } from 'lucide-react';
 import { generateShareCode } from '../services/shareCodeService';
 import { Track } from '../types';
@@ -62,7 +62,7 @@ export const SharePlaylistModal: React.FC<SharePlaylistModalProps> = ({
 
         <div className="mb-5 p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 shadow-xs">
           <h3 className="font-bold text-[#142347] dark:text-white text-base mb-0.5">{playlistTitle}</h3>
-          <p className="text-xs text-[#64748B] dark:text-white/60">by {playlistCreator} â€¢ {tracks.length} tracks</p>
+          <p className="text-xs text-[#64748B] dark:text-white/60">by {playlistCreator} • {tracks.length} tracks</p>
         </div>
 
         <div className="flex flex-col gap-2">

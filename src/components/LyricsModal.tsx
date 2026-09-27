@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Mic2, X, Music, Search, Sparkles, RefreshCw } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { getTrackLyrics, parseLrc, type LyricsResult, type LrcLine } from '../services/lyricsService';
@@ -178,7 +178,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
               <div className="w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white flex items-center justify-center shadow-inner">
                 <Music size={26} />
               </div>
-              <h4 className="text-lg font-bold text-[#142347] dark:text-white">â™ª Instrumental â™ª</h4>
+              <h4 className="text-lg font-bold text-[#142347] dark:text-white">♪ Instrumental ♪</h4>
               <p className="text-xs text-[#64748B] dark:text-white/70">This song has no vocal lyrics. Enjoy the music!</p>
             </div>
           ) : lyricsData?.parsedLines && lyricsData.parsedLines.length > 0 ? (

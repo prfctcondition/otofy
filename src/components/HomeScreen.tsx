@@ -103,10 +103,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (item.id === 'qa-liked') return t.library.likedSongs;
     if (item.id === 'qa-history') return t.home.history;
     if (item.id === 'qa-discover') return t.home.discoverWeekly;
-    if (item.id === 'qa-phonk') return `${t.home.dailyMix} 1 â€¢ Phonk`;
-    if (item.id === 'qa-lofi') return `${t.home.dailyMix} 2 â€¢ Lo-Fi`;
-    if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 â€¢ Synthwave`;
-    if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 â€¢ Hip-Hop`;
+    if (item.id === 'qa-phonk') return `${t.home.dailyMix} 1 • Phonk`;
+    if (item.id === 'qa-lofi') return `${t.home.dailyMix} 2 • Lo-Fi`;
+    if (item.id === 'qa-synth') return `${t.home.dailyMix} 3 • Synthwave`;
+    if (item.id === 'qa-rap') return `${t.home.dailyMix} 4 • Hip-Hop`;
     return item.title;
   };
 
@@ -215,10 +215,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         await playerStore.playTrack(tracks[0], tracks);
         toastStore.success(stationTitle, `${item.title} (${tracks.length})`);
       } else {
-        toastStore.error(errorTitle, `${noTracksPrefix} Â«${item.title}Â»`);
+        toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
       }
     } catch {
-      toastStore.error(errorTitle, `${noTracksPrefix} Â«${item.title}Â»`);
+      toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
     }
   };
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ViewportMode, Track, Playlist, ArtistDetails, SourceType, IconType } from './types';
 import { TopNavbar } from './components/TopNavbar';
 import { LeftLibraryDock } from './components/LeftLibraryDock';
@@ -308,7 +308,7 @@ export default function App() {
             const currentDetails = libraryStore.currentArtistDetails;
             const releaseCount = (currentDetails?.albums?.length || 0) + (currentDetails?.singles?.length || 0);
             const subs = currentDetails?.subscribers;
-            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` â€¢ ${subs}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
+            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` • ${subs}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
             useLibraryStore.setState({
               currentPlaylistTracks: combined,
@@ -845,7 +845,7 @@ export default function App() {
 
             if (details.topTracks && details.topTracks.length > 0) {
               const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-              artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` â€¢ ${details.subscribers}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
+              artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
               const mappedTracks: Track[] = details.topTracks.map((r, idx) => ({
                 id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -901,7 +901,7 @@ export default function App() {
               libraryStore.setCurrentArtistDetails(details);
               if (details.topTracks && details.topTracks.length > 0) {
                 const releaseCount = (details.albums?.length || 0) + (details.singles?.length || 0);
-                artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` â€¢ ${details.subscribers}` : ''}${releaseCount > 0 ? ` â€¢ ${releaseCount} Releases` : ''}`;
+                artistSubtitle = `${realTracksCount} Official Songs${details.subscribers ? ` • ${details.subscribers}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
                 const mappedTracks: Track[] = details.topTracks.map((r: any, idx: number) => ({
                   id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
@@ -1096,7 +1096,7 @@ export default function App() {
       libraryStore.setCustomPlaylistView(initialTitle, savedAlbum.tracks, {
         id: albumViewId,
         type: 'Album',
-        creator: `${initialArtist}${savedAlbum.year ? ` â€¢ ${savedAlbum.year}` : ''}`,
+        creator: `${initialArtist}${savedAlbum.year ? ` • ${savedAlbum.year}` : ''}`,
         iconName: 'disc',
         artworkUrl: initialCover,
         playlistId: savedAlbum.playlistId,
@@ -1187,7 +1187,7 @@ export default function App() {
         libraryStore.setCustomPlaylistView(resolvedTitle, albumTracks, {
           id: albumViewId,
           type: 'Album',
-          creator: `${resolvedArtist}${albumData.year ? ` â€¢ ${albumData.year}` : ''}`,
+          creator: `${resolvedArtist}${albumData.year ? ` • ${albumData.year}` : ''}`,
           iconName: 'disc',
           artworkUrl: albumArt || albumTracks[0]?.artworkUrl,
           playlistId: albumData.playlistId || savedAlbum?.playlistId,
