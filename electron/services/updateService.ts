@@ -45,7 +45,7 @@ class UpdateService {
   private cachedCheckResult: UpdateCheckResult | null = null;
 
   public async checkForUpdates(): Promise<UpdateCheckResult> {
-    const currentVersion = app.getVersion() || '1.1.6';
+    const currentVersion = app.getVersion() || '1.1.7';
     const repo = 'prfctcondition/otofy';
     const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
 

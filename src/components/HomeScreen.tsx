@@ -198,7 +198,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const handlePlayMood = async (item: MoodOrGenreItem) => {
-    const errorTitle = language === 'ru' ? 'ÐžÑˆÐ¸Ð±ÐºÐ°' : 'Error';
+    const errorTitle = t.common?.error || (language === 'ru' ? 'Ошибка' : 'Error');
     const stationTitle = t.moods?.stationStarted || 'Station Started';
     const noTracksPrefix = t.moods?.noTracksFound || 'No tracks found for';
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Check,
   Search,
@@ -72,7 +72,7 @@ const CURATED_ARTISTS: OnboardingArtist[] = [
   { name: 'Post Malone', genre: 'Hip-Hop / Pop', genres: ['hiphop', 'pop', 'rock'], gradient: 'from-yellow-600 to-amber-950', avatarUrl: 'https://lh3.googleusercontent.com/48LfK4z6o-CCEWgHQnQfg0ltcT9tbZSN0qjSh0FSJsJI5GF48j2-pH219ciG1ML-PI80ZGD4Vz6sjg=s200-c' },
   { name: 'Juice WRLD', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-fuchsia-700 to-purple-950', avatarUrl: 'https://yt3.googleusercontent.com/6YKQ7fDb3ISfzNUjpJnXX1FLw9EQ8eK5qHa07VANJtkaGagUtqtHiAOKz2AJ1AoASNacrCeg8pd35ao=s200-c' },
   { name: 'Lil Peep', genre: 'Emo Rap', genres: ['hiphop', 'rock', 'indie'], gradient: 'from-pink-600 to-rose-950', avatarUrl: 'https://yt3.googleusercontent.com/TbvXoTXJz8a2xfkJxZsI0riSyrUSibnVHBFxhHTeJefWY-2-60x0VhUPkO89uF3CGOPLalsTTM-OlEeI=s200-c' },
-  { name: 'Miyagi & Ð­Ð½Ð´ÑˆÐ¿Ð¸Ð»ÑŒ', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-stone-900', avatarUrl: 'https://yt3.googleusercontent.com/wUMilVdi6oF6T4Wgb-tXRmVh11b7bPtXWg3ZbMLS33GicZ6q-4YbuWRUIgsuf47QleZmGfEr9sEw8ShzVQ=s200-c' },
+  { name: 'Miyagi & Эндшпиль', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-amber-700 to-stone-900', avatarUrl: 'https://yt3.googleusercontent.com/wUMilVdi6oF6T4Wgb-tXRmVh11b7bPtXWg3ZbMLS33GicZ6q-4YbuWRUIgsuf47QleZmGfEr9sEw8ShzVQ=s200-c' },
   { name: 'Oxxxymiron', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-sky-700 to-slate-900', avatarUrl: 'https://yt3.googleusercontent.com/VQFSi8rivXGVoh_8IOz3TuyZ_ZEgYHtZTHHLHUTwszOEfbjIdr_0PcJY20Zc5U1pprsv4oae8u-mxxU=s200-c' },
   { name: 'PHARAOH', genre: 'Hip-Hop', genres: ['hiphop'], gradient: 'from-violet-800 to-neutral-950', avatarUrl: 'https://lh3.googleusercontent.com/jZrLc4z8raQg-YEmh7tO9Y8FUTyEnRNvkLLfSs-BsEB5Do2U_qRM1uXvpAixJnizItPZVrOgnVg9C9g=s200-c' },
   { name: 'SALUKI', genre: 'Hip-Hop', genres: ['hiphop', 'electronic'], gradient: 'from-zinc-700 to-neutral-950', avatarUrl: 'https://yt3.googleusercontent.com/iyfGkGXSKiQTIypgBHjls-hluup_Z-OIEWlaj5HJUQfkZKHzYk4CrUGcpbCnKfBAxH9mv_kZzXF8Sw=s200-c' },
@@ -83,9 +83,9 @@ const CURATED_ARTISTS: OnboardingArtist[] = [
   { name: 'Deftones', genre: 'Alt Rock', genres: ['rock', 'metal'], gradient: 'from-teal-800 to-slate-950', avatarUrl: 'https://lh3.googleusercontent.com/7eRx2PBSECk4sHidGdOV2QHLS6KYEM7o_xWqNhQ-ZbMzUovN0S6mkVVtMVEXlqctZ5q9fOwB7_2Itgg=s200-c' },
   { name: 'Arctic Monkeys', genre: 'Indie Rock', genres: ['rock', 'indie'], gradient: 'from-amber-700 to-neutral-900', avatarUrl: 'https://yt3.googleusercontent.com/kbPRnnOmWPXIb35ygxKvXt2a_745AVUkAUeFMqOUxbKx8T_I0f1JUfK3G43-_xUldK16-KrU2cj43i0=s200-c' },
   { name: 'The Neighbourhood', genre: 'Alt Rock', genres: ['rock', 'indie', 'pop'], gradient: 'from-neutral-600 to-black', avatarUrl: 'https://lh3.googleusercontent.com/J19IDTPTPVFTr0WvJocjskYePdfGuJLJl8wVqKg1cJ3PRMKRg1k-bGjQ6PF9PbgLnw95APtKV0gXIrw=s200-c' },
-  { name: 'ÐšÐ¾Ñ€Ð¾Ð»ÑŒ Ð¸ Ð¨ÑƒÑ‚', genre: 'Punk Rock', genres: ['rock'], gradient: 'from-red-700 to-black', avatarUrl: 'https://yt3.googleusercontent.com/xw3xvEHQEWXX8ccMROkcmOjYcYZvKbo7GHzYStl7VRXehxqE-yXirXpSB1KckLYoTsn9UpH4pnfC1aY=s200-c' },
-  { name: 'ÐšÐ¸Ð½Ð¾', genre: 'Post-Punk', genres: ['rock', 'indie'], gradient: 'from-slate-700 to-black', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_m7A-puWYGi4-6hzDCgLWIfCyIEg87vsrGOVjJDFuMvUg=s200-c' },
-  { name: 'Ð¢Ñ€Ð¸ Ð´Ð½Ñ Ð´Ð¾Ð¶Ð´Ñ', genre: 'Rock', genres: ['rock'], gradient: 'from-blue-800 to-slate-950', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_mh4kt6VaYTL077ddRxOvNlMSs2ouMUvvLAeWbL76NrFwo=s200-c' },
+  { name: 'Король и Шут', genre: 'Punk Rock', genres: ['rock'], gradient: 'from-red-700 to-black', avatarUrl: 'https://yt3.googleusercontent.com/xw3xvEHQEWXX8ccMROkcmOjYcYZvKbo7GHzYStl7VRXehxqE-yXirXpSB1KckLYoTsn9UpH4pnfC1aY=s200-c' },
+  { name: 'Кино', genre: 'Post-Punk', genres: ['rock', 'indie'], gradient: 'from-slate-700 to-black', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_m7A-puWYGi4-6hzDCgLWIfCyIEg87vsrGOVjJDFuMvUg=s200-c' },
+  { name: 'Три дня дождя', genre: 'Rock', genres: ['rock'], gradient: 'from-blue-800 to-slate-950', avatarUrl: 'https://yt3.ggpht.com/ytc/AIdro_mh4kt6VaYTL077ddRxOvNlMSs2ouMUvvLAeWbL76NrFwo=s200-c' },
   { name: 'Bring Me The Horizon', genre: 'Metalcore', genres: ['rock', 'metal'], gradient: 'from-rose-800 to-zinc-950', avatarUrl: 'https://yt3.googleusercontent.com/YgsyFk3KZHvI5cYtcGOcWYwbpu_GJc-IbPeWyF_Xzy2JIDwL1cPefog1szowNlvuIJ-_OkpoyWOYxhg=s200-c' },
 
   { name: 'Daft Punk', genre: 'Electronic', genres: ['electronic'], gradient: 'from-yellow-500 to-amber-900', avatarUrl: 'https://lh3.googleusercontent.com/qLhu6Py_4_xoBsoubKQsXlhOQGqU9YU1ZRAbFusF0LlrPkXbbpu7bEh-k_ZtE4JwLgubvucAQqcK1hRk=s200-c' },
@@ -104,14 +104,14 @@ const CURATED_ARTISTS: OnboardingArtist[] = [
 ];
 
 const GENRE_FILTERS = [
-  { id: 'all', labelRu: 'Ð’ÑÐµ', labelEn: 'All' },
-  { id: 'hiphop', labelRu: 'Ð¥Ð¸Ð¿-Ñ…Ð¾Ð¿', labelEn: 'Hip-Hop' },
-  { id: 'phonk', labelRu: 'Ð¤Ð¾Ð½Ðº', labelEn: 'Phonk' },
-  { id: 'rock', labelRu: 'Ð Ð¾Ðº', labelEn: 'Rock' },
-  { id: 'electronic', labelRu: 'Ð­Ð»ÐµÐºÑ‚Ñ€Ð¾Ð½Ð¸ÐºÐ°', labelEn: 'Electronic' },
-  { id: 'pop', labelRu: 'ÐŸÐ¾Ð¿', labelEn: 'Pop' },
-  { id: 'indie', labelRu: 'Ð˜Ð½Ð´Ð¸', labelEn: 'Indie' },
-  { id: 'metal', labelRu: 'ÐœÐµÑ‚Ð°Ð»', labelEn: 'Metal' },
+  { id: 'all', labelRu: 'Все', labelEn: 'All' },
+  { id: 'hiphop', labelRu: 'Хип-хоп', labelEn: 'Hip-Hop' },
+  { id: 'phonk', labelRu: 'Фонк', labelEn: 'Phonk' },
+  { id: 'rock', labelRu: 'Рок', labelEn: 'Rock' },
+  { id: 'electronic', labelRu: 'Электроника', labelEn: 'Electronic' },
+  { id: 'pop', labelRu: 'Поп', labelEn: 'Pop' },
+  { id: 'indie', labelRu: 'Инди', labelEn: 'Indie' },
+  { id: 'metal', labelRu: 'Метал', labelEn: 'Metal' },
 ];
 
 interface OnboardingModalProps {
@@ -356,7 +356,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     : 'bg-black/[0.04] text-slate-600 hover:bg-black/[0.08] dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/15'
                 }`}
               >
-                1. {t.onboarding?.stepAppearance || (language === 'ru' ? 'Ð¯Ð·Ñ‹Ðº Ð¸ Ñ‚ÐµÐ¼Ð°' : 'Language & Theme')}
+                1. {t.onboarding?.stepAppearance || (language === 'ru' ? 'Язык и тема' : 'Language & Theme')}
               </button>
               <button
                 type="button"
@@ -367,7 +367,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     : 'bg-black/[0.04] text-slate-600 hover:bg-black/[0.08] dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/15'
                 }`}
               >
-                2. {t.onboarding?.stepGuide || (language === 'ru' ? 'Ð’Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚Ð¸' : 'Features')}
+                2. {t.onboarding?.stepGuide || (language === 'ru' ? 'Возможности' : 'Features')}
               </button>
               <button
                 type="button"
@@ -378,7 +378,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     : 'bg-black/[0.04] text-slate-600 hover:bg-black/[0.08] dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/15'
                 }`}
               >
-                3. {t.onboarding?.stepArtists || (language === 'ru' ? 'ÐÑ€Ñ‚Ð¸ÑÑ‚Ñ‹' : 'Artists')}
+                3. {t.onboarding?.stepArtists || (language === 'ru' ? 'Артисты' : 'Artists')}
               </button>
             </div>
 
@@ -396,12 +396,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 flex flex-col gap-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#142347] dark:text-white">
-                {t.onboarding?.welcomeTitle || (language === 'ru' ? 'Ð”Ð¾Ð±Ñ€Ð¾ Ð¿Ð¾Ð¶Ð°Ð»Ð¾Ð²Ð°Ñ‚ÑŒ Ð² Otofy' : 'Welcome to Otofy')}
+                {t.onboarding?.welcomeTitle || (language === 'ru' ? 'Добро пожаловать в Otofy' : 'Welcome to Otofy')}
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-white/60 max-w-xl leading-relaxed">
                 {t.onboarding?.welcomeSubtitle ||
                   (language === 'ru'
-                    ? 'ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹Ñ‚Ðµ ÑÐ·Ñ‹Ðº Ð¸Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹ÑÐ° Ð¸ Ñ‚ÐµÐ¼Ñƒ Ð¾Ñ„Ð¾Ñ€Ð¼Ð»ÐµÐ½Ð¸Ñ Ð´Ð»Ñ ÐºÐ¾Ð¼Ñ„Ð¾Ñ€Ñ‚Ð½Ð¾Ð³Ð¾ Ð¿Ñ€Ð¾ÑÐ»ÑƒÑˆÐ¸Ð²Ð°Ð½Ð¸Ñ Ð¼ÑƒÐ·Ñ‹ÐºÐ¸.'
+                    ? 'Настройте язык интерфейса и тему оформления для комфортного прослушивания музыки.'
                     : 'Set your preferred language and appearance theme for an optimal listening experience.')}
               </p>
             </div>
@@ -409,7 +409,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <div className="flex flex-col gap-2.5">
               <label className="text-xs font-bold tracking-wider uppercase text-slate-500 dark:text-white/50 flex items-center gap-1.5">
                 <Globe size={13} />
-                {t.onboarding?.chooseLanguage || (language === 'ru' ? 'Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ ÑÐ·Ñ‹Ðº Ð¸Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹ÑÐ°' : 'Choose Interface Language')}
+                {t.onboarding?.chooseLanguage || (language === 'ru' ? 'Выберите язык интерфейса' : 'Choose Interface Language')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {supportedLanguages.map((lang) => {
@@ -451,7 +451,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <div className="flex flex-col gap-2.5">
               <label className="text-xs font-bold tracking-wider uppercase text-slate-500 dark:text-white/50 flex items-center gap-1.5">
                 <Sparkles size={13} />
-                {t.onboarding?.chooseTheme || (language === 'ru' ? 'Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ Ñ‚ÐµÐ¼Ñƒ Ð¾Ñ„Ð¾Ñ€Ð¼Ð»ÐµÐ½Ð¸Ñ' : 'Choose Appearance Theme')}
+                {t.onboarding?.chooseTheme || (language === 'ru' ? 'Выберите тему оформления' : 'Choose Appearance Theme')}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <button
@@ -470,7 +470,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </div>
                       <div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                          {t.onboarding?.themeLight || (language === 'ru' ? 'Ð¡Ð²ÐµÑ‚Ð»Ð°Ñ Ñ‚ÐµÐ¼Ð°' : 'Light Theme')}
+                          {t.onboarding?.themeLight || (language === 'ru' ? 'Светлая тема' : 'Light Theme')}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-white/50">
                           Crystal Liquid Glass
@@ -486,7 +486,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <p className="text-xs text-slate-500 dark:text-white/60 leading-relaxed">
                     {t.onboarding?.themeLightDesc ||
                       (language === 'ru'
-                        ? 'ÐšÑ€Ð¸ÑÑ‚Ð°Ð»ÑŒÐ½Ð¾Ðµ Ð¶Ð¸Ð´ÐºÐ¾Ðµ ÑÑ‚ÐµÐºÐ»Ð¾ Ñ Ñ‡Ð¸ÑÑ‚Ñ‹Ð¼ Ð´Ð½ÐµÐ²Ð½Ñ‹Ð¼ ÐºÐ¾Ð½Ñ‚Ñ€Ð°ÑÑ‚Ð¾Ð¼'
+                        ? 'Кристальное жидкое стекло с чистым дневным контрастом'
                         : 'Crystal liquid glass with crisp daytime contrast')}
                   </p>
                 </button>
@@ -507,7 +507,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       </div>
                       <div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                          {t.onboarding?.themeDark || (language === 'ru' ? 'Ð¢ÐµÐ¼Ð½Ð°Ñ Ñ‚ÐµÐ¼Ð°' : 'Dark Theme')}
+                          {t.onboarding?.themeDark || (language === 'ru' ? 'Темная тема' : 'Dark Theme')}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-white/50">
                           Obsidian OLED Black
@@ -523,7 +523,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <p className="text-xs text-slate-500 dark:text-white/60 leading-relaxed">
                     {t.onboarding?.themeDarkDesc ||
                       (language === 'ru'
-                        ? 'Ð“Ð»ÑƒÐ±Ð¾ÐºÐ¸Ð¹ Ð¾Ð±ÑÐ¸Ð´Ð¸Ð°Ð½Ð¾Ð²Ñ‹Ð¹ OLED Ñ‡ÐµÑ€Ð½Ñ‹Ð¹ Ñ Ð¼ÑÐ³ÐºÐ¸Ð¼ ÑÐ¸ÑÐ½Ð¸ÐµÐ¼'
+                        ? 'Глубокий обсидиановый OLED черный с мягким сиянием'
                         : 'Deep obsidian OLED black with gentle neon glow')}
                   </p>
                 </button>
@@ -536,12 +536,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 flex flex-col gap-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#142347] dark:text-white">
-                {t.onboarding?.guideTitle || (language === 'ru' ? 'Ð’ÑÐµ Ð²Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚Ð¸ Otofy' : 'Everything Otofy has to offer')}
+                {t.onboarding?.guideTitle || (language === 'ru' ? 'Все возможности Otofy' : 'Everything Otofy has to offer')}
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-white/60 max-w-xl leading-relaxed">
                 {t.onboarding?.guideSubtitle ||
                   (language === 'ru'
-                    ? 'Ð¡Ð¾Ð²Ñ€ÐµÐ¼ÐµÐ½Ð½Ñ‹Ð¹ Ð°ÑƒÐ´Ð¸Ð¾Ð¿Ð»ÐµÐµÑ€ Ñ Ð½ÐµÐ¾Ð³Ñ€Ð°Ð½Ð¸Ñ‡ÐµÐ½Ð½Ñ‹Ð¼ Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð¾Ð¼ Ðº Ð¼ÑƒÐ·Ñ‹ÐºÐµ Ð¸ ÑƒÐ¼Ð½Ñ‹Ð¼Ð¸ Ñ€ÐµÐºÐ¾Ð¼ÐµÐ½Ð´Ð°Ñ†Ð¸ÑÐ¼Ð¸.'
+                    ? 'Современный аудиоплеер с неограниченным доступом к музыке и умными рекомендациями.'
                     : 'A modern desktop music player with unrestricted streaming and smart discovery.')}
               </p>
             </div>
@@ -555,12 +555,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   Personal Stream
                 </span>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                  {t.onboarding?.guideWaveTitle || (language === 'ru' ? 'ÐŸÐµÑ€ÑÐ¾Ð½Ð°Ð»ÑŒÐ½Ð°Ñ Â«ÐœÐ¾Ñ Ð²Ð¾Ð»Ð½Ð°Â»' : 'Personal My Wave')}
+                  {t.onboarding?.guideWaveTitle || (language === 'ru' ? 'Персональная «Моя волна»' : 'Personal My Wave')}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">
                   {t.onboarding?.guideWaveDesc ||
                     (language === 'ru'
-                      ? 'Ð‘ÐµÑÐºÐ¾Ð½ÐµÑ‡Ð½Ñ‹Ð¹ Ð¸Ð½Ð´Ð¸Ð²Ð¸Ð´ÑƒÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¿Ð¾Ñ‚Ð¾Ðº Ð¼ÑƒÐ·Ñ‹ÐºÐ¸, ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ð¹ Ð¾Ð±ÑƒÑ‡Ð°ÐµÑ‚ÑÑ Ð½Ð° Ð²Ð°ÑˆÐ¸Ñ… Ð»Ð°Ð¹ÐºÐ°Ñ… Ð¸ Ð»ÑŽÐ±Ð¸Ð¼Ñ‹Ñ… Ð°Ñ€Ñ‚Ð¸ÑÑ‚Ð°Ñ….'
+                      ? 'Бесконечный индивидуальный поток музыки, который обучается на ваших лайках и любимых артистах.'
                       : 'An endless music stream tuned to your liked tracks and favorite artists in real time.')}
                 </p>
               </div>
@@ -573,12 +573,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   Infinite Library
                 </span>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                  {t.onboarding?.guideCatalogTitle || (language === 'ru' ? 'ÐšÐ°Ñ‚Ð°Ð»Ð¾Ð³ YouTube Music' : 'YouTube Music Catalog')}
+                  {t.onboarding?.guideCatalogTitle || (language === 'ru' ? 'Каталог YouTube Music' : 'YouTube Music Catalog')}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">
                   {t.onboarding?.guideCatalogDesc ||
                     (language === 'ru'
-                      ? 'ÐœÐ¸Ð»Ð»Ð¸Ð¾Ð½Ñ‹ Ñ‚Ñ€ÐµÐºÐ¾Ð², Ð°Ð»ÑŒÐ±Ð¾Ð¼Ð¾Ð², Ð¶Ð°Ð½Ñ€Ð¾Ð²Ñ‹Ñ… ÑÑ‚Ð°Ð½Ñ†Ð¸Ð¹ Ð¸ Ð½Ð°ÑÑ‚Ñ€Ð¾ÐµÐ½Ð¸Ð¹ Ð´Ð½Ñ Ð±ÐµÐ· Ñ€ÐµÐ³Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ñ… Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²Ð¾Ðº.'
+                      ? 'Миллионы треков, альбомов, жанровых станций и настроений дня без региональных блокировок.'
                       : 'Millions of tracks, full albums, curated genre stations, and moods without regional locks.')}
                 </p>
               </div>
@@ -591,12 +591,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   Premium Experience
                 </span>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                  {t.onboarding?.guideExperienceTitle || (language === 'ru' ? 'Ð¡Ñ‚Ð¸Ð»ÑŒ Ð¸ ÑÐ¸Ð½Ñ…Ñ€Ð¾Ð½Ð½Ñ‹Ðµ Ñ‚ÐµÐºÑÑ‚Ñ‹' : 'Synced Lyrics & Sleek Design')}
+                  {t.onboarding?.guideExperienceTitle || (language === 'ru' ? 'Стиль и синхронные тексты' : 'Synced Lyrics & Sleek Design')}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">
                   {t.onboarding?.guideExperienceDesc ||
                     (language === 'ru'
-                      ? 'ÐšÐ°Ñ€Ð°Ð¾ÐºÐµ-Ñ‚ÐµÐºÑÑ‚Ñ‹ Ð¿ÐµÑÐµÐ½ Ð² Ñ€ÐµÐ°Ð»ÑŒÐ½Ð¾Ð¼ Ð²Ñ€ÐµÐ¼ÐµÐ½Ð¸, Ñ€ÐµÐºÐ¾Ð¼ÐµÐ½Ð´Ð°Ñ†Ð¸Ð¸ Ð²Ð½Ð¸Ð·Ñƒ Ð¿Ð»ÐµÐ¹Ð»Ð¸ÑÑ‚Ð¾Ð² Ð¸ Ð´Ð¸Ð·Ð°Ð¹Ð½ Ð¾Ð±ÑÐ¸Ð´Ð¸Ð°Ð½Ð¾Ð²Ð¾Ð³Ð¾ ÑÑ‚ÐµÐºÐ»Ð°.'
+                      ? 'Караоке-тексты песен в реальном времени, рекомендации внизу плейлистов и дизайн обсидианового стекла.'
                       : 'Karaoke-style synchronized lyrics, suggested tracks at the end of playlists, and obsidian glass aesthetics.')}
                 </p>
               </div>
@@ -821,7 +821,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('artists')}
               className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-white/60 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
-              {t.onboarding?.skip || (language === 'ru' ? 'ÐŸÑ€Ð¾Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ Ðº Ð°Ñ€Ñ‚Ð¸ÑÑ‚Ð°Ð¼' : 'Skip to Artists')}
+              {t.onboarding?.skip || (language === 'ru' ? 'Пропустить к артистам' : 'Skip to Artists')}
             </button>
           ) : currentStep === 'guide' ? (
             <button
@@ -830,7 +830,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepAppearance || 'Language & Theme'}` : (language === 'ru' ? 'ÐÐ°Ð·Ð°Ð´: Ð¯Ð·Ñ‹Ðº Ð¸ Ñ‚ÐµÐ¼Ð°' : 'Back: Language & Theme')}</span>
+              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepAppearance || 'Language & Theme'}` : (language === 'ru' ? 'Назад: Язык и тема' : 'Back: Language & Theme')}</span>
             </button>
           ) : (
             <button
@@ -839,7 +839,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'ÐÐ°Ð·Ð°Ð´: Ð’Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚Ð¸' : 'Back: Features')}</span>
+              <span>{t.onboarding?.back ? `${t.onboarding.back}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'Назад: Возможности' : 'Back: Features')}</span>
             </button>
           )}
 
@@ -849,7 +849,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('guide')}
               className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'Ð”Ð°Ð»ÐµÐµ: Ð’Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚Ð¸' : 'Next: Features')}</span>
+              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepGuide || 'Features'}` : (language === 'ru' ? 'Далее: Возможности' : 'Next: Features')}</span>
               <ArrowRight size={16} />
             </button>
           ) : currentStep === 'guide' ? (
@@ -858,7 +858,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={() => setCurrentStep('artists')}
               className="px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepArtists || 'Artists'}` : (language === 'ru' ? 'Ð”Ð°Ð»ÐµÐµ: Ð’Ñ‹Ð±Ñ€Ð°Ñ‚ÑŒ Ð°Ñ€Ñ‚Ð¸ÑÑ‚Ð¾Ð²' : 'Next: Choose Artists')}</span>
+              <span>{t.onboarding?.next ? `${t.onboarding.next}: ${t.onboarding?.stepArtists || 'Artists'}` : (language === 'ru' ? 'Далее: Выбрать артистов' : 'Next: Choose Artists')}</span>
               <ArrowRight size={16} />
             </button>
           ) : (
@@ -895,8 +895,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   >
                     <span>
                       {settingsStore.onboardingCompleted
-                        ? t.wave?.saveChanges || (language === 'ru' ? 'Ð¡Ð¾Ñ…Ñ€Ð°Ð½Ð¸Ñ‚ÑŒ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ñ' : 'Save changes')
-                        : t.onboarding?.finishSetup || (language === 'ru' ? 'Ð¡Ñ„Ð¾Ñ€Ð¼Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ ÐœÐ¾ÑŽ Ð²Ð¾Ð»Ð½Ñƒ' : 'Generate My Wave')}
+                        ? t.wave?.saveChanges || (language === 'ru' ? 'Сохранить изменения' : 'Save changes')
+                        : t.onboarding?.finishSetup || (language === 'ru' ? 'Сформировать Мою волну' : 'Generate My Wave')}
                     </span>
                     <ArrowRight size={16} />
                   </button>
@@ -907,7 +907,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   onClick={handleSkip}
                   className="px-5 py-2.5 rounded-full text-sm font-semibold bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white/90 cursor-pointer transition-colors"
                 >
-                  {t.onboarding?.skip || (language === 'ru' ? 'ÐŸÑ€Ð¾Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ Ð¸ ÑÐ»ÑƒÑˆÐ°Ñ‚ÑŒ' : 'Skip for now')}
+                  {t.onboarding?.skip || (language === 'ru' ? 'Пропустить и слушать' : 'Skip for now')}
                 </button>
               )}
             </div>
@@ -943,13 +943,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     Otofy Desktop
                   </span>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#142347] leading-tight">
-                    {t.onboarding?.welcomeTitle || (language === 'ru' ? 'Ð”Ð¾Ð±Ñ€Ð¾ Ð¿Ð¾Ð¶Ð°Ð»Ð¾Ð²Ð°Ñ‚ÑŒ Ð² Otofy' : 'Welcome to Otofy')}
+                    {t.onboarding?.welcomeTitle || (language === 'ru' ? 'Добро пожаловать в Otofy' : 'Welcome to Otofy')}
                   </h1>
                   <p className="text-sm sm:text-base text-slate-500 max-w-md leading-relaxed mt-1">
                     {language === 'ru'
-                      ? 'Ð§Ð¸ÑÑ‚Ñ‹Ð¹ Ð·Ð²ÑƒÐº, Ð±ÐµÑÐºÐ¾Ð½ÐµÑ‡Ð½Ð°Ñ Ð¼ÑƒÐ·Ñ‹ÐºÐ° Ð¸ ÑÑÑ‚ÐµÑ‚Ð¸ÐºÐ° Ð¶Ð¸Ð´ÐºÐ¾Ð³Ð¾ ÑÑ‚ÐµÐºÐ»Ð°'
+                      ? 'Чистый звук, бесконечная музыка и эстетика жидкого стекла'
                       : language === 'fr'
-                      ? 'Son pur, musique sans fin et esthÃ©tique de verre liquide'
+                      ? 'Son pur, musique sans fin et esthétique de verre liquide'
                       : 'Pure sound, endless music, and liquid glass aesthetics'}
                   </p>
                 </div>
@@ -961,11 +961,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     Personal Experience
                   </span>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#142347] leading-tight">
-                    {language === 'ru' ? 'ÐÐ°ÑÑ‚Ñ€Ð¾Ð¸Ð¼ Ð²ÑÑ‘ Ð¿Ð¾Ð´ Ð²Ð°Ñ' : language === 'fr' ? 'Personnalisons votre expÃ©rience' : "Let's personalize your sound"}
+                    {language === 'ru' ? 'Настроим всё под вас' : language === 'fr' ? 'Personnalisons votre expérience' : "Let's personalize your sound"}
                   </h1>
                   <p className="text-sm sm:text-base text-slate-500 max-w-md leading-relaxed mt-1">
                     {t.onboarding?.welcomeSubtitle || (language === 'ru'
-                      ? 'ÐŸÐ°Ñ€Ð° Ð±Ñ‹ÑÑ‚Ñ€Ñ‹Ñ… ÑˆÐ°Ð³Ð¾Ð² Ð´Ð»Ñ Ð²Ñ‹Ð±Ð¾Ñ€Ð° Ñ‚ÐµÐ¼Ñ‹, ÑÐ·Ñ‹ÐºÐ° Ð¸ ÐºÐ°Ð»Ð¸Ð±Ñ€Ð¾Ð²ÐºÐ¸ Ð²Ð°ÑˆÐµÐ¹ Ð²Ð¾Ð»Ð½Ñ‹'
+                      ? 'Пара быстрых шагов для выбора темы, языка и калибровки вашей волны'
                       : 'A few quick steps to choose your theme, language, and personal stream')}
                   </p>
                 </div>
@@ -981,11 +981,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 }}
                 className="px-7 py-3 rounded-full text-sm font-bold flex items-center gap-2 bg-[#142347] text-white hover:bg-[#101b38] shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                <span>{t.onboarding?.startListening || (language === 'ru' ? 'ÐÐ°Ñ‡Ð°Ñ‚ÑŒ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÑƒ' : 'Get Started')}</span>
+                <span>{t.onboarding?.startListening || (language === 'ru' ? 'Начать настройку' : 'Get Started')}</span>
                 <ArrowRight size={16} />
               </button>
               <span className="text-xs text-slate-400 font-medium">
-                {language === 'ru' ? 'Ð¸Ð»Ð¸ Ð½Ð°Ð¶Ð¼Ð¸Ñ‚Ðµ Ð² Ð»ÑŽÐ±Ð¾Ð¼ Ð¼ÐµÑÑ‚Ðµ' : language === 'fr' ? 'ou cliquez n\'importe oÃ¹ pour continuer' : 'or click anywhere to continue'}
+                {language === 'ru' ? 'или нажмите в любом месте' : language === 'fr' ? 'ou cliquez n\'importe où pour continuer' : 'or click anywhere to continue'}
               </span>
             </div>
           </div>
