@@ -264,32 +264,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         finalAvatars[name] = avatarMap[name];
       }
     }
-    const wasAlreadyCompleted = settingsStore.onboardingCompleted;
     settingsStore.setFavoriteArtists(selectedArtists, finalAvatars);
     settingsStore.setOnboardingCompleted(true);
-
-    if (!wasAlreadyCompleted) {
-      onClose();
-      settingsStore.setIsWaveGeneratingModalOpen(true);
-    } else {
-      onClose();
-      const updatingTitle = t.wave?.updatingTitle || 'Updating My Wave';
-      const updatingDesc =
-        t.wave?.updatingDesc || 'Generating fresh tracks based on your artists...';
-      toastStore.info(updatingTitle, updatingDesc);
-
-      generateWaveTracks(selectedArtists, true)
-        .then((tracks) => {
-          const updatedTitle = t.wave?.updatedTitle || 'My Wave updated';
-          const waveTitle = t.wave?.title || 'My Wave';
-          toastStore.success(updatedTitle, `${waveTitle} (${tracks.length})`);
-          if (onCompleteWave) {
-            onCompleteWave(selectedArtists);
-          }
-        })
-        .catch((err) => {
-          console.warn('[OnboardingModal] Background wave update failed:', err);
-        });
+    onClose();
+    settingsStore.setIsWaveGeneratingModalOpen(true);
+    if (onCompleteWave) {
+      onCompleteWave(selectedArtists);
     }
   };
 

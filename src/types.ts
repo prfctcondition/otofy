@@ -60,6 +60,7 @@ export interface Track {
   releaseYear?: string;
   browseId?: string;
   artistBrowseId?: string;
+  artistBrowseIds?: Record<string, string>;
   artistUrl?: string;
   albumBrowseId?: string;
   albumUrl?: string;
@@ -98,6 +99,7 @@ export interface FollowedArtist {
   id: string;
   name: string;
   avatarUrl?: string;
+  browseId?: string;
   source?: 'YT' | 'SC';
   followedAt: number;
   lastOpenedAt?: number;
@@ -177,6 +179,7 @@ export interface SearchResult {
   id: string;
   title: string;
   artist: string;
+  artists?: string[];
   album: string;
   duration: string;
   durationSec: number;
@@ -187,6 +190,7 @@ export interface SearchResult {
   releaseDate?: string;
   releaseYear?: string;
   artistBrowseId?: string;
+  artistBrowseIds?: Record<string, string>;
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;

@@ -26,6 +26,10 @@ export interface DbTrack {
   needsMatch?: boolean;
   alternatives?: any[];
   originalSpotifyPreview?: string;
+  artistBrowseId?: string;
+  artistBrowseIds?: Record<string, string>;
+  albumBrowseId?: string;
+  views?: number;
 }
 
 export interface DbPlaylist {

@@ -2,15 +2,17 @@ import db from './database';
 import type { DbTrack, DbPlaylist, DbPlaylistTrack } from './database';
 import type { Track, Playlist } from '../types';
 
-import { cleanArtistAndTitle, areTracksDuplicate, type MinimalTrackInfo } from '../utils/trackUtils';
+import { splitArtists, normalizeLocalizedArtistName, areTracksDuplicate, type MinimalTrackInfo } from '../utils/trackUtils';
 
 function dbTrackToTrack(dt: DbTrack): Track {
+  const cleanedArtists = splitArtists(dt.artist, dt.artists);
+  const cleanedArtistStr = cleanedArtists.length > 0 ? cleanedArtists.join(', ') : (dt.artist || 'Unknown Artist');
   return {
     id: dt.id,
     number: dt.number,
     title: dt.title || 'Untitled',
-    artist: dt.artist || 'Unknown Artist',
-    artists: dt.artists,
+    artist: cleanedArtistStr,
+    artists: cleanedArtists.length > 0 ? cleanedArtists : dt.artists,
     album: dt.album,
     duration: dt.duration,
     durationSec: dt.durationSec,
@@ -29,6 +31,11 @@ function dbTrackToTrack(dt: DbTrack): Track {
     needsMatch: dt.needsMatch,
     alternatives: dt.alternatives,
     originalSpotifyPreview: dt.originalSpotifyPreview,
+    artistBrowseId: dt.artistBrowseId,
+    artistBrowseIds: dt.artistBrowseIds,
+    albumBrowseId: dt.albumBrowseId,
+    views: dt.views,
+    playbackCount: dt.playbackCount,
   };
 }
 
@@ -200,6 +207,7 @@ export const repo = {
       number: track.number,
       title: track.title,
       artist: track.artist,
+      artists: track.artists,
       album: track.album,
       duration: track.duration,
       durationSec: track.durationSec,
@@ -219,6 +227,10 @@ export const repo = {
       needsMatch: track.needsMatch,
       alternatives: track.alternatives,
       originalSpotifyPreview: track.originalSpotifyPreview,
+      artistBrowseId: track.artistBrowseId,
+      artistBrowseIds: track.artistBrowseIds,
+      albumBrowseId: track.albumBrowseId,
+      views: track.views,
     };
     await db.tracks.put(dt);
   },
@@ -230,6 +242,7 @@ export const repo = {
       number: track.number,
       title: track.title,
       artist: track.artist,
+      artists: track.artists,
       album: track.album,
       duration: track.duration,
       durationSec: track.durationSec,
@@ -249,6 +262,10 @@ export const repo = {
       needsMatch: track.needsMatch,
       alternatives: track.alternatives,
       originalSpotifyPreview: track.originalSpotifyPreview,
+      artistBrowseId: track.artistBrowseId,
+      artistBrowseIds: track.artistBrowseIds,
+      albumBrowseId: track.albumBrowseId,
+      views: track.views,
     }));
     await db.tracks.bulkPut(dbTracks);
   },
@@ -546,7 +563,11 @@ export const repo = {
     const json = await this.getSetting('followed_artists');
     if (!json) return [];
     try {
-      return JSON.parse(json);
+      const parsed: import('../types').FollowedArtist[] = JSON.parse(json);
+      return parsed.map((a) => ({
+        ...a,
+        name: normalizeLocalizedArtistName(a.name),
+      }));
     } catch {
       return [];
     }

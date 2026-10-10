@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { splitArtists } from '../utils/trackUtils';
 
 interface ArtistLinksProps {
@@ -6,6 +6,7 @@ interface ArtistLinksProps {
   artists?: string[];
   source?: 'YT' | 'SC';
   browseId?: string;
+  artistBrowseIds?: Record<string, string>;
   onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
   className?: string;
   artistClassName?: string;
@@ -19,6 +20,7 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   artists: explicitArtists,
   source = 'YT',
   browseId,
+  artistBrowseIds,
   onSelectArtist,
   className = 'text-xs text-[#64748B] dark:text-white/80 truncate',
   artistClassName = 'cursor-pointer hover:underline hover:text-[#142347] dark:hover:text-white transition-colors',
@@ -32,23 +34,29 @@ export const ArtistLinks: React.FC<ArtistLinksProps> = ({
   return (
     <span className={className}>
       {prefix}
-      {artists.map((art, idx) => (
-        <React.Fragment key={`${art}-${idx}`}>
-          <span
-            className={artistClassName}
-            title={`View ${art}`}
-            draggable={false}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectArtist?.(art, source, idx === 0 ? browseId : undefined);
-            }}
-          >
-            {art}
-          </span>
-          {idx < artists.length - 1 && <span className={separatorClassName}>, </span>}
-        </React.Fragment>
-      ))}
+      {artists.map((art, idx) => {
+        const resolvedBrowseId =
+          artistBrowseIds?.[art] ||
+          artistBrowseIds?.[art.toLowerCase()] ||
+          (idx === 0 ? browseId : undefined);
+        return (
+          <React.Fragment key={`${art}-${idx}`}>
+            <span
+              className={artistClassName}
+              title={`View ${art}`}
+              draggable={false}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectArtist?.(art, source, resolvedBrowseId);
+              }}
+            >
+              {art}
+            </span>
+            {idx < artists.length - 1 && <span className={separatorClassName}>, </span>}
+          </React.Fragment>
+        );
+      })}
       {suffix}
     </span>
   );

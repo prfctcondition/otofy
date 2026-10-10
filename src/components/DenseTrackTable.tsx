@@ -357,6 +357,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             artists={track.artists}
             source={track.source === 'SC' ? 'SC' : 'YT'}
             browseId={track.artistBrowseId}
+            artistBrowseIds={track.artistBrowseIds}
             onSelectArtist={onSelectArtist}
             className="text-xs text-[#64748B] dark:text-white/80 truncate"
             artistClassName="cursor-pointer hover:underline hover:text-[#142347] dark:hover:text-white transition-colors"

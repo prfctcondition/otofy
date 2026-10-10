@@ -34,29 +34,33 @@ export function normalizeHeaders(headers: any): Record<string, string> {
 }
 
 export const electronFetch: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  let url: string;
+  let method = init?.method;
+  let headers = init?.headers;
+  let body = init?.body;
+
+  if (typeof input === 'string') {
+    url = input;
+  } else if (input instanceof URL) {
+    url = input.toString();
+  } else {
+    url = input.url;
+    if (!method) method = input.method;
+    if (!headers) headers = input.headers;
+  }
+
+  const cleanHeaders = normalizeHeaders(headers);
+  const hasAcceptLang = Object.keys(cleanHeaders).some((k) => k.toLowerCase() === 'accept-language');
+  if (!hasAcceptLang) {
+    cleanHeaders['Accept-Language'] = 'en-US,en;q=0.9';
+  }
+
   const electronApis = getElectronNet();
   if (electronApis) {
     const { app, net } = electronApis;
     if (app && !app.isReady()) {
       await app.whenReady();
     }
-
-    let url: string;
-    let method = init?.method;
-    let headers = init?.headers;
-    let body = init?.body;
-
-    if (typeof input === 'string') {
-      url = input;
-    } else if (input instanceof URL) {
-      url = input.toString();
-    } else {
-      url = input.url;
-      if (!method) method = input.method;
-      if (!headers) headers = input.headers;
-    }
-
-    const cleanHeaders = normalizeHeaders(headers);
 
     return net.fetch(url, {
       ...init,
@@ -66,6 +70,11 @@ export const electronFetch: typeof fetch = async (input: RequestInfo | URL, init
     }) as unknown as Promise<Response>;
   }
 
-  // Fallback for standalone browser or Vite dev/build environment
-  return globalThis.fetch(input, init);
+  // Fallback for standalone browser or Node environment
+  return globalThis.fetch(url, {
+    ...init,
+    method: method || 'GET',
+    headers: cleanHeaders,
+    body,
+  });
 };

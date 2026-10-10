@@ -17,6 +17,8 @@ export interface SearchResult {
   releaseDate?: string;
   releaseYear?: string;
   artistBrowseId?: string;
+  artists?: string[];
+  artistBrowseIds?: Record<string, string>;
   artistUrl?: string;
   albumBrowseId?: string;
   externalUrl?: string;
@@ -259,14 +261,14 @@ function isExactArtistMatch(name: string, query: string): boolean {
   const cleanN = (name || '').trim().toLowerCase();
   const cleanQ = (query || '').trim().toLowerCase();
   if (cleanN === cleanQ) return true;
-  const strippedN = cleanN.replace(/[^a-z0-9]/g, '');
-  const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
+  const strippedN = cleanN.replace(/[^\p{L}\p{N}]/gu, '');
+  const strippedQ = cleanQ.replace(/[^\p{L}\p{N}]/gu, '');
   if (strippedN.length > 0 && strippedN === strippedQ) return true;
 
   // Canonical aliases check
   const canonical = getCanonicalArtistMapping(query) || getCanonicalArtistMapping(name);
   if (canonical) {
-    const norm = (s: string) => (s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    const norm = (s: string) => (s || '').toLowerCase().trim().replace(/[^\p{L}\p{N}]/gu, '');
     const nNorm = norm(name);
     const qNorm = norm(query);
     const cNorm = norm(canonical.canonicalName);
@@ -391,6 +393,9 @@ function shouldReplaceArtistCard(
   const orderedResults = sourceFilter === 'SC' ? sc : sourceFilter === 'YT' ? yt : [...yt, ...sc];
 
   const cleanedResults = orderedResults.map((r) => {
+    if (r.source === 'YT' && r.artists && r.artists.length > 0) {
+      return r;
+    }
     const { title, artist } = cleanArtistAndTitle(r.title, r.artist);
     return {
       ...r,
@@ -400,7 +405,7 @@ function shouldReplaceArtistCard(
   });
 
   const cleanQ = query.trim().toLowerCase();
-  const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
+  const strippedQ = cleanQ.replace(/[^\p{L}\p{N}]/gu, '');
 
   // If we have an artistCard, check whether an overshadowing viral track exists BEFORE scoring!
   // ONLY obscure artists (< 25k subscribers) can be overshadowed by a viral track with the same name.
@@ -422,7 +427,7 @@ function shouldReplaceArtistCard(
   }
 
   const cardName = artistCard?.name?.toLowerCase().trim() || '';
-  const cardNameStripped = cardName.replace(/[^a-z0-9]/g, '');
+  const cardNameStripped = cardName.replace(/[^\p{L}\p{N}]/gu, '');
 
   const hasConfirmedArtist = Boolean(
     artistCard &&
@@ -437,14 +442,20 @@ function shouldReplaceArtistCard(
     const tTitle = (track.title || '').toLowerCase().trim();
     const tArtist = (track.artist || '').toLowerCase().trim();
     const views = track.views || track.playbackCount || 0;
+    const artistTokens = (track.artists || []).map((a) => a.toLowerCase().trim());
 
     const isCardArtistMatch = Boolean(
       cardName &&
         (tArtist === cardName ||
-          (cardNameStripped.length > 2 && tArtist.replace(/[^a-z0-9]/g, '') === cardNameStripped))
+          artistTokens.includes(cardName) ||
+          (cardNameStripped.length > 2 && tArtist.replace(/[^\p{L}\p{N}]/gu, '') === cardNameStripped) ||
+          (cardNameStripped.length > 2 && artistTokens.some((a) => a.replace(/[^\p{L}\p{N}]/gu, '') === cardNameStripped)))
     );
     const isQueryArtistMatch = Boolean(
-      tArtist === cleanQ || (strippedQ.length > 2 && tArtist.replace(/[^a-z0-9]/g, '') === strippedQ)
+      tArtist === cleanQ ||
+        artistTokens.includes(cleanQ) ||
+        (strippedQ.length > 2 && tArtist.replace(/[^\p{L}\p{N}]/gu, '') === strippedQ) ||
+        (strippedQ.length > 2 && artistTokens.some((a) => a.replace(/[^\p{L}\p{N}]/gu, '') === strippedQ))
     );
 
     // If an established official artist matches the query, songs BY this artist take supreme priority!

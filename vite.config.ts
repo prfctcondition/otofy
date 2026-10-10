@@ -179,6 +179,7 @@ function musicApiPlugin(): Plugin {
         if (req.url && req.url.startsWith('/api/music/artist-details')) {
           const urlObj = new URL(req.url, 'http://localhost');
           const artistName = urlObj.searchParams.get('artistName') || '';
+          const browseId = urlObj.searchParams.get('browseId') || '';
           const source = urlObj.searchParams.get('source') || 'YT';
           try {
             let details;
@@ -187,7 +188,7 @@ function musicApiPlugin(): Plugin {
               details = await scModule.default.getArtistDetails(artistName);
             } else {
               const itModule = await import('./dist-electron/services/innertubeService.js');
-              details = await itModule.default.getArtist(artistName);
+              details = await itModule.default.getArtist(browseId || artistName, artistName);
               if (!details || (!details.topTracks?.length && !details.albums?.length)) {
                 const scModule = await import('./dist-electron/services/scResolver.js');
                 details = await scModule.default.getArtistDetails(artistName);
@@ -335,7 +336,7 @@ function musicApiPlugin(): Plugin {
               }
             } else {
               const itModule = await import('./dist-electron/services/innertubeService.js');
-              results = await itModule.default.getRelatedTracks(trackId);
+              results = await itModule.default.getRelatedTracks(trackId, artist, title);
               if (results.length === 0 && (artist || title)) {
                 results = await itModule.default.getGenreTracks(`${artist || title} radio`);
               }

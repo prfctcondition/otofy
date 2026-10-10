@@ -1,4 +1,4 @@
-﻿import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
+import { app, BrowserWindow, ipcMain, globalShortcut, session, Tray, Menu, nativeImage, dialog, shell, protocol, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import dns from 'dns';
@@ -324,32 +324,23 @@ ipcMain.handle('music:get-playlist-tracks', async (_event, { id, source }: { id:
 });
 
 ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, browseId }: { artistName: string; source?: 'YT' | 'SC'; browseId?: string }) => {
-  const target = (browseId || artistName || '').trim();
-  const cacheKey = `artist:${target.toLowerCase()}:${source || 'ALL'}`;
+  const cleanBrowseId = (browseId || '').trim();
+  const cleanName = (artistName || '').trim();
+  const isDirectScUrl = cleanBrowseId.startsWith('http') && cleanBrowseId.includes('soundcloud.com');
+  const ytTarget = cleanBrowseId.startsWith('UC') ? cleanBrowseId : (cleanName || cleanBrowseId);
+  const cacheKey = `artist:${(ytTarget || cleanBrowseId).toLowerCase()}:${cleanName.toLowerCase()}`;
   const cached = getIpcCache(cacheKey);
   if (cached) return cached;
 
-  if (source === 'SC') {
-    const res = await scResolver.getArtistDetails(browseId || artistName);
+  if (isDirectScUrl && !cleanName) {
+    const res = await scResolver.getArtistDetails(cleanBrowseId);
     if (res) setIpcCache(cacheKey, res);
     return res;
   }
+
   try {
-    const ytDetails = await innertubeService.getArtist(target);
-    if (ytDetails && (ytDetails.topTracks.length > 0 || ytDetails.albums.length > 0)) {
-      if (!ytDetails.avatarUrl || ytDetails.albums.length === 0) {
-        try {
-          const scDetails = await scResolver.getArtistDetails(browseId || artistName);
-          if (scDetails) {
-            if (!ytDetails.avatarUrl && scDetails.avatarUrl) {
-              ytDetails.avatarUrl = scDetails.avatarUrl;
-            }
-            if (ytDetails.albums.length === 0 && scDetails.albums.length > 0) {
-              ytDetails.albums = scDetails.albums as any;
-            }
-          }
-        } catch {}
-      }
+    const ytDetails = await innertubeService.getArtist(ytTarget, cleanName || undefined);
+    if (ytDetails && (ytDetails.topTracks.length > 0 || ytDetails.albums.length > 0 || ytDetails.singles.length > 0)) {
       if (!ytDetails.avatarUrl && ytDetails.topTracks.length > 0) {
         ytDetails.avatarUrl = ytDetails.topTracks[0].artworkUrl;
       }
@@ -359,7 +350,9 @@ ipcMain.handle('music:get-artist-details', async (_event, { artistName, source, 
   } catch (err) {
     console.warn('[main] innertube getArtist failed, falling back to soundcloud:', err);
   }
-  const fallback = await scResolver.getArtistDetails(browseId || artistName);
+
+  const scTarget = isDirectScUrl ? cleanBrowseId : (cleanName || cleanBrowseId);
+  const fallback = await scResolver.getArtistDetails(scTarget);
   if (fallback) setIpcCache(cacheKey, fallback);
   return fallback;
 });
@@ -535,7 +528,7 @@ ipcMain.handle(
           results = await scResolver.getGenreTracks(artist || title || 'electronic');
         }
       } else {
-        results = await innertubeService.getRelatedTracks(trackId);
+        results = await innertubeService.getRelatedTracks(trackId, artist, title);
         // Fallback if related returned empty
         if (results.length === 0 && (artist || title)) {
           results = await innertubeService.getGenreTracks(`${artist || title} radio`);

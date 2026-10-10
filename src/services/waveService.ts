@@ -1,5 +1,5 @@
 import type { Track } from '../types';
-import { apiSearchMusic, apiGetRelatedTracks } from './musicApiService';
+import { apiSearchMusic, apiGetRelatedTracks, apiGetArtistDetails } from './musicApiService';
 
 export function normalizeToTrack(raw: any, index: number = 0): Track {
   return {
@@ -7,9 +7,14 @@ export function normalizeToTrack(raw: any, index: number = 0): Track {
     number: index + 1,
     title: raw.title || 'Unknown Title',
     artist: raw.artist || 'Unknown Artist',
+    artists: Array.isArray(raw.artists) && raw.artists.length > 0 ? raw.artists : undefined,
+    artistBrowseId: raw.artistBrowseId,
+    artistBrowseIds: raw.artistBrowseIds,
     album: raw.album || 'Single',
+    albumBrowseId: raw.albumBrowseId,
     duration: raw.duration || '3:00',
     durationSec: raw.durationSec || 180,
+    views: raw.views,
     dateAdded: raw.dateAdded || 'Just now',
     source: (raw.source as any) || 'YT',
     sourceLabel: raw.sourceLabel || 'YouTube',
@@ -21,7 +26,27 @@ export function normalizeToTrack(raw: any, index: number = 0): Track {
   };
 }
 
-const WAVE_CACHE_KEY = 'otofy_daily_wave_cache_v2';
+const WAVE_CACHE_KEY = 'otofy_daily_wave_cache_v3';
+
+// Arabic, Devanagari, Bengali, Gurmukhi-Malayalam, Thai, Lao, Myanmar, Khmer scripts
+const UNEXPECTED_FOREIGN_SCRIPT_REGEX = /[\u0600-\u06FF\u0900-\u097F\u0980-\u09FF\u0A00-\u0D7F\u0E00-\u0E7F\u0E80-\u0EFF\u1000-\u109F\u1780-\u17FF]/;
+const NON_ARTIST_CHANNEL_PATTERN = /(:\s*official\b|\bofficial\s*channel\b|\breaction\b|\btutorial\b|\bkaraoke\b|\bfull\s*episode\b|\bpodcast\b|\bประกอบละคร\b)/i;
+
+function isCleanWaveTrack(track: Track, seedHasForeignScript: boolean): boolean {
+  if (!track || !track.title || !track.artist) return false;
+  if (NON_ARTIST_CHANNEL_PATTERN.test(track.artist) || NON_ARTIST_CHANNEL_PATTERN.test(track.title)) {
+    return false;
+  }
+  if (!seedHasForeignScript) {
+    if (
+      UNEXPECTED_FOREIGN_SCRIPT_REGEX.test(track.title) ||
+      UNEXPECTED_FOREIGN_SCRIPT_REGEX.test(track.artist)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export const WAVE_PLAYLIST_ID = 'view-my-wave';
 
@@ -33,6 +58,7 @@ interface WaveCache {
 
 export function getCachedWave(favoriteArtists?: string[]): Track[] | null {
   try {
+    localStorage.removeItem('otofy_daily_wave_cache_v2');
     const raw = localStorage.getItem(WAVE_CACHE_KEY);
     if (!raw) return null;
     const parsed: WaveCache = JSON.parse(raw);
@@ -98,6 +124,7 @@ export function removeTrackFromCachedWave(trackId: string): Track[] {
 export function invalidateWaveCache() {
   try {
     localStorage.removeItem(WAVE_CACHE_KEY);
+    localStorage.removeItem('otofy_daily_wave_cache_v2');
   } catch {}
 }
 
@@ -125,38 +152,100 @@ export async function generateWaveTracks(
   if (onProgress) onProgress('analyzing', 20);
 
   const primaryArtists = [...artists];
-  const gatheredTracks: Track[] = [];
-  const similarArtistNames = new Set<string>();
+  const primaryLowerSet = new Set(primaryArtists.map((a) => a.toLowerCase().trim()));
+  const seedHasForeignScript = primaryArtists.some((a) => UNEXPECTED_FOREIGN_SCRIPT_REGEX.test(a));
 
-  // 1. Fetch tracks for each favorite artist in parallel
-  const artistResults = await Promise.allSettled(
+  const gatheredTracks: Track[] = [];
+  const relatedArtistsMap = new Map<string, { name: string; channelId: string }>();
+
+  // 1. Fetch official artist details (topTracks + official relatedArtists) for each favorite artist in parallel
+  const artistDetailsResults = await Promise.allSettled(
     primaryArtists.map(async (artist) => {
+      const details = await apiGetArtistDetails(artist);
+      if (details && details.topTracks && details.topTracks.length > 0) {
+        const cleanTop = details.topTracks.filter((t) => isCleanWaveTrack(t, seedHasForeignScript));
+        // Shuffle top 24 tracks and pick up to 12 so refreshes feel dynamic while staying authentic
+        const pool = cleanTop.slice(0, 24).sort(() => 0.5 - Math.random());
+        return {
+          artist,
+          tracksToUse: pool.slice(0, 12),
+          relatedArtists: details.relatedArtists || [],
+        };
+      }
+
+      // Fallback: search music strictly matching the artist name
       const searchResp = await apiSearchMusic(artist, 'YT');
-      const results = searchResp.results || [];
+      const results = (searchResp.results || []).filter((t) => isCleanWaveTrack(t, seedHasForeignScript));
       const artistTracks = results.filter(
         (t) =>
           t.artist.toLowerCase().includes(artist.toLowerCase()) ||
           artist.toLowerCase().includes(t.artist.toLowerCase())
       );
-      const tracksToUse =
-        artistTracks.length >= 4 ? artistTracks.slice(0, 14) : results.slice(0, 12);
-      return { artist, tracksToUse };
+      return {
+        artist,
+        tracksToUse: artistTracks.slice(0, 10),
+        relatedArtists: [] as Array<{ name: string; channelId: string }>,
+      };
     })
   );
 
   if (onProgress) onProgress('matching', 55);
 
   const seedTracks: Track[] = [];
-  for (const res of artistResults) {
-    if (res.status === 'fulfilled' && res.value.tracksToUse.length > 0) {
-      gatheredTracks.push(...res.value.tracksToUse);
-      seedTracks.push(res.value.tracksToUse[0]);
+  for (const res of artistDetailsResults) {
+    if (res.status === 'fulfilled') {
+      if (res.value.tracksToUse.length > 0) {
+        gatheredTracks.push(...res.value.tracksToUse);
+        seedTracks.push(res.value.tracksToUse[0]);
+      }
+      for (const rel of res.value.relatedArtists.slice(0, 3)) {
+        const relKey = (rel.name || '').toLowerCase().trim();
+        if (
+          relKey &&
+          rel.channelId &&
+          rel.channelId.startsWith('UC') &&
+          !primaryLowerSet.has(relKey) &&
+          !NON_ARTIST_CHANNEL_PATTERN.test(rel.name) &&
+          (seedHasForeignScript || !UNEXPECTED_FOREIGN_SCRIPT_REGEX.test(rel.name))
+        ) {
+          if (!relatedArtistsMap.has(relKey)) {
+            relatedArtistsMap.set(relKey, { name: rel.name, channelId: rel.channelId });
+          }
+        }
+      }
     }
   }
 
-  // 2. Fetch related / radio tracks in parallel for seeds to discover similar artists
-  const sampleSeeds = seedTracks.slice(0, 3);
-  if (sampleSeeds.length > 0) {
+  if (onProgress) onProgress('flow', 80);
+
+  // 2. Fetch official topTracks from up to 5 official related artists (Fans might also like)
+  const discoveredRelated = Array.from(relatedArtistsMap.values())
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 5);
+
+  if (discoveredRelated.length > 0) {
+    const relatedDetailsResults = await Promise.allSettled(
+      discoveredRelated.map(async (relArtist) => {
+        const details = await apiGetArtistDetails(relArtist.name, relArtist.channelId);
+        if (details && Array.isArray(details.topTracks) && details.topTracks.length > 0) {
+          return details.topTracks
+            .filter((t) => isCleanWaveTrack(t, seedHasForeignScript))
+            .slice(0, 12)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 5);
+        }
+        return [];
+      })
+    );
+
+    for (const relRes of relatedDetailsResults) {
+      if (relRes.status === 'fulfilled' && Array.isArray(relRes.value)) {
+        gatheredTracks.push(...relRes.value);
+      }
+    }
+  } else if (seedTracks.length > 0) {
+    // Fallback if no official relatedArtists were available: use filtered getRelatedTracks
+    const sampleSeeds = seedTracks.slice(0, 2);
     const relatedResults = await Promise.allSettled(
       sampleSeeds.map(async (seed) => {
         const cleanId = (seed.sourceId || seed.id).replace(/^(yt-|sc-)/, '');
@@ -166,9 +255,8 @@ export async function generateWaveTracks(
 
     for (const relRes of relatedResults) {
       if (relRes.status === 'fulfilled' && Array.isArray(relRes.value)) {
-        for (const rel of relRes.value.slice(0, 8)) {
-          if (rel.artist && !primaryArtists.some((a) => a.toLowerCase() === rel.artist.toLowerCase())) {
-            similarArtistNames.add(rel.artist);
+        for (const rel of relRes.value) {
+          if (rel.artistBrowseId && isCleanWaveTrack(rel, seedHasForeignScript)) {
             gatheredTracks.push(rel);
           }
         }
@@ -176,41 +264,51 @@ export async function generateWaveTracks(
     }
   }
 
-  if (onProgress) onProgress('flow', 80);
+  if (onProgress) onProgress('ready', 95);
 
-  // 3. Fetch tracks from up to 2 discovered similar artists in parallel if needed
-  const discoveredArtists = Array.from(similarArtistNames).slice(0, 2);
-  if (discoveredArtists.length > 0) {
-    const simResults = await Promise.allSettled(
-      discoveredArtists.map(async (simArtist) => {
-        const simResp = await apiSearchMusic(simArtist, 'YT');
-        return simResp.results ? simResp.results.slice(0, 6) : [];
-      })
-    );
-    for (const sRes of simResults) {
-      if (sRes.status === 'fulfilled' && Array.isArray(sRes.value)) {
-        gatheredTracks.push(...sRes.value);
+  // 3. De-duplicate and interleave across artists so the wave flows naturally
+  const uniqueMap = new Map<string, Track>();
+  const seenIds = new Set<string>();
+  for (const track of gatheredTracks) {
+    if (!isCleanWaveTrack(track, seedHasForeignScript)) continue;
+    const key = `${track.title.toLowerCase().trim()}___${track.artist.toLowerCase().trim()}`;
+    if (!uniqueMap.has(key) && !seenIds.has(track.id)) {
+      uniqueMap.set(key, track);
+      seenIds.add(track.id);
+    }
+  }
+
+  const byArtist = new Map<string, Track[]>();
+  for (const track of uniqueMap.values()) {
+    const artistKey = track.artist.toLowerCase().trim();
+    const list = byArtist.get(artistKey) || [];
+    list.push(track);
+    byArtist.set(artistKey, list);
+  }
+
+  // Shuffle each artist's bucket
+  for (const [k, list] of byArtist.entries()) {
+    byArtist.set(k, list.sort(() => 0.5 - Math.random()));
+  }
+
+  // Round-robin interleave across shuffled artist buckets so same artist doesn't play back-to-back
+  const interleaved: Track[] = [];
+  let hasRemaining = true;
+  while (hasRemaining) {
+    hasRemaining = false;
+    const bucketKeys = Array.from(byArtist.keys()).sort(() => 0.5 - Math.random());
+    for (const k of bucketKeys) {
+      const list = byArtist.get(k)!;
+      if (list.length > 0) {
+        interleaved.push(list.shift()!);
+        if (list.length > 0) {
+          hasRemaining = true;
+        }
       }
     }
   }
 
-  if (onProgress) onProgress('ready', 95);
-
-  // 4. De-duplicate and randomize
-  const uniqueMap = new Map<string, Track>();
-  for (const track of gatheredTracks) {
-    const key = `${track.title.toLowerCase().trim()}___${track.artist.toLowerCase().trim()}`;
-    if (!uniqueMap.has(key) && !uniqueMap.has(track.id)) {
-      uniqueMap.set(key, track);
-      uniqueMap.set(track.id, track);
-    }
-  }
-
-  const uniqueList = Array.from(new Set(Array.from(uniqueMap.values())));
-
-  const finalTracks: Track[] = uniqueList
-    .sort(() => 0.5 - Math.random())
-    .map((t, idx) => normalizeToTrack(t, idx));
+  const finalTracks: Track[] = interleaved.map((t, idx) => normalizeToTrack(t, idx));
 
   if (finalTracks.length >= 10) {
     saveCachedWave(artists, finalTracks);
@@ -220,3 +318,4 @@ export async function generateWaveTracks(
 
   return finalTracks;
 }
+

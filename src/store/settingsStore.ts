@@ -77,7 +77,7 @@ export interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
-      autoplay: true,
+      autoplay: false,
       streamingQuality: 'high',
       autoAdjustQuality: true,
       crossfadeEnabled: false,
@@ -211,16 +211,23 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'otofy-settings',
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
+        let nextState = { ...persistedState };
         if (version < 2) {
-          return {
-            ...persistedState,
-            autoLaunch: persistedState?.autoLaunch === 'no' || !persistedState?.autoLaunch ? 'yes' : persistedState.autoLaunch,
-            closeToTray: persistedState?.closeToTray === false || persistedState?.closeToTray === undefined ? true : persistedState.closeToTray,
+          nextState = {
+            ...nextState,
+            autoLaunch: nextState?.autoLaunch === 'no' || !nextState?.autoLaunch ? 'yes' : nextState.autoLaunch,
+            closeToTray: nextState?.closeToTray === false || nextState?.closeToTray === undefined ? true : nextState.closeToTray,
           };
         }
-        return persistedState;
+        if (version < 3) {
+          nextState = {
+            ...nextState,
+            autoplay: false,
+          };
+        }
+        return nextState;
       },
     }
   )

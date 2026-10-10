@@ -447,12 +447,12 @@ export async function getArtistDetails(artistNameOrId: string) {
           .filter((u: any) => Boolean(u && u.id));
         if (candidates.length > 0) {
           const cleanQ = artistNameOrId.trim().toLowerCase();
-          const strippedQ = cleanQ.replace(/[^a-z0-9]/g, '');
+          const strippedQ = cleanQ.replace(/[^\p{L}\p{N}]/gu, '');
           const scored = candidates
             .map((u: any) => {
               const uname = (u.username || '').trim().toLowerCase();
               const permalink = (u.permalink || '').trim().toLowerCase();
-              const strippedUname = uname.replace(/[^a-z0-9]/g, '');
+              const strippedUname = uname.replace(/[^\p{L}\p{N}]/gu, '');
               const desc = (u.description || '').toLowerCase();
               const fullName = (u.full_name || '').toLowerCase();
 
@@ -497,8 +497,8 @@ export async function getArtistDetails(artistNameOrId: string) {
                 desc.includes(cleanQ) ||
                 fullName.includes(cleanQ) ||
                 (strippedQ.length > 2 &&
-                  (desc.replace(/[^a-z0-9]/g, '').includes(strippedQ) ||
-                    fullName.replace(/[^a-z0-9]/g, '').includes(strippedQ)))
+                  (desc.replace(/[^\p{L}\p{N}]/gu, '').includes(strippedQ) ||
+                    fullName.replace(/[^\p{L}\p{N}]/gu, '').includes(strippedQ)))
               ) {
                 metadataScore += 40;
               }

@@ -176,39 +176,27 @@ const syncDiscordPresence = (
   }
 };
 
+const getPlaybackFailureCopy = () => {
+  const lang = useSettingsStore.getState().language || 'en';
+  if (lang === 'ru') {
+    return {
+      title: 'Не удалось загрузить трек',
+      message: 'Проверьте подключение к интернету или попробуйте включить трек чуть позже.',
+    };
+  }
+  return {
+    title: 'Could Not Load Track',
+    message: 'Please check your internet connection or try playing this track again in a moment.',
+  };
+};
+
 const notifyBotChallengeOrRepeatedErrors = async () => {
-  let isGoogleConnected = false;
-  if (window.electronAPI?.getAccountStatus) {
-    try {
-      const status = await window.electronAPI.getAccountStatus();
-      isGoogleConnected = Boolean(status?.youtube?.connected);
-    } catch {}
-  }
-
-  if (isGoogleConnected) {
-    useToastStore.getState().addToast({
-      type: 'warning',
-      title: 'Audio Stream Throttled',
-      message: 'YouTube restricted the current audio stream. Automatically searching for an official alternative...',
-      duration: 5000,
-    });
-    return;
-  }
-
+  const { title, message } = getPlaybackFailureCopy();
   useToastStore.getState().addToast({
     type: 'warning',
-    title: 'Playback Difficulties Detected',
-    message:
-      'YouTube may have temporarily rate-limited requests from your IP. You can wait a moment or connect your Google account in Settings to lift network limits.',
-    duration: 12000,
-    action: {
-      label: 'Connect Account',
-      onClick: () => {
-        if (!useLibraryStore.getState().isSyncModalOpen) {
-          useLibraryStore.getState().toggleSyncModal();
-        }
-      },
-    },
+    title,
+    message,
+    duration: 6000,
   });
 };
 
@@ -553,6 +541,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         const recovered = await attemptStreamFallback(track, set, get);
         if (!recovered) {
           consecutiveErrorsCount++;
+          const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
           const isBot = Boolean(
             error?.includes('YOUTUBE_BOT_CHALLENGE') ||
             error?.includes('Sign in to confirm') ||
@@ -564,14 +553,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
             set({
               isPlaying: false,
               isBuffering: false,
-              playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+              playbackError: netMsg,
             });
           } else {
-            const errMsg = error || 'Audio stream not found. The track may be restricted in your region.';
-            set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+            set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
             useToastStore.getState().error(
-              `Failed to play "${track.title}"`,
-              errMsg
+              `${errTitle}: "${track.title}"`,
+              netMsg
             );
           }
         }
@@ -581,6 +569,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const recovered = await attemptStreamFallback(track, set, get);
       if (!recovered) {
         consecutiveErrorsCount++;
+        const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
         const isBot = Boolean(
           err?.message?.includes('YOUTUBE_BOT_CHALLENGE') ||
           err?.message?.includes('Sign in to confirm') ||
@@ -592,14 +581,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           set({
             isPlaying: false,
             isBuffering: false,
-            playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+            playbackError: netMsg,
           });
         } else {
-          const errMsg = err?.message || 'Audio stream unavailable in your region.';
-          set({ isPlaying: false, isBuffering: false, playbackError: errMsg });
+          set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
           useToastStore.getState().error(
-            `Playback error: "${track.title}"`,
-            errMsg
+            `${errTitle}: "${track.title}"`,
+            netMsg
           );
         }
       }
@@ -1295,30 +1283,22 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
 
       consecutiveErrorsCount++;
+      const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
       if (consecutiveErrorsCount >= 2) {
         notifyBotChallengeOrRepeatedErrors();
         set({
           isPlaying: false,
           isBuffering: false,
-          playbackError: 'YouTube requires sign-in or frequent request limit reached.',
+          playbackError: netMsg,
         });
         return;
       }
 
-      const errorCode = target.error?.code;
-      let errorMsg = 'Failed to load audio stream.';
-      if (errorCode === 4) {
-        errorMsg = 'Format not supported or audio stream URL has expired.';
-      } else if (errorCode === 2) {
-        errorMsg = 'Network error while loading audio stream.';
-      } else if (errorCode === 3) {
-        errorMsg = 'Audio decoding error.';
-      }
-      const trackTitle = currentTrack ? `"${currentTrack.title}"` : 'track';
-      set({ isPlaying: false, isBuffering: false, playbackError: errorMsg });
+      const trackTitle = currentTrack ? `"${currentTrack.title}"` : '';
+      set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
       useToastStore.getState().error(
-        `Playback failure: ${trackTitle}`,
-        errorMsg
+        trackTitle ? `${errTitle}: ${trackTitle}` : errTitle,
+        netMsg
       );
     };
 

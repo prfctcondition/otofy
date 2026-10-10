@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Waves, Sparkles, User, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
-import { generateWaveTracks } from '../services/waveService';
+import { generateWaveTracks, WAVE_PLAYLIST_ID } from '../services/waveService';
 
 interface WaveGeneratingModalProps {
   isOpen: boolean;
@@ -59,6 +59,8 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
 
         if (tracks && tracks.length > 0) {
           libraryStore.setCustomPlaylistView(waveName, tracks, {
+            id: WAVE_PLAYLIST_ID,
+            type: 'Playlist',
             creator: 'Otofy',
             description: `${t.wave?.artistsPrefix || 'Based on: '}${favoriteArtists.join(', ')}`,
             iconName: 'waves',

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Library,
   Plus,
@@ -30,7 +30,7 @@ interface LeftLibraryDockProps {
   onToggleCollapse: () => void;
   onCreatePlaylist: () => void;
   onImportCode: () => void;
-  onSelectArtist?: (artist: string, source?: 'YT' | 'SC') => void;
+  onSelectArtist?: (artist: string, source?: 'YT' | 'SC', browseId?: string) => void;
   onSelectAlbum?: (browseId?: string, albumTitle?: string, artistName?: string, source?: 'YT' | 'SC') => void;
 }
 
@@ -623,7 +623,7 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
                 <div
                   key={`art-${art.id}`}
                   onClick={() => {
-                    onSelectArtist?.(art.name, art.source);
+                    onSelectArtist?.(art.name, art.source, art.browseId || (art.id.startsWith('UC') ? art.id : undefined));
                   }}
                   className={`group relative flex items-center ${
                     isCollapsed

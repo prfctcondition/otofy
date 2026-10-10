@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Pause,
@@ -233,6 +233,7 @@ export const DockPlayerBar: React.FC<DockPlayerBarProps> = ({ onSelectArtist }) 
             artists={activeTrack.artists}
             source={activeTrack.source === 'SC' ? 'SC' : 'YT'}
             browseId={activeTrack.artistBrowseId}
+            artistBrowseIds={activeTrack.artistBrowseIds}
             onSelectArtist={onSelectArtist}
             className="text-xs text-[#64748B] dark:text-white/80 truncate mt-0.5 inline-block max-w-[200px] sm:max-w-[280px]"
             artistClassName="cursor-pointer hover:underline hover:text-[#142347] dark:hover:text-white transition-colors"

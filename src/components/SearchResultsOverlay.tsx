@@ -1,8 +1,9 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Play, Plus, Search, Check, User, ExternalLink, Sparkles, ListMusic, Loader2 } from 'lucide-react';
 import { useSearchStore } from '../store/searchStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
+import { ArtistLinks } from './ArtistLinks';
 import type { SearchResult, SearchPlaylistResult, Track } from '../types';
 
 interface SearchResultsOverlayProps {
@@ -76,6 +77,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
       number: 1,
       title: result.title,
       artist: result.artist,
+      artists: result.artists,
       album: result.album || (result.source === 'YT' ? 'YouTube Music' : 'SoundCloud'),
       duration: result.duration,
       durationSec: result.durationSec,
@@ -83,6 +85,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
       releaseDate: result.releaseDate,
       releaseYear: result.releaseYear,
       artistBrowseId: result.artistBrowseId,
+      artistBrowseIds: result.artistBrowseIds,
       artistUrl: result.artistUrl,
       albumBrowseId: result.albumBrowseId,
       externalUrl: result.externalUrl,
@@ -135,6 +138,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
             number: i + 1,
             title: t.title,
             artist: t.artist,
+            artists: t.artists,
             album: t.album || playlist.title,
             duration: t.duration || '0:00',
             durationSec: t.durationSec || 0,
@@ -142,6 +146,7 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
             releaseDate: t.releaseDate,
             releaseYear: t.releaseYear,
             artistBrowseId: t.artistBrowseId,
+            artistBrowseIds: t.artistBrowseIds,
             albumBrowseId: t.albumBrowseId,
             externalUrl: t.externalUrl,
             source: playlist.source,
@@ -419,13 +424,22 @@ export const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({
                       {result.source}
                     </span>
                   </div>
-                  <span
-                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-white/80 hover:text-[#142347] dark:hover:text-white hover:underline transition-colors mt-0.5"
-                    onClick={(e) => handleArtistClick(result.artist, e, result.source)}
-                    title={`View ${result.artist} discography`}
-                  >
-                    {result.artist} {result.album ? `• ${result.album}` : ''}
-                  </span>
+                  <ArtistLinks
+                    artist={result.artist}
+                    artists={result.artists}
+                    source={result.source}
+                    browseId={result.artistBrowseId}
+                    artistBrowseIds={result.artistBrowseIds}
+                    onSelectArtist={(art, src, bId) => {
+                      if (onOpenArtist) {
+                        onOpenArtist(art, src, bId);
+                        onClose();
+                      }
+                    }}
+                    className="truncate text-xs font-semibold text-[#1E293B] dark:text-white/80 mt-0.5"
+                    artistClassName="cursor-pointer hover:text-[#142347] dark:hover:text-white hover:underline transition-colors"
+                    suffix={result.album ? <span className="text-[#64748B] dark:text-white/60"> • {result.album}</span> : undefined}
+                  />
                 </div>
               </div>
 

@@ -161,7 +161,7 @@ interface LibraryActions {
   setCurrentArtistDetails: (details: ArtistDetails | null) => void;
   setIsLoadingTracks: (loading: boolean) => void;
   saveViewingPlaylistToLibrary: () => Promise<void>;
-  toggleFollowArtist: (artist: { name: string; avatarUrl?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
+  toggleFollowArtist: (artist: { name: string; avatarUrl?: string; browseId?: string; source?: 'YT' | 'SC' }) => Promise<boolean>;
   isArtistFollowed: (name: string) => boolean;
   toggleSaveAlbum: (album: {
     id: string;
@@ -584,11 +584,13 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const { viewingPlaylist, currentPlaylistTracks, playlists } = get();
     if (!viewingPlaylist) return;
 
-    // Decouple Artist & Album saves
     if (viewingPlaylist.type === 'Artist') {
+      const currentArtist = get().currentArtistDetails;
       await get().toggleFollowArtist({
         name: viewingPlaylist.title,
-        avatarUrl: viewingPlaylist.artworkUrl,
+        avatarUrl: viewingPlaylist.artworkUrl || currentArtist?.avatarUrl,
+        browseId: currentArtist?.channelId || currentArtist?.browseId,
+        source: currentArtist?.source || 'YT',
       });
       return;
     }
@@ -660,18 +662,29 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
 
   toggleFollowArtist: async (artist) => {
     const cleanName = artist.name.trim();
-    const id = cleanName.toLowerCase().replace(/\s+/g, '-');
+    const id = artist.browseId?.startsWith('UC') ? artist.browseId : cleanName.toLowerCase().replace(/\s+/g, '-');
     const existing = get().followedArtists;
-    const isFollowed = existing.some((a) => a.id === id || a.name.toLowerCase() === cleanName.toLowerCase());
+    const isFollowed = existing.some(
+      (a) =>
+        a.id === id ||
+        (artist.browseId && a.browseId === artist.browseId) ||
+        a.name.toLowerCase() === cleanName.toLowerCase()
+    );
     let nextArtists: FollowedArtist[];
     if (isFollowed) {
-      nextArtists = existing.filter((a) => a.id !== id && a.name.toLowerCase() !== cleanName.toLowerCase());
+      nextArtists = existing.filter(
+        (a) =>
+          a.id !== id &&
+          (!artist.browseId || a.browseId !== artist.browseId) &&
+          a.name.toLowerCase() !== cleanName.toLowerCase()
+      );
       useToastStore.getState().info('Unfollowed', `Removed "${cleanName}" from your followed artists.`);
     } else {
       const newArtist: FollowedArtist = {
         id,
         name: cleanName,
         avatarUrl: artist.avatarUrl,
+        browseId: artist.browseId,
         source: artist.source || 'YT',
         followedAt: Date.now(),
         lastOpenedAt: Date.now(),

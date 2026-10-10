@@ -279,6 +279,7 @@ export default function App() {
               number: curNumber,
               title: r.title,
               artist: r.artist || viewing.title,
+              artists: r.artists,
               album: r.album || `${viewing.title} - Top Tracks`,
               duration: r.duration,
               durationSec: r.durationSec,
@@ -286,6 +287,7 @@ export default function App() {
               releaseDate: r.releaseDate,
               releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
               artistBrowseId: r.artistBrowseId || channelId,
+              artistBrowseIds: r.artistBrowseIds,
               artistUrl: r.artistUrl,
               albumBrowseId: r.albumBrowseId,
               externalUrl: r.externalUrl,
@@ -384,6 +386,9 @@ export default function App() {
   // Conduct popularity analysis on current tracks (playlist, album, or artist page)
   useEffect(() => {
     if (!currentPlaylistTracks || currentPlaylistTracks.length === 0) return;
+    if (currentPlaylist.type === 'Artist' && currentPlaylistTracks.some((t) => (t.views || 0) > 0)) {
+      return;
+    }
 
     // Find all tracks in active view that lack view count (enrich entire list progressively)
     const missing = currentPlaylistTracks
@@ -851,20 +856,22 @@ export default function App() {
                 id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
                 number: idx + 1,
                 title: r.title,
-                artist: r.artist || cleanName,
-                album: r.album || `${cleanName} - Top Tracks`,
+                artist: r.artist || details.artist || cleanName,
+                artists: r.artists,
+                album: r.album || `${details.artist || cleanName} - Top Tracks`,
                 duration: r.duration,
                 durationSec: r.durationSec,
                 dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
                 releaseDate: r.releaseDate,
                 releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
-                artistBrowseId: r.artistBrowseId || details.browseId || browseId,
+                artistBrowseId: r.artistBrowseId || details.channelId || details.browseId || browseId,
+                artistBrowseIds: r.artistBrowseIds,
                 artistUrl: r.artistUrl || details.externalUrl,
                 albumBrowseId: r.albumBrowseId,
                 externalUrl: r.externalUrl,
                 views: (r as any).views,
                 playbackCount: (r as any).playbackCount || (r as any).playback_count,
-                source: (r.source || source || 'YT') as SourceType,
+                source: (r.source || 'YT') as SourceType,
                 sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                 sourceId: r.sourceId,
                 artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined) || details.avatarUrl,
@@ -907,20 +914,22 @@ export default function App() {
                   id: `artist-${(r.source || source || 'YT').toLowerCase()}-${cleanName.replace(/\s+/g, '-').toLowerCase()}-${idx}-${r.id || r.sourceId}`,
                   number: idx + 1,
                   title: r.title,
-                  artist: r.artist || cleanName,
-                  album: r.album || `${cleanName} - Top Tracks`,
+                  artist: r.artist || details.artist || cleanName,
+                  artists: r.artists,
+                  album: r.album || `${details.artist || cleanName} - Top Tracks`,
                   duration: r.duration,
                   durationSec: r.durationSec,
                   dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
                   releaseDate: r.releaseDate,
                   releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
-                  artistBrowseId: r.artistBrowseId || details.browseId || browseId,
+                  artistBrowseId: r.artistBrowseId || details.channelId || details.browseId || browseId,
+                  artistBrowseIds: r.artistBrowseIds,
                   artistUrl: r.artistUrl || details.externalUrl,
                   albumBrowseId: r.albumBrowseId,
                   externalUrl: r.externalUrl,
                   views: (r as any).views,
                   playbackCount: (r as any).playbackCount || (r as any).playback_count,
-                  source: (r.source || source || 'YT') as SourceType,
+                  source: (r.source || 'YT') as SourceType,
                   sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
                   sourceId: r.sourceId,
                   artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined) || details.avatarUrl,
@@ -978,6 +987,7 @@ export default function App() {
               number: artistTracks.length + idx + 1,
               title: r.title,
               artist: r.artist || cleanName,
+              artists: r.artists,
               album: r.album || `${cleanName} - Top Tracks`,
               duration: r.duration,
               durationSec: r.durationSec,
@@ -985,6 +995,7 @@ export default function App() {
               releaseDate: r.releaseDate,
               releaseYear: r.releaseYear,
               artistBrowseId: r.artistBrowseId || browseId,
+              artistBrowseIds: r.artistBrowseIds,
               artistUrl: r.artistUrl,
               albumBrowseId: r.albumBrowseId,
               externalUrl: r.externalUrl,
@@ -1013,8 +1024,9 @@ export default function App() {
       }
 
       artistTracks = artistTracks.map((t, idx) => ({ ...t, number: idx + 1 }));
+      const resolvedArtistTitle = detailsResult?.artist || cleanName;
 
-      libraryStore.setCustomPlaylistView(cleanName, artistTracks, {
+      libraryStore.setCustomPlaylistView(resolvedArtistTitle, artistTracks, {
         id: artistViewId,
         type: 'Artist',
         creator: artistSubtitle,
@@ -1026,13 +1038,13 @@ export default function App() {
         externalUrl:
           detailsResult?.externalUrl ||
           (detailsResult?.browseId || browseId
-            ? (source === 'SC'
+            ? ((detailsResult?.browseId || browseId)!.startsWith('UC')
+                ? `https://music.youtube.com/channel/${detailsResult?.browseId || browseId}`
+                : source === 'SC'
                 ? ((detailsResult?.browseId || browseId)!.startsWith('http')
                     ? (detailsResult?.browseId || browseId)
                     : `https://soundcloud.com/${detailsResult?.browseId || browseId}`)
-                : ((detailsResult?.browseId || browseId)!.startsWith('UC')
-                    ? `https://music.youtube.com/channel/${detailsResult?.browseId || browseId}`
-                    : undefined))
+                : undefined)
             : undefined),
       });
     } catch (e) {
@@ -1156,6 +1168,7 @@ export default function App() {
             number: idx + 1,
             title: r.title,
             artist: r.artist || resolvedArtist,
+            artists: r.artists,
             album: resolvedTitle,
             duration: r.duration,
             durationSec: r.durationSec,
@@ -1167,10 +1180,13 @@ export default function App() {
             releaseDate: r.releaseDate || albumData.releaseDate || (relYear ? String(relYear) : undefined),
             releaseYear: relYear,
             artistBrowseId: r.artistBrowseId,
+            artistBrowseIds: r.artistBrowseIds,
             artistUrl: r.artistUrl,
             albumBrowseId: cleanBrowseId || r.albumBrowseId,
             albumUrl: albumData.externalUrl,
             externalUrl: r.externalUrl,
+            views: r.views,
+            playbackCount: r.playbackCount || r.playback_count,
             source: (r.source || source || 'YT') as SourceType,
             sourceLabel: r.sourceLabel || (r.source === 'SC' ? 'SoundCloud' : 'YouTube Music'),
             sourceId: r.sourceId,

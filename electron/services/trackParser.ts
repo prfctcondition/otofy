@@ -1,6 +1,4 @@
-/**
- * Universal track title and artist parser for frontend components and stores.
- */
+// Universal track title and artist parser for backend services.
 
 export const KNOWN_ARTISTS_WITH_COMMA = [
   'Tyler, The Creator',
@@ -9,10 +7,47 @@ export const KNOWN_ARTISTS_WITH_COMMA = [
   'Emerson, Lake & Palmer',
   'Blood, Sweat & Tears',
   'Tony, Toni, Toné!',
+  'Король и Шут',
+  'Время и Стекло',
+  'Потап и Настя',
+  'Miyagi & Andy Panda',
+  'Miyagi & Эндшпиль',
+  'HammAli & Navai',
+  'Artik & Asti',
 ];
+
+export const KNOWN_TRANSLITERATED_ARTISTS: Record<string, string> = {
+  'мейсон': 'Mason',
+  'скриллекс': 'Skrillex',
+  'дипло': 'Diplo',
+  'эминем': 'Eminem',
+  'дрейк': 'Drake',
+  'кендрик ламар': 'Kendrick Lamar',
+  'тейлор свифт': 'Taylor Swift',
+  'канье уэст': 'Kanye West',
+  'билли айлиш': 'Billie Eilish',
+  'зе викенд': 'The Weeknd',
+  'дафт панк': 'Daft Punk',
+  'продиджи': 'The Prodigy',
+  'нирвана': 'Nirvana',
+  'металлика': 'Metallica',
+  'рамштайн': 'Rammstein',
+  'линкин парк': 'Linkin Park',
+};
+
+export function normalizeLocalizedArtistName(name: string): string {
+  const trimmed = (name || '').trim();
+  const mapped = KNOWN_TRANSLITERATED_ARTISTS[trimmed.toLowerCase()];
+  return mapped || trimmed;
+}
 
 const COMMA_PLACEHOLDER = '___COMMA_PLACEHOLDER___';
 const AMP_PLACEHOLDER = '___AMP_PLACEHOLDER___';
+const RU_AND_PLACEHOLDER = '___RU_AND_PLACEHOLDER___';
+
+function escapeRegexLiteral(str: string): string {
+  return str.replace(/[.+?^${}()|[\]\\-]/g, '\\$&');
+}
 
 export function cleanArtistAndTitle(
   rawTitle: string,
@@ -21,25 +56,32 @@ export function cleanArtistAndTitle(
 ): { title: string; artist: string } {
   let title = (rawTitle || '').trim();
   let artist = (rawArtist || '').trim();
-  let channel = (channelTitle || '').trim()
-    .replace(/\s*-\s*topic$/i, '')
+  let channel = (channelTitle || '')
+    .trim()
+    .replace(/\s{0,}-\s{0,}topic$/i, '')
     .replace(/vevo$/i, '')
-    .replace(/\s*official$/i, '')
-    .replace(/\s*mix$/i, '')
+    .replace(/\s{0,}official$/i, '')
+    .replace(/\s{0,}mix$/i, '')
     .trim();
 
   // Strip useless video upload tags, but KEEP music mix versions (slowed, sped up, remix, reverb, instrumental)
   title = title
-    .replace(/\[\s*(copyright\s*free|no\s*copyright|ncs(\s*release)?|free(\s*download)?|official\s*(music\s*)?video|official\s*audio|lyrics?\s*(video)?|lyric\s*(music\s*)?video|hd|4k|hq|audio|visualizer)\s*\]/gi, '')
-    .replace(/\(\s*(copyright\s*free|no\s*copyright|ncs(\s*release)?|free(\s*download)?|official\s*(music\s*)?video|official\s*audio|lyrics?\s*(video)?|lyric\s*(music\s*)?video|hd|4k|hq|audio|visualizer)\s*\)/gi, '')
+    .replace(
+      /\[\s{0,}(copyright\s{0,}free|no\s{0,}copyright|ncs(\s{0,}release)?|free(\s{0,}download)?|official\s{0,}(music\s{0,})?video|official\s{0,}audio|lyrics?\s{0,}(video)?|lyric\s{0,}(music\s{0,})?video|hd|4k|hq|audio|visualizer)\s{0,}\]/gi,
+      ''
+    )
+    .replace(
+      /\(\s{0,}(copyright\s{0,}free|no\s{0,}copyright|ncs(\s{0,}release)?|free(\s{0,}download)?|official\s{0,}(music\s{0,})?video|official\s{0,}audio|lyrics?\s{0,}(video)?|lyric\s{0,}(music\s{0,})?video|hd|4k|hq|audio|visualizer)\s{0,}\)/gi,
+      ''
+    )
     .replace(/\s+/g, ' ')
     .trim();
 
   // Clean channel/reposter clutter from artist
   artist = artist
-    .replace(/\s*-\s*topic$/i, '')
+    .replace(/\s{0,}-\s{0,}topic$/i, '')
     .replace(/vevo$/i, '')
-    .replace(/\s*official$/i, '')
+    .replace(/\s{0,}official$/i, '')
     .trim();
 
   const invalidArtists = [
@@ -78,13 +120,11 @@ export function cleanArtistAndTitle(
 
   // If artist is already valid and not a generic channel:
   if (artist && !isGenericChannel(artist)) {
-    // Only strip redundant "Artist - " prefix if title starts with the exact artist
-    const escapedArtist = artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const prefixRegex = new RegExp('^' + escapedArtist + '\\s*[-–—]\\s*', 'i');
+    const escapedArtist = escapeRegexLiteral(artist);
+    const prefixRegex = new RegExp('^' + escapedArtist + '\\s{0,}[-–—]\\s{0,}', 'i');
     if (prefixRegex.test(title)) {
       title = title.replace(prefixRegex, '').trim();
     }
-    // DO NOT split title to overwrite the known artist!
   } else {
     // Artist is missing or generic channel: attempt to extract "Artist - Title" from video title
     for (const sep of splitSeparators) {
@@ -105,16 +145,16 @@ export function cleanArtistAndTitle(
 
   // Final cleanup of surrounding quotes and YouTube trailer pipe tags
   title = title
-    .replace(/\s*\|\s*[^|]+$/, '')
-    .replace(/^["'«](.*)["'»]$/, '$1')
+    .replace(/\s{0,}\|\s{0,}[^|]+$/, '')
+    .replace(/^["'«]([\s\S]{0,})["'»]$/, '$1')
     .trim();
 
   // Clean common beat/freestyle tags from artist
   artist = artist
-    .replace(/^\[\s*(free|prod\.?)\s*\]\s*/i, '')
-    .replace(/\s*type\s*beat$/i, '')
-    .replace(/^["'«](.*)["'»]$/, '$1')
-    .replace(/\s*official$/i, '')
+    .replace(/^\[\s{0,}(free|prod\.?)\s{0,}\]\s{0,}/i, '')
+    .replace(/\s{0,}type\s{0,}beat$/i, '')
+    .replace(/^["'«]([\s\S]{0,})["'»]$/, '$1')
+    .replace(/\s{0,}official$/i, '')
     .trim();
 
   // If artist is still unknown/empty, fallback to channel title
@@ -131,31 +171,55 @@ export function cleanArtistAndTitle(
     title = 'Untitled';
   }
 
+  const normalizedParts = splitArtists(artist);
+  if (normalizedParts.length > 0) {
+    artist = normalizedParts.join(', ');
+  }
+
   return { title, artist };
 }
 
-/**
- * Splits collaborating artists from a combined artist string.
- * Supports popular delimiters: commas `,`, `&`, `feat.`, `ft.`, `featuring`, `/`, `;`
- * Preserves known stage names with commas and explicit artist arrays.
- */
 export function splitArtists(artistString?: string, explicitArtists?: string[]): string[] {
   if (Array.isArray(explicitArtists) && explicitArtists.length > 0) {
-    return explicitArtists.map((s) => s.trim()).filter(Boolean);
+    const cleaned = explicitArtists
+      .flatMap((a) => splitArtists(a))
+      .map((s) => normalizeLocalizedArtistName(s))
+      .filter(Boolean);
+    const seenExplicit = new Set<string>();
+    const deduped: string[] = [];
+    for (const item of cleaned) {
+      const low = item.toLowerCase();
+      if (!seenExplicit.has(low)) {
+        seenExplicit.add(low);
+        deduped.push(item);
+      }
+    }
+    if (deduped.length > 0) return deduped;
   }
   if (!artistString || typeof artistString !== 'string') return [];
 
   let escaped = artistString;
   for (const known of KNOWN_ARTISTS_WITH_COMMA) {
-    const escapedKnown = known.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedKnown = escapeRegexLiteral(known);
     escaped = escaped.replace(new RegExp(escapedKnown, 'gi'), (match) =>
-      match.replace(/,/g, COMMA_PLACEHOLDER).replace(/&/g, AMP_PLACEHOLDER)
+      match
+        .replace(/,/g, COMMA_PLACEHOLDER)
+        .replace(/&/g, AMP_PLACEHOLDER)
+        .replace(/\s+и\s+/gi, RU_AND_PLACEHOLDER)
     );
   }
 
   const rawParts = escaped
-    .split(/\s*(?:,|(?:\s*\/\s*)|(?:\s*;\s*)|(?:\s*&\s*)|\b(?:feat\.?|ft\.?|featuring)\b)\s*/i)
-    .map((s) => s.replace(new RegExp(COMMA_PLACEHOLDER, 'g'), ',').replace(new RegExp(AMP_PLACEHOLDER, 'g'), '&').trim())
+    .split(/(?:,|\/|;|&|\s+и\s+|\s+and\s+|\b(?:feat\.?|ft\.?|featuring)\b)/i)
+    .map((s) =>
+      normalizeLocalizedArtistName(
+        s
+          .replace(new RegExp(COMMA_PLACEHOLDER, 'g'), ',')
+          .replace(new RegExp(AMP_PLACEHOLDER, 'g'), '&')
+          .replace(new RegExp(RU_AND_PLACEHOLDER, 'g'), ' и ')
+          .trim()
+      )
+    )
     .filter((s) => s.length > 0);
 
   const seen = new Set<string>();
@@ -168,7 +232,7 @@ export function splitArtists(artistString?: string, explicitArtists?: string[]):
     }
   }
 
-  return result.length > 0 ? result : [artistString.trim()];
+  return result.length > 0 ? result : [normalizeLocalizedArtistName(artistString)];
 }
 
-export default { cleanArtistAndTitle, splitArtists, KNOWN_ARTISTS_WITH_COMMA };
+export default { cleanArtistAndTitle, splitArtists, normalizeLocalizedArtistName, KNOWN_ARTISTS_WITH_COMMA };

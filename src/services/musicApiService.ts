@@ -16,9 +16,14 @@ function normalizeToTrack(raw: any, index: number = 0): Track {
     id: raw.id || `track-${index}-${Date.now()}`,
     title: raw.title || 'Unknown Title',
     artist: raw.artist || 'Unknown Artist',
+    artists: Array.isArray(raw.artists) && raw.artists.length > 0 ? raw.artists : undefined,
+    artistBrowseId: raw.artistBrowseId,
+    artistBrowseIds: raw.artistBrowseIds,
     album: raw.album || '',
+    albumBrowseId: raw.albumBrowseId,
     duration: raw.duration || '3:30',
     durationSec: raw.durationSec || 210,
+    views: raw.views,
     source,
     sourceLabel: raw.sourceLabel || (source === 'SC' ? 'SoundCloud' : 'YouTube'),
     sourceId: raw.sourceId || raw.id,
@@ -242,3 +247,57 @@ export async function apiSearchArtists(query: string): Promise<SearchArtistItem[
 
   return [];
 }
+
+export async function apiGetArtistDetails(
+  artistName: string,
+  browseId?: string
+): Promise<{
+  name: string;
+  channelId?: string;
+  avatarUrl?: string;
+  topTracks: Track[];
+  relatedArtists: Array<{ name: string; channelId: string; avatarUrl: string; subscribers?: string }>;
+} | null> {
+  const cleanName = artistName.trim();
+  if (!cleanName && !browseId) return null;
+
+  try {
+    if (window.electronAPI?.getArtistDetails) {
+      const data = await window.electronAPI.getArtistDetails(cleanName, 'YT', browseId);
+      if (data && (Array.isArray(data.topTracks) || Array.isArray(data.relatedArtists))) {
+        return {
+          name: data.name || cleanName,
+          channelId: data.channelId || browseId,
+          avatarUrl: data.avatarUrl,
+          topTracks: (data.topTracks || []).map((t: any, idx: number) => normalizeToTrack(t, idx)),
+          relatedArtists: Array.isArray(data.relatedArtists) ? data.relatedArtists : [],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[musicApiService] electron getArtistDetails failed:', err);
+  }
+
+  try {
+    const res = await fetch(
+      `/api/music/artist-details?artistName=${encodeURIComponent(cleanName)}&browseId=${encodeURIComponent(browseId || '')}&source=YT`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (Array.isArray(data.topTracks) || Array.isArray(data.relatedArtists))) {
+        return {
+          name: data.name || cleanName,
+          channelId: data.channelId || browseId,
+          avatarUrl: data.avatarUrl,
+          topTracks: (data.topTracks || []).map((t: any, idx: number) => normalizeToTrack(t, idx)),
+          relatedArtists: Array.isArray(data.relatedArtists) ? data.relatedArtists : [],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[musicApiService] fetch artist-details failed:', err);
+  }
+
+  return null;
+}
+
