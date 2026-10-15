@@ -27,10 +27,11 @@ interface PlayerState {
   isLoadingAutoplay: boolean;
   cachedTracks: Track[];
   playbackHistory: Track[];
+  queueSource?: 'playlist' | 'album' | 'artist' | 'radio' | 'single';
 }
 
 interface PlayerActions {
-  playTrack: (track: Track, queue?: Track[]) => Promise<void>;
+  playTrack: (track: Track, queue?: Track[], source?: 'playlist' | 'album' | 'artist' | 'radio' | 'single') => Promise<void>;
   setActiveTrackOnly: (track: Track) => void;
   play: () => Promise<void>;
   pause: () => void;
@@ -123,6 +124,57 @@ let lastTimeUpdateTimestamp = 0;
 let lastPositionSync = 0;
 let lastDiscordSync = 0;
 let lastPrevClickTime = 0;
+let shufflePlayedIndices: number[] = [];
+let plannedNextShuffleIndex: number | null = null;
+
+const getNextShuffleQueueIndex = (queueLen: number, curIdx: number): number => {
+  if (queueLen <= 1) return 0;
+  let unplayed: number[] = [];
+  for (let i = 0; i < queueLen; i++) {
+    if (i !== curIdx && !shufflePlayedIndices.includes(i)) {
+      unplayed.push(i);
+    }
+  }
+
+  if (unplayed.length === 0) {
+    shufflePlayedIndices = [];
+    for (let i = 0; i < queueLen; i++) {
+      if (i !== curIdx) {
+        unplayed.push(i);
+      }
+    }
+  }
+
+  if (unplayed.length === 0) return 0;
+  const randPos = Math.floor(Math.random() / (1 / unplayed.length));
+  const chosen = unplayed[randPos];
+  shufflePlayedIndices.push(chosen);
+  return chosen;
+};
+
+const peekNextShuffleQueueIndex = (queueLen: number, curIdx: number): number => {
+  if (queueLen <= 1) return 0;
+  if (plannedNextShuffleIndex !== null && plannedNextShuffleIndex < queueLen && plannedNextShuffleIndex !== curIdx) {
+    return plannedNextShuffleIndex;
+  }
+  plannedNextShuffleIndex = getNextShuffleQueueIndex(queueLen, curIdx);
+  return plannedNextShuffleIndex;
+};
+
+const consumeNextShuffleQueueIndex = (queueLen: number, curIdx: number): number => {
+  if (plannedNextShuffleIndex !== null && plannedNextShuffleIndex < queueLen && plannedNextShuffleIndex !== curIdx) {
+    const next = plannedNextShuffleIndex;
+    plannedNextShuffleIndex = null;
+    return next;
+  }
+  plannedNextShuffleIndex = null;
+  return getNextShuffleQueueIndex(queueLen, curIdx);
+};
+
+const resetShuffleHistory = (startingIndex?: number) => {
+  plannedNextShuffleIndex = null;
+  shufflePlayedIndices = typeof startingIndex === 'number' && startingIndex >= 0 ? [startingIndex] : [];
+};
 
 const resetTrackHistoryState = (newTrackId?: string | null) => {
   hasLoggedCurrentTrackHistory = false;
@@ -138,8 +190,10 @@ const commitTrackToHistory = async (track: Track | null | undefined) => {
   currentTrackHistoryId = track.id;
   try {
     await repo.recordTrackHistory(track);
-    if (useLibraryStore.getState().selectedPlaylistId === 'pl-history') {
-      await useLibraryStore.getState().refreshHistoryTracks();
+    const libState = useLibraryStore.getState();
+    const isHistoryActive = libState.selectedPlaylistId === 'pl-history' || libState.viewingPlaylist?.id === 'pl-history';
+    if (isHistoryActive) {
+      await libState.refreshHistoryTracks();
     }
   } catch (err) {
     console.warn('[PlayerStore] commitTrackToHistory failed:', err);
@@ -285,7 +339,7 @@ const resolveStreamUrl = async (track: Track, excludeIds: string[] = []): Promis
   // 3. For SoundCloud tracks only, direct client-side fallback (no cross-source fallback for YouTube)
   if (track.source === 'SC') {
     try {
-      const clientId = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
+      const clientId = 'V7f0p2q7JD4voO1Esqg6bwwtNYcYAtLC';
       const scId = targetId;
 
       if (scId) {
@@ -360,6 +414,9 @@ const attemptStreamFallback = async (
 
 const STORAGE_KEY_VOLUME = 'otofy_saved_volume';
 const STORAGE_KEY_LAST_TRACK = 'otofy_last_active_track';
+const STORAGE_KEY_LAST_QUEUE = 'otofy_last_queue';
+const STORAGE_KEY_LAST_QUEUE_INDEX = 'otofy_last_queue_index';
+const STORAGE_KEY_LAST_QUEUE_SOURCE = 'otofy_last_queue_source';
 
 export const getInitialSavedVolume = (): number => {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -391,10 +448,63 @@ export const getInitialLastActiveTrack = (): Track | null => {
   return null;
 };
 
+export const getInitialLastQueue = (): Track[] => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_LAST_QUEUE);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed as Track[];
+        }
+      }
+    } catch {}
+  }
+  return [];
+};
+
+export const getInitialLastQueueIndex = (): number => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_LAST_QUEUE_INDEX);
+      if (raw !== null) {
+        const parsed = parseInt(raw, 10);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return 0;
+};
+
+export const getInitialLastQueueSource = (): 'playlist' | 'album' | 'artist' | 'radio' | 'single' | undefined => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_LAST_QUEUE_SOURCE);
+      if (raw && ['playlist', 'album', 'artist', 'radio', 'single'].includes(raw)) {
+        return raw as any;
+      }
+    } catch {}
+  }
+  return undefined;
+};
+
 const persistLastActiveTrack = (track: Track | null) => {
   if (!track || typeof window === 'undefined' || !window.localStorage) return;
   try {
     localStorage.setItem(STORAGE_KEY_LAST_TRACK, JSON.stringify(track));
+  } catch {}
+};
+
+const persistLastQueue = (queue: Track[], queueIndex: number, queueSource?: string) => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.setItem(STORAGE_KEY_LAST_QUEUE, JSON.stringify(queue));
+    localStorage.setItem(STORAGE_KEY_LAST_QUEUE_INDEX, String(queueIndex));
+    if (queueSource) {
+      localStorage.setItem(STORAGE_KEY_LAST_QUEUE_SOURCE, queueSource);
+    }
   } catch {}
 };
 
@@ -407,14 +517,32 @@ const persistSavedVolume = (volume: number) => {
 
 const initialSavedTrack = getInitialLastActiveTrack();
 const initialSavedVolume = getInitialSavedVolume();
-const initialTrackDuration = initialSavedTrack
-  ? initialSavedTrack.durationSec || parseDurationToSeconds(initialSavedTrack.duration) || 0
+const initialSavedQueue = getInitialLastQueue();
+const initialSavedQueueIndex = getInitialLastQueueIndex();
+const initialSavedQueueSource = getInitialLastQueueSource();
+
+const resolvedInitialQueue = initialSavedQueue.length > 0 ? initialSavedQueue : (initialSavedTrack ? [initialSavedTrack] : []);
+let resolvedInitialIndex = -1;
+if (resolvedInitialQueue.length > 0) {
+  if (initialSavedTrack) {
+    const idx = resolvedInitialQueue.findIndex((t) => t.id === initialSavedTrack.id);
+    resolvedInitialIndex = idx >= 0 ? idx : (initialSavedQueueIndex < resolvedInitialQueue.length ? initialSavedQueueIndex : 0);
+  } else {
+    resolvedInitialIndex = initialSavedQueueIndex < resolvedInitialQueue.length ? initialSavedQueueIndex : 0;
+  }
+}
+
+const resolvedActiveTrack = initialSavedTrack || (resolvedInitialIndex >= 0 && resolvedInitialIndex < resolvedInitialQueue.length ? resolvedInitialQueue[resolvedInitialIndex] : null);
+
+const initialTrackDuration = resolvedActiveTrack
+  ? resolvedActiveTrack.durationSec || parseDurationToSeconds(resolvedActiveTrack.duration) || 0
   : 0;
 
 export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) => ({
-  activeTrack: initialSavedTrack,
-  queue: initialSavedTrack ? [initialSavedTrack] : [],
-  queueIndex: initialSavedTrack ? 0 : -1,
+  activeTrack: resolvedActiveTrack,
+  queue: resolvedInitialQueue,
+  queueIndex: resolvedInitialIndex,
+  queueSource: initialSavedQueueSource,
   isPlaying: false,
   currentTime: 0,
   duration: initialTrackDuration,
@@ -447,6 +575,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   setActiveTrackOnly: (track: Track) => {
     const fallbackDur = track.durationSec || parseDurationToSeconds(track.duration) || 0;
     persistLastActiveTrack(track);
+    persistLastQueue(get().queue, get().queueIndex, get().queueSource);
     set({
       activeTrack: track,
       duration: fallbackDur,
@@ -455,7 +584,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     });
   },
 
-  playTrack: async (track, queue) => {
+  playTrack: async (track, queue, queueSource) => {
     // Stop any existing audio immediately to prevent old track from continuing in background
     try {
       audioEngine.pause();
@@ -465,13 +594,21 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
     const state = get();
     const newQueue = queue || state.queue;
+    const resolvedSource = queueSource || (queue ? 'playlist' : state.queueSource || 'single');
+    let resolvedIndex = 0;
     if (queue) {
       const idx = queue.findIndex((t) => t.id === track.id);
-      set({ queue: newQueue, queueIndex: idx >= 0 ? idx : 0 });
+      resolvedIndex = idx >= 0 ? idx : 0;
+      resetShuffleHistory(resolvedIndex);
+      set({ queue: newQueue, queueIndex: resolvedIndex, queueSource: resolvedSource });
     } else {
       const idx = state.queue.findIndex((t) => t.id === track.id);
-      if (idx >= 0) set({ queueIndex: idx });
+      if (idx >= 0) {
+        resolvedIndex = idx;
+        set({ queueIndex: idx, queueSource: resolvedSource });
+      }
     }
+    persistLastQueue(newQueue, resolvedIndex, resolvedSource);
 
     // Always clear stale or expired remote URLs and reset fallback flags on explicit user track click
     delete (track as any)._fallbackTried;
@@ -520,7 +657,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           if (currentQueue.length > 1) {
             let nextIdx: number;
             if (shuffle) {
-              nextIdx = Math.floor(Math.random() * currentQueue.length);
+              nextIdx = peekNextShuffleQueueIndex(currentQueue.length, curIdx);
             } else {
               nextIdx = curIdx + 1;
               if (nextIdx >= currentQueue.length) nextIdx = 0;
@@ -623,27 +760,31 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   play: async () => {
-    const { isPlaying, activeTrack } = get();
+    const { isPlaying, activeTrack, queue, queueSource } = get();
     if (!activeTrack) return;
     if (isPlaying) return;
 
     try {
-      if (audioEngine.element.src) {
+      if (audioEngine.element.src && !audioEngine.element.error && audioEngine.element.readyState >= 2) {
         await audioEngine.play();
         set({ isPlaying: true, isBuffering: false });
         audioEngine.setPlaybackState('playing');
         const finalDur = activeTrack.durationSec || parseDurationToSeconds(activeTrack.duration) || get().duration || 0;
         syncDiscordPresence(activeTrack, true, get().currentTime, finalDur);
       } else {
-        await get().playTrack(activeTrack);
+        await get().playTrack(activeTrack, queue.length > 0 ? queue : undefined, queueSource);
       }
     } catch (err: any) {
-      set({ isPlaying: false, isBuffering: false });
-      audioEngine.setPlaybackState('paused');
-      useToastStore.getState().error(
-        'Playback Error',
-        err?.message || 'Browser blocked autoplay or stream is unavailable.'
-      );
+      try {
+        await get().playTrack(activeTrack, queue.length > 0 ? queue : undefined, queueSource);
+      } catch (retryErr: any) {
+        set({ isPlaying: false, isBuffering: false });
+        audioEngine.setPlaybackState('paused');
+        useToastStore.getState().error(
+          'Playback Error',
+          retryErr?.message || 'Browser blocked autoplay or stream is unavailable.'
+        );
+      }
     }
   },
 
@@ -759,7 +900,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         }
 
         if (uniqueNewTracks.length > 0) {
-          set({ queue: [...currentQueue, ...uniqueNewTracks] });
+          const nextQueue = [...currentQueue, ...uniqueNewTracks];
+          persistLastQueue(nextQueue, get().queueIndex, get().queueSource);
+          set({ queue: nextQueue });
         }
       }
     } catch (err) {
@@ -846,6 +989,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         }
 
         const newQueue = [track, ...radioTracks];
+        persistLastQueue(newQueue, 0, 'radio');
         set({ queue: newQueue });
 
         useToastStore.getState().success(
@@ -859,7 +1003,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   nextTrack: async () => {
-    const { queue, queueIndex, isShuffle, repeatMode, activeTrack, playbackHistory } = get();
+    const { queue, queueIndex, isShuffle, repeatMode, activeTrack, playbackHistory, queueSource } = get();
     if (queue.length === 0) return;
 
     if (activeTrack) {
@@ -868,6 +1012,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       set({ playbackHistory: nextHistory });
     }
 
+    const isPlaylistQueue = queueSource === 'playlist' || queueSource === 'album' || queueSource === 'artist';
     const isAtEnd = queueIndex >= queue.length - 1;
     if (isAtEnd) {
       if (repeatMode === 'one') {
@@ -876,7 +1021,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         return;
       }
 
-      if (repeatMode === 'off' && useSettingsStore.getState().autoplay) {
+      if (repeatMode === 'off' && useSettingsStore.getState().autoplay && !isPlaylistQueue) {
         await get().appendAutoplayTracks();
         const updatedQueue = get().queue;
         if (updatedQueue.length > queue.length) {
@@ -890,12 +1035,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
 
       if (repeatMode === 'all') {
-        const nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : 0;
+        const nextIdx = isShuffle ? consumeNextShuffleQueueIndex(queue.length, queueIndex) : 0;
         await get().jumpToQueueIndex(nextIdx);
         return;
       }
 
-      // repeatMode === 'off' and autoplay disabled: stop playback cleanly at the end!
+      // repeatMode === 'off' or playlist ended: stop playback cleanly at the end!
       set({ isPlaying: false, currentTime: 0 });
       audioEngine.pause();
       return;
@@ -903,7 +1048,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
     let nextIdx: number;
     if (isShuffle) {
-      nextIdx = Math.floor(Math.random() * queue.length);
+      nextIdx = consumeNextShuffleQueueIndex(queue.length, queueIndex);
     } else {
       nextIdx = queueIndex + 1;
     }
@@ -977,7 +1122,11 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   toggleShuffle: () => {
-    set((s) => ({ isShuffle: !s.isShuffle }));
+    const next = !get().isShuffle;
+    if (next) {
+      resetShuffleHistory(get().queueIndex);
+    }
+    set({ isShuffle: next });
   },
 
   cycleRepeat: () => {
@@ -992,8 +1141,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   setIsBuffering: (buffering: boolean) => set({ isBuffering: buffering }),
 
   jumpToQueueIndex: async (index: number) => {
-    const { queue } = get();
+    const { queue, queueSource } = get();
     if (index >= 0 && index < queue.length) {
+      persistLastQueue(queue, index, queueSource);
       await get().playTrack(queue[index]);
     }
   },
@@ -1007,11 +1157,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           : index === s.queueIndex
           ? Math.min(s.queueIndex, nextQ.length - 1)
           : s.queueIndex;
+      persistLastQueue(nextQ, nextIdx, s.queueSource);
       return { queue: nextQ, queueIndex: nextIdx };
     });
   },
 
   clearQueue: () => {
+    persistLastQueue([], -1);
     set({ queue: [], queueIndex: -1, activeTrack: null, isPlaying: false });
     audioEngine.pause();
   },
@@ -1066,10 +1218,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const timeRemaining = dur - current;
       const { isCrossfading, queue, queueIndex, isShuffle, repeatMode, isAutoplayLoading } = get();
 
-      // Proactive Autoplay Prefetch: If playing the last track with autoplay ON and repeat OFF,
-      // begin loading recommendations ~15s before track ends so crossfade already has the track ready!
+      const isPlaylistQueue = get().queueSource === 'playlist' || get().queueSource === 'album' || get().queueSource === 'artist';
+
+      // Proactive Autoplay Prefetch: only when playing single track or radio, NOT user playlists
       if (
         settings.autoplay &&
+        !isPlaylistQueue &&
         repeatMode === 'off' &&
         queueIndex >= queue.length - 1 &&
         dur > 20 &&
@@ -1081,7 +1235,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
       if (
         crossfadeEnabled &&
-        dur > crossfadeDuration * 2 &&
+        dur > crossfadeDuration + crossfadeDuration &&
         timeRemaining <= crossfadeDuration &&
         timeRemaining > 0 &&
         !isCrossfading &&
@@ -1089,13 +1243,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       ) {
         let nextIdx: number | null = null;
         if (isShuffle) {
-          nextIdx = Math.floor(Math.random() * queue.length);
+          nextIdx = peekNextShuffleQueueIndex(queue.length, queueIndex);
         } else if (queueIndex < queue.length - 1) {
           nextIdx = queueIndex + 1;
         } else if (repeatMode === 'all') {
           nextIdx = 0;
-        } else if (repeatMode === 'off' && settings.autoplay) {
-          // If queue was extended by prefetch, transition into next track
+        } else if (repeatMode === 'off' && settings.autoplay && !isPlaylistQueue) {
           if (queueIndex + 1 < queue.length) {
             nextIdx = queueIndex + 1;
           }
@@ -1135,6 +1288,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
                     };
                   });
 
+                  if (isShuffle) {
+                    consumeNextShuffleQueueIndex(queue.length, nextIdx as number);
+                  }
                   // Reset history tracking for new track
                   resetTrackHistoryState(nextTrack.id);
                   commitTrackToHistory(nextTrack);

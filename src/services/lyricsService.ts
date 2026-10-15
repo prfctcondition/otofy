@@ -1,3 +1,5 @@
+import repo from '../db/repository';
+
 export interface LrcLine {
   time: number; // in seconds
   text: string;
@@ -13,10 +15,118 @@ export interface LyricsResult {
   plainLyrics?: string;
   syncedLyrics?: string;
   parsedLines?: LrcLine[];
+  isCustom?: boolean;
 }
 
 // In-memory cache for fast repeated lookups
 const lyricsCache = new Map<string, LyricsResult | null>();
+
+export function getCustomLyricsKey(title: string, artist: string): string {
+  const { title: cleanT, artist: cleanA } = extractArtistAndTitle(title, artist);
+  return `${cleanT.toLowerCase().trim()}___${cleanA.toLowerCase().trim()}`;
+}
+
+export function getSavedCustomLyricsSync(title: string, artist: string, trackId?: string): LyricsResult | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  const key = getCustomLyricsKey(title, artist);
+  try {
+    const raw =
+      localStorage.getItem(`otofy_custom_lyrics_${key}`) ||
+      (trackId ? localStorage.getItem(`otofy_custom_lyrics_id_${trackId}`) : null);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.syncedLyrics || parsed.plainLyrics || parsed.instrumental)) {
+        if (!parsed.parsedLines && parsed.syncedLyrics) {
+          parsed.parsedLines = parseLrc(parsed.syncedLyrics);
+        }
+        parsed.isCustom = true;
+        return parsed as LyricsResult;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export async function getSavedCustomLyrics(title: string, artist: string, trackId?: string): Promise<LyricsResult | null> {
+  const syncHit = getSavedCustomLyricsSync(title, artist, trackId);
+  if (syncHit) return syncHit;
+
+  const key = getCustomLyricsKey(title, artist);
+  try {
+    const dbRaw = await repo.getSetting(`custom_lyrics_${key}`);
+    if (dbRaw) {
+      const parsed = JSON.parse(dbRaw);
+      if (parsed && (parsed.syncedLyrics || parsed.plainLyrics || parsed.instrumental)) {
+        if (!parsed.parsedLines && parsed.syncedLyrics) {
+          parsed.parsedLines = parseLrc(parsed.syncedLyrics);
+        }
+        parsed.isCustom = true;
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(`otofy_custom_lyrics_${key}`, dbRaw);
+          if (trackId) {
+            localStorage.setItem(`otofy_custom_lyrics_id_${trackId}`, dbRaw);
+          }
+        }
+        return parsed as LyricsResult;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export async function saveCustomLyrics(
+  track: { title: string; artist: string; id?: string; sourceId?: string },
+  lyrics: LyricsResult
+): Promise<void> {
+  const key = getCustomLyricsKey(track.title, track.artist);
+  const toSave: LyricsResult = {
+    ...lyrics,
+    isCustom: true,
+    trackName: track.title,
+    artistName: track.artist,
+  };
+  if (!toSave.parsedLines && toSave.syncedLyrics) {
+    toSave.parsedLines = parseLrc(toSave.syncedLyrics);
+  }
+
+  lyricsCache.set(key, toSave);
+  const serialized = JSON.stringify(toSave);
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(`otofy_custom_lyrics_${key}`, serialized);
+      const targetId = track.sourceId || track.id;
+      if (targetId) {
+        localStorage.setItem(`otofy_custom_lyrics_id_${targetId}`, serialized);
+      }
+    } catch {}
+  }
+
+  try {
+    await repo.setSetting(`custom_lyrics_${key}`, serialized);
+  } catch {}
+}
+
+export async function removeCustomLyrics(
+  track: { title: string; artist: string; id?: string; sourceId?: string }
+): Promise<void> {
+  const key = getCustomLyricsKey(track.title, track.artist);
+  lyricsCache.delete(key);
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.removeItem(`otofy_custom_lyrics_${key}`);
+      const targetId = track.sourceId || track.id;
+      if (targetId) {
+        localStorage.removeItem(`otofy_custom_lyrics_id_${targetId}`);
+      }
+    } catch {}
+  }
+
+  try {
+    await repo.setSetting(`custom_lyrics_${key}`, '');
+  } catch {}
+}
 
 // Clean track artist by removing noise like Topic, VEVO, Official, etc.
 export function cleanArtist(artist: string): string {
@@ -213,12 +323,57 @@ export function isCandidateMatch(
   return isTitleMatch;
 }
 
+async function fetchLrclibWithRetry(url: string, maxRetries = 3): Promise<Response | null> {
+  const delays = [500, 1200, 2500];
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Otofy-Music/1.1.9 (https://github.com/eyez/zen-music)',
+        },
+      });
+
+      if (res.status === 429 || res.status === 503) {
+        if (attempt === maxRetries) {
+          console.warn('[LRCLIB] Rate limit exceeded after retries:', res.status);
+          return null;
+        }
+        const retryHeader = res.headers.get('Retry-After');
+        let delayMs = delays[attempt] || 2000;
+        if (retryHeader) {
+          const parsedSec = parseFloat(retryHeader);
+          if (!isNaN(parsedSec) && parsedSec > 0) {
+            delayMs = Math.round(parsedSec / 0.001);
+          }
+        }
+        const jitter = Math.floor(Math.random() / 0.005);
+        await new Promise((resolve) => setTimeout(resolve, delayMs + jitter));
+        attempt++;
+        continue;
+      }
+
+      if (res.status === 404) {
+        return null;
+      }
+
+      return res;
+    } catch (err) {
+      if (attempt === maxRetries) return null;
+      const delayMs = delays[attempt] || 1000;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      attempt++;
+    }
+  }
+  return null;
+}
+
 export async function searchLyricsCandidates(query: string): Promise<LyricsResult[]> {
   const q = query.trim();
   if (!q) return [];
   try {
-    const res = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`);
-    if (res.ok) {
+    const res = await fetchLrclibWithRetry(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`);
+    if (res && res.ok) {
       const candidates: any[] = await res.json();
       if (Array.isArray(candidates)) {
         return candidates
@@ -230,13 +385,55 @@ export async function searchLyricsCandidates(query: string): Promise<LyricsResul
   return [];
 }
 
+function rankLyricsCandidates(candidates: any[], durationSec?: number): any[] {
+  return [...candidates].sort((a, b) => {
+    // 1. Synced lyrics have highest priority
+    const hasSyncA = Boolean(a.syncedLyrics);
+    const hasSyncB = Boolean(b.syncedLyrics);
+    if (hasSyncA !== hasSyncB) {
+      return hasSyncA ? -1 : 1;
+    }
+
+    // 2. Select closest duration match
+    if (durationSec && durationSec > 0) {
+      const durA = typeof a.duration === 'number' && a.duration > 0 ? a.duration : 0;
+      const durB = typeof b.duration === 'number' && b.duration > 0 ? b.duration : 0;
+      if (durA > 0 && durB > 0) {
+        const diffA = Math.abs(durA - durationSec);
+        const diffB = Math.abs(durB - durationSec);
+        if (Math.abs(diffA - diffB) > 1.5) {
+          return diffA - diffB;
+        }
+      }
+    }
+
+    // 3. Plain lyrics over instrumental
+    const hasPlainA = Boolean(a.plainLyrics);
+    const hasPlainB = Boolean(b.plainLyrics);
+    if (hasPlainA !== hasPlainB) {
+      return hasPlainA ? -1 : 1;
+    }
+
+    return 0;
+  });
+}
+
 // Fetch lyrics from LRCLIB API with smart fallback search and YouTube Music fallback
 export async function getTrackLyrics(
   title: string,
   artist: string,
   durationSec?: number,
-  sourceId?: string
+  sourceId?: string,
+  trackId?: string
 ): Promise<LyricsResult | null> {
+  // 0. Check custom / user-saved lyrics first
+  const custom = await getSavedCustomLyrics(title, artist, trackId || sourceId);
+  if (custom) {
+    const key = getCustomLyricsKey(title, artist);
+    lyricsCache.set(key, custom);
+    return custom;
+  }
+
   const { title: resolvedTitle, artist: resolvedArtist } = extractArtistAndTitle(title, artist);
   const cacheKey = `${resolvedTitle.toLowerCase()}___${resolvedArtist.toLowerCase()}`;
 
@@ -245,6 +442,8 @@ export async function getTrackLyrics(
   }
 
   try {
+    let plainFallbackResult: LyricsResult | null = null;
+
     // 1. Try exact match endpoint on LRCLIB if we have artist
     if (resolvedArtist) {
       if (durationSec && durationSec > 0) {
@@ -254,67 +453,91 @@ export async function getTrackLyrics(
           duration: Math.round(durationSec).toString(),
         });
         try {
-          const res = await fetch(`https://lrclib.net/api/get?${getParamsWithDur.toString()}`);
-          if (res.ok) {
+          const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParamsWithDur.toString()}`);
+          if (res && res.ok) {
             const data = await res.json();
             const result = parseCandidate(data);
-            lyricsCache.set(cacheKey, result);
-            return result;
+            if (result.syncedLyrics) {
+              lyricsCache.set(cacheKey, result);
+              return result;
+            }
+            if (result.plainLyrics) {
+              plainFallbackResult = result;
+            }
           }
         } catch {}
       }
 
       // Fallback exact match without duration constraint
-      const getParams = new URLSearchParams({
-        track_name: resolvedTitle,
-        artist_name: resolvedArtist,
-      });
+      if (!plainFallbackResult) {
+        const getParams = new URLSearchParams({
+          track_name: resolvedTitle,
+          artist_name: resolvedArtist,
+        });
 
-      try {
-        const res = await fetch(`https://lrclib.net/api/get?${getParams.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          const result = parseCandidate(data);
-          lyricsCache.set(cacheKey, result);
-          return result;
-        }
-      } catch {}
+        try {
+          const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParams.toString()}`);
+          if (res && res.ok) {
+            const data = await res.json();
+            const result = parseCandidate(data);
+            if (result.syncedLyrics) {
+              lyricsCache.set(cacheKey, result);
+              return result;
+            }
+            if (result.plainLyrics) {
+              plainFallbackResult = result;
+            }
+          }
+        } catch {}
+      }
     }
 
-    // 2. Search LRCLIB with "Title Artist"
+    // 2. Search LRCLIB: Format query strictly as: Artist Track (without hyphens or dashes)
+    const cleanNoDashes = (str: string) => str.replace(/[-–—_]/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanArt = cleanNoDashes(resolvedArtist);
+    const cleanTit = cleanNoDashes(resolvedTitle);
+    const cleanFull = cleanNoDashes(title);
+
     const searchQueries = [
-      `${resolvedTitle} ${resolvedArtist}`.trim(),
-      resolvedTitle,
-      cleanTitle(title),
+      cleanArt ? `${cleanArt} ${cleanTit}`.trim() : cleanTit,
+      cleanTit,
+      cleanFull,
     ].filter((q, idx, arr) => q.length > 0 && arr.indexOf(q) === idx);
 
     for (const query of searchQueries) {
       try {
         const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
-        const res = await fetch(searchUrl);
-        if (res.ok) {
+        const res = await fetchLrclibWithRetry(searchUrl);
+        if (res && res.ok) {
           const candidates: any[] = await res.json();
           if (Array.isArray(candidates) && candidates.length > 0) {
-            // Filter candidates to ensure they actually match the requested song
             const matchingCandidates = candidates.filter((c) =>
               isCandidateMatch(resolvedTitle, resolvedArtist, c.trackName, c.artistName)
             );
 
             if (matchingCandidates.length > 0) {
-              const best =
-                matchingCandidates.find((c) => c.syncedLyrics) ||
-                matchingCandidates.find((c) => c.plainLyrics) ||
-                matchingCandidates[0];
+              const ranked = rankLyricsCandidates(matchingCandidates, durationSec);
+              const best = ranked[0];
 
-              if (best && (best.syncedLyrics || best.plainLyrics || best.instrumental)) {
+              if (best && best.syncedLyrics) {
                 const result = parseCandidate(best);
                 lyricsCache.set(cacheKey, result);
                 return result;
+              }
+
+              if (!plainFallbackResult && best && (best.plainLyrics || best.instrumental)) {
+                plainFallbackResult = parseCandidate(best);
               }
             }
           }
         }
       } catch {}
+    }
+
+    // If we found a plain text match during search or exact match, use it now
+    if (plainFallbackResult) {
+      lyricsCache.set(cacheKey, plainFallbackResult);
+      return plainFallbackResult;
     }
 
     // 3. Fallback: YouTube Music Lyrics if videoId / sourceId exists
@@ -329,7 +552,7 @@ export async function getTrackLyrics(
       } else {
         try {
           const res = await fetch(`/api/music/lyrics?videoId=${encodeURIComponent(cleanId)}`);
-          if (res.ok) {
+          if (res && res.ok) {
             const data = await res.json();
             ytLyricsText = data.lyrics;
           }

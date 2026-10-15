@@ -466,7 +466,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
         iconName: 'history',
         gradientFrom: '#334155',
         gradientTo: '#142347',
-        description: 'Your last 50 played tracks',
+        description: 'Your last 100 played tracks',
       };
     } else if (id === 'view-my-wave' || id === WAVE_PLAYLIST_ID) {
       const favArtists = useSettingsStore.getState().favoriteArtists || [];
@@ -496,14 +496,15 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const isUserPl = isUserPlaylist(pl);
     const isAlbum = pl?.type === 'Album';
     const isArtist = pl?.type === 'Artist';
-    const nextSortBy = isUserPl || isAlbum
+    const isWave = id === 'view-my-wave' || id === WAVE_PLAYLIST_ID || pl?.id === 'view-my-wave' || pl?.id === WAVE_PLAYLIST_ID;
+    const nextSortBy = isUserPl || isAlbum || isWave
       ? 'custom'
       : isArtist
       ? 'popularity'
       : state.tracklistSortBy === 'custom'
       ? (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history' ? 'dateAdded' : 'popularity')
       : state.tracklistSortBy;
-    const nextSortOrder = isUserPl || isAlbum ? 'asc' : state.tracklistSortOrder;
+    const nextSortOrder = isUserPl || isAlbum || isWave ? 'asc' : state.tracklistSortOrder;
 
     const snapshot: NavigationSnapshot = {
       currentView: 'playlist',
@@ -546,14 +547,15 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const isUserPl = isUserPlaylist(customPlaylist);
     const isAlbum = customPlaylist.type === 'Album';
     const isArtist = customPlaylist.type === 'Artist';
-    const nextSortBy = isUserPl || isAlbum
+    const isWave = customId === 'view-my-wave' || customId === WAVE_PLAYLIST_ID || options?.id === 'view-my-wave' || options?.id === WAVE_PLAYLIST_ID;
+    const nextSortBy = isUserPl || isAlbum || isWave
       ? 'custom'
       : isArtist
       ? 'popularity'
       : state.tracklistSortBy === 'custom'
       ? 'dateAdded'
       : state.tracklistSortBy;
-    const nextSortOrder = isUserPl || isAlbum ? 'asc' : state.tracklistSortOrder;
+    const nextSortOrder = isUserPl || isAlbum || isWave ? 'asc' : state.tracklistSortOrder;
 
     const currentArtistDetails = options?.type === 'Artist' ? state.currentArtistDetails : null;
     const snapshot: NavigationSnapshot = {
@@ -822,8 +824,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   refreshHistoryTracks: async () => {
     try {
       const tracks = await repo.getHistoryTracks();
-      if (get().selectedPlaylistId === 'pl-history') {
-        const currentPl = get().viewingPlaylist;
+      const currentPl = get().viewingPlaylist;
+      const isHistoryActive = get().selectedPlaylistId === 'pl-history' || currentPl?.id === 'pl-history';
+      if (isHistoryActive) {
         set({
           currentPlaylistTracks: tracks,
           viewingPlaylist: currentPl
@@ -831,7 +834,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
                 ...currentPl,
                 songCount: tracks.length,
                 duration: `${tracks.length} tracks`,
-                description: 'Your last 50 played tracks',
+                description: 'Your last 100 played tracks',
               }
             : null,
         });

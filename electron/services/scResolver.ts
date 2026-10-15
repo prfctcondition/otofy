@@ -31,7 +31,7 @@ let cachedClientId: string | null = null;
 let clientIdExpiresAt = 0;
 
 // Fallback client ID in case live extraction fails
-const FALLBACK_CLIENT_ID = 'y7xP5e50k2cT7Uo3n30zG6jPffV4d00B';
+const FALLBACK_CLIENT_ID = 'V7f0p2q7JD4voO1Esqg6bwwtNYcYAtLC';
 
 export function formatDuration(seconds: number): string {
   if (!seconds || isNaN(seconds) || seconds <= 0) return '0:00';
@@ -161,13 +161,19 @@ export async function resolve(trackId: string, skipSnippetFallback = false): Pro
     throw new Error(`No transcodings found for SoundCloud track: ${trackId}`);
   }
 
-  // Sort transcodings: progressive unencrypted first, then regular hls, skipping encrypted
+  // Sort transcodings: progressive first if available, then high-bitrate AAC HLS (aac_160k), then standard HLS
   const sortedTranscodings = [...transcodings].sort((a, b) => {
-    const isProgA = a.format?.protocol === 'progressive' ? 2 : 0;
-    const isProgB = b.format?.protocol === 'progressive' ? 2 : 0;
-    const isEncA = a.format?.protocol?.includes('encrypted') ? -5 : 0;
-    const isEncB = b.format?.protocol?.includes('encrypted') ? -5 : 0;
-    return (isProgB + isEncB) - (isProgA + isEncA);
+    const scoreTranscoding = (t: any) => {
+      let score = 0;
+      if (t.format?.protocol === 'progressive') score += 10;
+      if (t.preset === 'aac_160k' || t.format?.mime_type?.includes('mp4a.40.2')) score += 8;
+      else if (t.preset === 'abr_sq' || t.format?.protocol === 'hls') score += 5;
+      else if (t.preset === 'aac_96k') score += 3;
+      if (t.format?.protocol?.includes('encrypted') || t.url?.includes('/cbcs/') || t.url?.includes('/ctrs/')) score -= 20;
+      if (t.url?.includes('/preview/') || t.url?.includes('preview-media')) score -= 50;
+      return score;
+    };
+    return scoreTranscoding(b) - scoreTranscoding(a);
   });
 
   const clientId = await getClientId();

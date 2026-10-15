@@ -155,20 +155,24 @@ export async function generateWaveTracks(
   const primaryLowerSet = new Set(primaryArtists.map((a) => a.toLowerCase().trim()));
   const seedHasForeignScript = primaryArtists.some((a) => UNEXPECTED_FOREIGN_SCRIPT_REGEX.test(a));
 
-  const gatheredTracks: Track[] = [];
+  const primaryTopHits: Track[] = [];
+  const primaryOtherTracks: Track[] = [];
+  const relatedTracks: Track[] = [];
   const relatedArtistsMap = new Map<string, { name: string; channelId: string }>();
 
-  // 1. Fetch official artist details (topTracks + official relatedArtists) for each favorite artist in parallel
+  // 1. Fetch official artist details (topTracks + official relatedArtists) for each favorite artist
   const artistDetailsResults = await Promise.allSettled(
     primaryArtists.map(async (artist) => {
       const details = await apiGetArtistDetails(artist);
       if (details && details.topTracks && details.topTracks.length > 0) {
         const cleanTop = details.topTracks.filter((t) => isCleanWaveTrack(t, seedHasForeignScript));
-        // Shuffle top 24 tracks and pick up to 12 so refreshes feel dynamic while staying authentic
-        const pool = cleanTop.slice(0, 24).sort(() => 0.5 - Math.random());
+        // Guarantee top popular hit songs are never skipped
+        const hits = cleanTop.slice(0, 6);
+        const others = cleanTop.slice(6, 35).sort(() => 0.5 - Math.random()).slice(0, 14);
         return {
           artist,
-          tracksToUse: pool.slice(0, 12),
+          hits,
+          others,
           relatedArtists: details.relatedArtists || [],
         };
       }
@@ -183,7 +187,8 @@ export async function generateWaveTracks(
       );
       return {
         artist,
-        tracksToUse: artistTracks.slice(0, 10),
+        hits: artistTracks.slice(0, 4),
+        others: artistTracks.slice(4, 15),
         relatedArtists: [] as Array<{ name: string; channelId: string }>,
       };
     })
@@ -191,13 +196,11 @@ export async function generateWaveTracks(
 
   if (onProgress) onProgress('matching', 55);
 
-  const seedTracks: Track[] = [];
   for (const res of artistDetailsResults) {
     if (res.status === 'fulfilled') {
-      if (res.value.tracksToUse.length > 0) {
-        gatheredTracks.push(...res.value.tracksToUse);
-        seedTracks.push(res.value.tracksToUse[0]);
-      }
+      primaryTopHits.push(...res.value.hits);
+      primaryOtherTracks.push(...res.value.others);
+
       for (const rel of res.value.relatedArtists.slice(0, 3)) {
         const relKey = (rel.name || '').toLowerCase().trim();
         if (
@@ -218,10 +221,11 @@ export async function generateWaveTracks(
 
   if (onProgress) onProgress('flow', 80);
 
-  // 2. Fetch official topTracks from up to 5 official related artists (Fans might also like)
+  // 2. Fetch official topTracks from only 2-3 official related artists to keep favorite artists dominant (75%+)
+  const maxRelatedCount = primaryArtists.length === 1 ? 2 : 3;
   const discoveredRelated = Array.from(relatedArtistsMap.values())
     .sort(() => 0.5 - Math.random())
-    .slice(0, 5);
+    .slice(0, maxRelatedCount);
 
   if (discoveredRelated.length > 0) {
     const relatedDetailsResults = await Promise.allSettled(
@@ -230,9 +234,7 @@ export async function generateWaveTracks(
         if (details && Array.isArray(details.topTracks) && details.topTracks.length > 0) {
           return details.topTracks
             .filter((t) => isCleanWaveTrack(t, seedHasForeignScript))
-            .slice(0, 12)
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 5);
+            .slice(0, 3);
         }
         return [];
       })
@@ -240,77 +242,75 @@ export async function generateWaveTracks(
 
     for (const relRes of relatedDetailsResults) {
       if (relRes.status === 'fulfilled' && Array.isArray(relRes.value)) {
-        gatheredTracks.push(...relRes.value);
-      }
-    }
-  } else if (seedTracks.length > 0) {
-    // Fallback if no official relatedArtists were available: use filtered getRelatedTracks
-    const sampleSeeds = seedTracks.slice(0, 2);
-    const relatedResults = await Promise.allSettled(
-      sampleSeeds.map(async (seed) => {
-        const cleanId = (seed.sourceId || seed.id).replace(/^(yt-|sc-)/, '');
-        return await apiGetRelatedTracks(cleanId, 'YT', seed.artist, seed.title);
-      })
-    );
-
-    for (const relRes of relatedResults) {
-      if (relRes.status === 'fulfilled' && Array.isArray(relRes.value)) {
-        for (const rel of relRes.value) {
-          if (rel.artistBrowseId && isCleanWaveTrack(rel, seedHasForeignScript)) {
-            gatheredTracks.push(rel);
-          }
-        }
+        relatedTracks.push(...relRes.value);
       }
     }
   }
 
   if (onProgress) onProgress('ready', 95);
 
-  // 3. De-duplicate and interleave across artists so the wave flows naturally
-  const uniqueMap = new Map<string, Track>();
+  // 3. Assemble wave with high primary artist priority:
+  // - Top hits come first
+  // - Then interleave remaining primary tracks with related tracks at a 3:1 ratio
+  const dedupeKey = (t: Track) => `${t.title.toLowerCase().trim()}___${t.artist.toLowerCase().trim()}`;
+  const seenKeys = new Set<string>();
   const seenIds = new Set<string>();
-  for (const track of gatheredTracks) {
-    if (!isCleanWaveTrack(track, seedHasForeignScript)) continue;
-    const key = `${track.title.toLowerCase().trim()}___${track.artist.toLowerCase().trim()}`;
-    if (!uniqueMap.has(key) && !seenIds.has(track.id)) {
-      uniqueMap.set(key, track);
-      seenIds.add(track.id);
+
+  const filterUnique = (list: Track[]): Track[] => {
+    const out: Track[] = [];
+    for (const t of list) {
+      if (!isCleanWaveTrack(t, seedHasForeignScript)) continue;
+      const k = dedupeKey(t);
+      if (!seenKeys.has(k) && !seenIds.has(t.id)) {
+        seenKeys.add(k);
+        seenIds.add(t.id);
+        out.push(t);
+      }
+    }
+    return out;
+  };
+
+  const shuffledHits = filterUnique(primaryTopHits.sort(() => 0.5 - Math.random()));
+  const shuffledPrimaryOthers = filterUnique(primaryOtherTracks.sort(() => 0.5 - Math.random()));
+  const shuffledRelated = filterUnique(relatedTracks.sort(() => 0.5 - Math.random()));
+
+  // Blend hits and catalog tracks organically so hits appear naturally throughout the wave
+  const primaryFlow: Track[] = [];
+  let hIdx = 0;
+  let oIdx = 0;
+  while (hIdx < shuffledHits.length || oIdx < shuffledPrimaryOthers.length) {
+    if (hIdx < shuffledHits.length) {
+      primaryFlow.push(shuffledHits[hIdx]);
+      hIdx++;
+    }
+    let oCount = 0;
+    while (oCount < 2 && oIdx < shuffledPrimaryOthers.length) {
+      primaryFlow.push(shuffledPrimaryOthers[oIdx]);
+      oIdx++;
+      oCount++;
     }
   }
 
-  const byArtist = new Map<string, Track[]>();
-  for (const track of uniqueMap.values()) {
-    const artistKey = track.artist.toLowerCase().trim();
-    const list = byArtist.get(artistKey) || [];
-    list.push(track);
-    byArtist.set(artistKey, list);
-  }
-
-  // Shuffle each artist's bucket
-  for (const [k, list] of byArtist.entries()) {
-    byArtist.set(k, list.sort(() => 0.5 - Math.random()));
-  }
-
-  // Round-robin interleave across shuffled artist buckets so same artist doesn't play back-to-back
+  // Interleave primary artist tracks and discovery tracks at an organic 3:1 ratio
   const interleaved: Track[] = [];
-  let hasRemaining = true;
-  while (hasRemaining) {
-    hasRemaining = false;
-    const bucketKeys = Array.from(byArtist.keys()).sort(() => 0.5 - Math.random());
-    for (const k of bucketKeys) {
-      const list = byArtist.get(k)!;
-      if (list.length > 0) {
-        interleaved.push(list.shift()!);
-        if (list.length > 0) {
-          hasRemaining = true;
-        }
-      }
+  let pIdx = 0;
+  let rIdx = 0;
+  while (pIdx < primaryFlow.length || rIdx < shuffledRelated.length) {
+    let pCount = 0;
+    while (pCount < 3 && pIdx < primaryFlow.length) {
+      interleaved.push(primaryFlow[pIdx]);
+      pIdx++;
+      pCount++;
+    }
+    if (rIdx < shuffledRelated.length) {
+      interleaved.push(shuffledRelated[rIdx]);
+      rIdx++;
     }
   }
 
   const finalTracks: Track[] = interleaved.map((t, idx) => normalizeToTrack(t, idx));
 
-  if (finalTracks.length >= 10) {
+  if (finalTracks.length >= 8) {
     saveCachedWave(artists, finalTracks);
   }
 

@@ -160,7 +160,7 @@ function musicApiPlugin(): Plugin {
               result = await ytModule.default.resolve(id, title, artist);
             }
 
-            if (result && result.url) {
+            if (result && result.url && !result.url.includes('.m3u8')) {
               // Wrap stream URL with proxy-stream to ensure full CORS, range requests, and Web Audio API support
               result.directUrl = result.url;
               result.url = `/api/music/proxy-stream?url=${encodeURIComponent(result.url)}`;

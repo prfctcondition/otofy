@@ -85,6 +85,12 @@ export default function App() {
 
   const { activeTrack, isPlaying, isShuffle } = playerStore;
   const [activeQueuePlaylistId, setActiveQueuePlaylistId] = useState<string | null>(null);
+  const activeQueuePlaylistIdRef = useRef<string | null>(null);
+
+  const updateActiveQueuePlaylistId = (id: string | null) => {
+    activeQueuePlaylistIdRef.current = id;
+    setActiveQueuePlaylistId(id);
+  };
 
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -322,6 +328,37 @@ export default function App() {
                   }
                 : null,
             });
+
+            // If user is actively playing from this artist, append newly loaded discography tracks to player queue
+            const currentPlayerState = usePlayerStore.getState();
+            const active = currentPlayerState.activeTrack;
+            const isPlayingThisArtist =
+              activeQueuePlaylistIdRef.current === viewing.id ||
+              activeQueuePlaylistId === viewing.id ||
+              currentPlayerState.queueSource === 'artist' ||
+              Boolean(active && (
+                (active.artist && active.artist.toLowerCase().includes(viewing.title.toLowerCase())) ||
+                (viewing.title && viewing.title.toLowerCase().includes((active.artist || '').toLowerCase()))
+              ));
+
+            if (isPlayingThisArtist) {
+              const curQ = currentPlayerState.queue;
+              const curQIds = new Set(curQ.map((t) => t.sourceId || t.id));
+              const additions = newTracks.filter((t) => !curQIds.has(t.sourceId || t.id));
+              if (additions.length > 0) {
+                const fullQueue = [...curQ, ...additions];
+                usePlayerStore.setState({
+                  queue: fullQueue,
+                });
+                if (typeof window !== 'undefined' && window.localStorage) {
+                  try {
+                    localStorage.setItem('otofy_last_queue', JSON.stringify(fullQueue));
+                    localStorage.setItem('otofy_last_queue_index', String(currentPlayerState.queueIndex));
+                    localStorage.setItem('otofy_last_queue_source', 'artist');
+                  } catch {}
+                }
+              }
+            }
           }
         }
       } catch (err) {
@@ -471,26 +508,38 @@ export default function App() {
     if (isCurrentPlaylistActive) {
       playerStore.togglePlay();
     } else if (sortedTracks.length > 0) {
-      setActiveQueuePlaylistId(currentPlaylist.id);
+      updateActiveQueuePlaylistId(currentPlaylist.id);
       recordCurrentEntityPlayed();
-      playerStore.playTrack(sortedTracks[0], sortedTracks);
+      const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
+      playerStore.playTrack(sortedTracks[0], sortedTracks, qSource);
+      if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
+        handleLoadMoreArtistTracks();
+      }
     }
   };
 
   const handleTogglePlaylistShuffle = () => {
     playerStore.toggleShuffle();
     if (sortedTracks.length > 0) {
-      setActiveQueuePlaylistId(currentPlaylist.id);
+      updateActiveQueuePlaylistId(currentPlaylist.id);
       recordCurrentEntityPlayed();
-      const randomIdx = Math.floor(Math.random() * sortedTracks.length);
-      playerStore.playTrack(sortedTracks[randomIdx], sortedTracks);
+      const randomIdx = Math.floor(Math.random() / (1 / Math.max(1, sortedTracks.length)));
+      const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
+      playerStore.playTrack(sortedTracks[randomIdx], sortedTracks, qSource);
+      if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
+        handleLoadMoreArtistTracks();
+      }
     }
   };
 
   const handleSelectTrack = (track: Track, queue: Track[]) => {
-    setActiveQueuePlaylistId(currentPlaylist.id);
+    updateActiveQueuePlaylistId(currentPlaylist.id);
     recordCurrentEntityPlayed();
-    playerStore.playTrack(track, queue);
+    const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
+    playerStore.playTrack(track, queue, qSource);
+    if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
+      handleLoadMoreArtistTracks();
+    }
   };
 
   const handleNextTrack = () => {
@@ -725,7 +774,7 @@ export default function App() {
           gradientFrom: '#1E293B',
           gradientTo: '#142347',
         });
-        setActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
+        updateActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
         await playerStore.playTrack(stationTracks[0], stationTracks);
       }
     } catch (e) {
@@ -783,7 +832,7 @@ export default function App() {
             gradientFrom: '#1E1B4B',
             gradientTo: '#09090B',
           });
-          setActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
+          updateActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
           await playerStore.playTrack(mixTracks[0], mixTracks);
         }
       }
@@ -797,7 +846,7 @@ export default function App() {
     const freshTracks = useLibraryStore.getState().currentPlaylistTracks;
     const freshId = useLibraryStore.getState().selectedPlaylistId;
     if (freshTracks.length > 0) {
-      setActiveQueuePlaylistId(freshId);
+      updateActiveQueuePlaylistId(freshId);
       await playerStore.playTrack(freshTracks[0], freshTracks);
     }
   };
@@ -1047,6 +1096,12 @@ export default function App() {
                 : undefined)
             : undefined),
       });
+
+      if (detailsResult && (detailsResult.hasMore || (detailsResult.topTracks && detailsResult.topTracks.length >= 50))) {
+        setTimeout(() => {
+          handleLoadMoreArtistTracks();
+        }, 250);
+      }
     } catch (e) {
       console.warn('[App] handleOpenArtistView error:', e);
     } finally {

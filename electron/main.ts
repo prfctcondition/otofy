@@ -1209,6 +1209,8 @@ app.whenReady().then(() => {
     } else if (
       details.url.includes('sndcdn.com') ||
       details.url.includes('cf-hls-media.sndcdn.com') ||
+      details.url.includes('soundcloud.cloud') ||
+      details.url.includes('media-streaming.soundcloud.cloud') ||
       (details.resourceType === 'media' && details.url.includes('soundcloud.com'))
     ) {
       requestHeaders['Referer'] = 'https://soundcloud.com/';
@@ -1227,6 +1229,8 @@ app.whenReady().then(() => {
       details.url.includes('googlevideo.com') ||
       details.url.includes('sndcdn.com') ||
       details.url.includes('cf-hls-media.sndcdn.com') ||
+      details.url.includes('soundcloud.cloud') ||
+      details.url.includes('media-streaming.soundcloud.cloud') ||
       (details.resourceType === 'media' && details.url.includes('soundcloud.com'));
 
     if (isAudioCdn) {

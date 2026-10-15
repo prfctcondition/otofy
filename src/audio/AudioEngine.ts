@@ -1,3 +1,4 @@
+import Hls from 'hls.js';
 import { EQ_BANDS, type EqPreset } from './presets';
 
 interface Deck {
@@ -5,6 +6,7 @@ interface Deck {
   audio: HTMLAudioElement;
   source: MediaElementAudioSourceNode | null;
   gain: GainNode | null;
+  hls: Hls | null;
 }
 
 const STORAGE_KEY_VOLUME = 'otofy_saved_volume';
@@ -79,16 +81,83 @@ export class AudioEngine {
       audio: new Audio(),
       source: null,
       gain: null,
+      hls: null,
     };
     this.deckB = {
       id: 'B',
       audio: new Audio(),
       source: null,
       gain: null,
+      hls: null,
     };
 
     this.configureAudioElement(this.deckA.audio);
     this.configureAudioElement(this.deckB.audio);
+  }
+
+  private isHlsUrl(url: string): boolean {
+    if (!url) return false;
+    return url.includes('.m3u8') || url.includes('/stream/hls') || url.includes('application/x-mpegURL');
+  }
+
+  private attachTrackToDeck(deck: Deck, url: string): void {
+    if (deck.hls) {
+      try {
+        deck.hls.destroy();
+      } catch {}
+      deck.hls = null;
+    }
+
+    if (this.isHlsUrl(url) && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn(`[AudioEngine] Recovering from HLS network error on Deck ${deck.id}...`);
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn(`[AudioEngine] Recovering from HLS media error on Deck ${deck.id}...`);
+              hls.recoverMediaError();
+              break;
+            default:
+              try {
+                hls.destroy();
+              } catch {}
+              deck.hls = null;
+              deck.audio.dispatchEvent(new Event('error'));
+              break;
+          }
+        }
+      });
+
+      hls.loadSource(url);
+      hls.attachMedia(deck.audio);
+      deck.hls = hls;
+    } else {
+      deck.audio.src = url;
+      deck.audio.load();
+    }
+  }
+
+  private stopAndUnloadDeck(deck: Deck): void {
+    if (deck.hls) {
+      try {
+        deck.hls.destroy();
+      } catch {}
+      deck.hls = null;
+    }
+    deck.audio.pause();
+    deck.audio.removeAttribute('src');
+    deck.audio.load();
   }
 
   private configureAudioElement(el: HTMLAudioElement): void {
@@ -219,13 +288,11 @@ export class AudioEngine {
       inactive.gain.gain.setValueAtTime(0.0, this.ctx.currentTime);
     }
 
-    // Stop inactive deck
-    inactive.audio.pause();
-    inactive.audio.removeAttribute('src');
-    inactive.audio.load();
+    // Stop and cleanly unload inactive deck
+    this.stopAndUnloadDeck(inactive);
 
-    active.audio.src = url;
-    active.audio.load();
+    // Attach to active deck (whether HLS SoundCloud or direct YouTube/local)
+    this.attachTrackToDeck(active, url);
   }
 
   async play(): Promise<void> {
@@ -305,7 +372,7 @@ export class AudioEngine {
       incoming.gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     }
 
-    incoming.audio.src = nextTrackUrl;
+    this.attachTrackToDeck(incoming, nextTrackUrl);
     incoming.audio.currentTime = 0;
     try {
       await incoming.audio.play();
@@ -322,7 +389,7 @@ export class AudioEngine {
     }
 
     if (incoming.gain) {
-      incoming.gain.gain.linearRampToValueAtTime(1.0, now + duration);
+      incoming.gain.linearRampToValueAtTime(1.0, now + duration);
     }
 
     // 3. Switch active deck ID
@@ -330,9 +397,7 @@ export class AudioEngine {
 
     // 4. Cleanup outgoing deck after transition completes
     setTimeout(() => {
-      outgoing.audio.pause();
-      outgoing.audio.removeAttribute('src');
-      outgoing.audio.load();
+      this.stopAndUnloadDeck(outgoing);
       if (this.ctx && outgoing.gain) {
         outgoing.gain.gain.cancelScheduledValues(this.ctx.currentTime);
         outgoing.gain.gain.setValueAtTime(0.0, this.ctx.currentTime);
@@ -557,10 +622,8 @@ export class AudioEngine {
   }
 
   destroy(): void {
-    this.deckA.audio.pause();
-    this.deckA.audio.src = '';
-    this.deckB.audio.pause();
-    this.deckB.audio.src = '';
+    this.stopAndUnloadDeck(this.deckA);
+    this.stopAndUnloadDeck(this.deckB);
     if (this.ctx && this.ctx.state !== 'closed') {
       this.ctx.close();
     }

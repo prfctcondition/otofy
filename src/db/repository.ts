@@ -604,7 +604,7 @@ export const repo = {
     return dbTrackToTrack(updated);
   },
 
-  // Listening History (Max 50 items, strictly unique by trackId)
+  // Listening History (Max 100 items, strictly unique by trackId)
   async recordTrackHistory(track: Track): Promise<void> {
     if (!track?.id) return;
     try {
@@ -623,10 +623,10 @@ export const repo = {
         playedAt: now,
       });
 
-      // Keep strictly max 50 history entries
+      // Keep strictly max 100 history entries
       const count = await db.history.count();
-      if (count > 50) {
-        const excess = count - 50;
+      if (count > 100) {
+        const excess = count - 100;
         const oldest = await db.history.orderBy('playedAt').limit(excess).primaryKeys();
         if (oldest.length > 0) {
           await db.history.bulkDelete(oldest as number[]);
@@ -639,7 +639,7 @@ export const repo = {
 
   async getHistoryTracks(): Promise<Track[]> {
     try {
-      const historyEntries = await db.history.orderBy('playedAt').reverse().limit(50).toArray();
+      const historyEntries = await db.history.orderBy('playedAt').reverse().limit(100).toArray();
       const seenIds = new Set<string>();
       const deduplicatedEntries: typeof historyEntries = [];
       for (const entry of historyEntries) {
@@ -660,7 +660,10 @@ export const repo = {
       for (const entry of deduplicatedEntries) {
         const track = trackMap.get(entry.trackId);
         if (track) {
-          results.push(track);
+          results.push({
+            ...track,
+            dateAdded: new Date(entry.playedAt).toISOString(),
+          });
         }
       }
       return results;

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   Minimize2,
@@ -17,10 +17,21 @@ import {
   Sparkles,
   RefreshCw,
   Search,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
-import { getTrackLyrics, parseLrc, type LyricsResult, type LrcLine } from '../services/lyricsService';
+import { useToastStore } from '../store/toastStore';
+import {
+  getTrackLyrics,
+  parseLrc,
+  searchLyricsCandidates,
+  saveCustomLyrics,
+  removeCustomLyrics,
+  type LyricsResult,
+  type LrcLine,
+} from '../services/lyricsService';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
 
 export const FullscreenLyricsModal: React.FC = () => {
@@ -70,7 +81,8 @@ export const FullscreenLyricsModal: React.FC = () => {
       activeTrack.title,
       activeTrack.artist,
       activeTrack.durationSec,
-      activeTrack.sourceId || activeTrack.id
+      activeTrack.sourceId || activeTrack.id,
+      activeTrack.id
     ).then((data) => {
       if (!isMounted) return;
       setLyricsData(data);
@@ -162,34 +174,47 @@ export const FullscreenLyricsModal: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const res = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(customSearch.trim())}`);
-      if (res.ok) {
-        const candidates = await res.json();
-        if (Array.isArray(candidates) && candidates.length > 0) {
-          const best =
-            candidates.find((c: any) => c.syncedLyrics) ||
-            candidates.find((c: any) => c.plainLyrics) ||
-            candidates[0];
-          const lines = best.syncedLyrics ? parseLrc(best.syncedLyrics) : undefined;
-          setLyricsData({
-            trackName: best.trackName,
-            artistName: best.artistName,
-            duration: best.duration,
-            instrumental: !!best.instrumental,
-            plainLyrics: best.plainLyrics,
-            syncedLyrics: best.syncedLyrics,
-            parsedLines: lines,
-          });
-          setIsSearchingManual(false);
-        } else {
-          setLyricsData(null);
+      const candidates = await searchLyricsCandidates(customSearch.trim());
+      if (candidates.length > 0) {
+        const best = candidates[0];
+        setLyricsData(best);
+        setIsSearchingManual(false);
+        if (activeTrack) {
+          await saveCustomLyrics(activeTrack, best);
+          useToastStore.getState().success(
+            'Lyrics Saved',
+            `Saved lyrics for "${activeTrack.title}"`
+          );
         }
+      } else {
+        setLyricsData(null);
       }
     } catch {
       // ignore
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleResetCustomLyrics = async () => {
+    if (!activeTrack) return;
+    await removeCustomLyrics(activeTrack);
+    useToastStore.getState().info(
+      'Lyrics Reset',
+      `Restored automatic lyrics lookup for "${activeTrack.title}"`
+    );
+    setIsLoading(true);
+    setLyricsData(null);
+    getTrackLyrics(
+      activeTrack.title,
+      activeTrack.artist,
+      activeTrack.durationSec,
+      activeTrack.sourceId || activeTrack.id,
+      activeTrack.id
+    ).then((data) => {
+      setLyricsData(data);
+      setIsLoading(false);
+    });
   };
 
   const bgFrom = activeTrack?.gradientFrom || '#1E1B4B';
@@ -248,11 +273,26 @@ export const FullscreenLyricsModal: React.FC = () => {
                   <Sparkles size={12} /> Synced Lyrics
                 </span>
               )}
+              {lyricsData?.isCustom && (
+                <span className="inline-flex items-center gap-1 text-[#1C3061] bg-white font-bold text-xs px-2 py-0.5 rounded-full shadow-2xs">
+                  <Check size={11} strokeWidth={2.5} /> Saved
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {lyricsData?.isCustom && (
+            <button
+              onClick={handleResetCustomLyrics}
+              className="p-2.5 rounded-full text-white/70 hover:text-rose-400 hover:bg-white/10 transition-colors"
+              title="Reset custom lyrics to automatic search"
+              aria-label="Reset lyrics"
+            >
+              <RotateCcw size={20} />
+            </button>
+          )}
           <button
             onClick={() => setIsSearchingManual((v) => !v)}
             className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
