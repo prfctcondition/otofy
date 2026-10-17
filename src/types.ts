@@ -121,15 +121,18 @@ export interface SavedAlbum {
 }
 
 export const isSystemPlaylist = (
-  playlist: Playlist | { id: string; title?: string; creator?: string } | null | undefined
+  playlist: string | Playlist | { id: string; title?: string; creator?: string } | null | undefined
 ): boolean => {
   if (!playlist) return false;
-  const id = playlist.id;
+  const id = typeof playlist === 'string' ? playlist : playlist.id;
+  if (!id) return false;
   if (id === 'pl-liked' || id === 'pl-downloads' || id === 'pl-cached' || id === 'pl-history' || id === 'view-my-wave') return true;
   if (id.startsWith('pl-downloads') || id.startsWith('pl-cached') || id.startsWith('pl-liked') || id.startsWith('pl-history')) return true;
-  if (playlist.creator === 'System') return true;
-  const title = playlist.title?.trim().toLowerCase();
-  if (title === 'downloads' || title === 'liked songs' || title === 'cached songs' || title === 'listening history' || title === 'history') return true;
+  if (typeof playlist !== 'string') {
+    if (playlist.creator === 'System') return true;
+    const title = playlist.title?.trim().toLowerCase();
+    if (title === 'downloads' || title === 'liked songs' || title === 'cached songs' || title === 'listening history' || title === 'history') return true;
+  }
   return false;
 };
 
@@ -477,6 +480,8 @@ declare global {
       onBatchProgress?: (
         callback: (data: BatchDownloadState) => void
       ) => () => void;
+      saveBackupFile?: (defaultFilename: string, content: string) => Promise<string | null>;
+      openBackupFile?: () => Promise<{ filename: string; content: string } | null>;
     };
   }
 }

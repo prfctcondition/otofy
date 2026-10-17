@@ -7,6 +7,8 @@ import {
   ListFilter,
   Pin,
   Download,
+  Upload,
+  RefreshCw,
   Trash2,
   Check,
   User,
@@ -19,6 +21,8 @@ import { useNetworkStore } from '../store/networkStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadStore } from '../store/downloadStore';
 import { useContextMenuStore } from '../store/contextMenuStore';
+import { useToastStore } from '../store/toastStore';
+import { exportOtofyBackup, downloadOtofyBackup } from '../services/backupService';
 import { fuzzyMatch } from '../utils/fuzzySearch';
 import { useTranslation } from '../i18n';
 
@@ -106,6 +110,28 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
   const recordEntityOpened = useLibraryStore((state) => state.recordEntityOpened);
   const toggleFollowArtist = useLibraryStore((state) => state.toggleFollowArtist);
   const toggleSaveAlbum = useLibraryStore((state) => state.toggleSaveAlbum);
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportLibrary = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const backupData = await exportOtofyBackup();
+      const success = await downloadOtofyBackup(backupData);
+      if (success) {
+        useToastStore.getState().success(
+          'Otofy Export Complete',
+          `Exported ${backupData.stats.playlistsCount} playlists and ${backupData.stats.likedTracksCount} liked tracks (.oto)`
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed to export library:', err);
+      useToastStore.getState().error('Otofy Export Failed', err.message || 'Could not export library.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     const handleDocClick = (e: MouseEvent) => {
@@ -313,11 +339,21 @@ export const LeftLibraryDock: React.FC<LeftLibraryDockProps> = ({
           {!isCollapsed && (
             <div className="flex items-center gap-0.5 text-[#64748B] dark:text-white/80 shrink-0">
               <button
+                id="export-library-btn"
+                onClick={handleExportLibrary}
+                disabled={isExporting}
+                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                title="Otofy Export (.oto)"
+                aria-label="Otofy Export"
+              >
+                {isExporting ? <RefreshCw size={17} className="animate-spin text-[#142347] dark:text-white" /> : <Upload size={17} />}
+              </button>
+              <button
                 id="import-playlist-btn"
                 onClick={onImportCode}
-                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white transition-colors"
-                title={t.library.importCode}
-                aria-label={t.library.importCode}
+                className="p-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 hover:text-[#142347] dark:hover:text-white transition-colors cursor-pointer"
+                title="Otofy Import"
+                aria-label="Otofy Import"
               >
                 <Download size={17} />
               </button>

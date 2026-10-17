@@ -23,6 +23,8 @@ import {
   Globe,
   Sun,
   Moon,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -30,6 +32,7 @@ import { useThemeStore } from '../store/themeStore';
 import useToastStore from '../store/toastStore';
 import { useTranslation } from '../i18n';
 import { invalidateWaveCache } from '../services/waveService';
+import { exportOtofyBackup, downloadOtofyBackup } from '../services/backupService';
 import type { UpdateCheckResult } from '../types';
 
 interface AudioDeviceOption {
@@ -53,8 +56,9 @@ export const SettingsScreen: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
   const [appVersion, setAppVersion] = useState<string>(
-    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.0'
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.1'
   );
+  const [isExportingBackup, setIsExportingBackup] = useState<boolean>(false);
 
   // Fetch cache size and audio output devices
   useEffect(() => {
@@ -129,6 +133,30 @@ export const SettingsScreen: React.FC = () => {
     if (window.electronAPI?.openFolder) {
       window.electronAPI.openFolder(settings.downloadsPath);
     }
+  };
+
+  const handleExportBackup = async () => {
+    if (isExportingBackup) return;
+    setIsExportingBackup(true);
+    try {
+      const backupData = await exportOtofyBackup();
+      const success = await downloadOtofyBackup(backupData);
+      if (success) {
+        useToastStore.getState().success(
+          'Otofy Export Complete',
+          `Exported ${backupData.stats.playlistsCount} playlists and ${backupData.stats.likedTracksCount} liked tracks (.oto)`
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed to export library:', err);
+      useToastStore.getState().error('Otofy Export Failed', err?.message || 'Could not export library.');
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  const handleOpenImportBackup = () => {
+    useLibraryStore.getState().openImportModal('oto');
   };
 
   const handleToggleHwAccel = async () => {
@@ -743,6 +771,42 @@ export const SettingsScreen: React.FC = () => {
               </div>
               <div className="p-2.5 rounded-xl bg-slate-100/70 dark:bg-black/40 border border-black/5 dark:border-white/10 font-mono text-[11px] text-[#475569] dark:text-white/60 break-all select-text">
                 {settings.downloadsPath || 'C:\\Users\\...\\AppData\\Roaming\\Otofy\\Downloads'}
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-sm font-semibold block">
+                    Library Export / Import (.oto)
+                  </span>
+                  <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                    Export all playlists and liked tracks to a portable .oto file, or import your library in one click.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    id="settings-export-oto-btn"
+                    onClick={handleExportBackup}
+                    disabled={isExportingBackup}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#142347] dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {isExportingBackup ? (
+                      <RefreshCw size={13} className="animate-spin" />
+                    ) : (
+                      <Upload size={13} />
+                    )}
+                    <span>Otofy Export (.oto)</span>
+                  </button>
+                  <button
+                    id="settings-import-oto-btn"
+                    onClick={handleOpenImportBackup}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#142347] dark:text-white transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs border border-black/5 dark:border-white/10"
+                  >
+                    <Download size={13} />
+                    <span>Otofy Import (.oto)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

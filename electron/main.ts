@@ -1040,6 +1040,48 @@ ipcMain.handle('storage:open-folder', async (_event, folderPath?: string) => {
   }
 });
 
+ipcMain.handle('backup:save-file', async (_event, defaultFilename: string, content: string) => {
+  if (!mainWindow) return null;
+  try {
+    const res = await dialog.showSaveDialog(mainWindow, {
+      title: 'Otofy Export (.oto)',
+      defaultPath: defaultFilename || 'Otofy-Export.oto',
+      filters: [
+        { name: 'Otofy Export (.oto)', extensions: ['oto'] },
+      ],
+    });
+    if (!res.canceled && res.filePath) {
+      await fs.promises.writeFile(res.filePath, content, 'utf-8');
+      return res.filePath;
+    }
+  } catch (err) {
+    console.error('Failed to save export file:', err);
+  }
+  return null;
+});
+
+ipcMain.handle('backup:open-file', async () => {
+  if (!mainWindow) return null;
+  try {
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Otofy Import (.oto)',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Otofy Export (.oto, .json)', extensions: ['oto', 'json'] },
+      ],
+    });
+    if (!res.canceled && res.filePaths.length > 0) {
+      const filePath = res.filePaths[0];
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      const filename = path.basename(filePath);
+      return { filename, content };
+    }
+  } catch (err) {
+    console.error('Failed to open export file:', err);
+  }
+  return null;
+});
+
 // Download IPC Handlers
 ipcMain.handle(
   'download:track',

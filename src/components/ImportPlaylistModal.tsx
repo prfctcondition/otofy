@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Download,
   X,
@@ -12,8 +12,11 @@ import {
   Sparkles,
   HelpCircle,
   ExternalLink,
+  FolderArchive,
+  FileUp,
 } from 'lucide-react';
 import { parseShareCode } from '../services/shareCodeService';
+import { parseOtofyBackupFile, importOtofyBackup, type OtofyBackupData } from '../services/backupService';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
 import { filterUniqueTracks } from '../utils/trackUtils';
@@ -24,7 +27,7 @@ interface ImportPlaylistModalProps {
   onClose: () => void;
 }
 
-type ImportSourceTab = 'otofy' | 'yt' | 'sc' | 'spotify';
+type ImportSourceTab = 'oto' | 'spotify' | 'yt' | 'sc' | 'otofy';
 
 interface RemotePlaylistPreview {
   title: string;
@@ -71,6 +74,14 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
   const [otofyData, setOtofyData] = useState<ShareCodeData | null>(null);
   const [remoteData, setRemoteData] = useState<RemotePlaylistPreview | null>(null);
   const [spotifyData, setSpotifyData] = useState<SpotifyInspectionData | null>(null);
+  const [otoData, setOtoData] = useState<OtofyBackupData | null>(null);
+  const [otoFileName, setOtoFileName] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [otoProgress, setOtoProgress] = useState<{ message: string; percent: number }>({
+    message: '',
+    percent: 0,
+  });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Spotify Matching Engine Progress
   const [isMatching, setIsMatching] = useState(false);
@@ -91,6 +102,13 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
   const createPlaylist = useLibraryStore((state) => state.createPlaylist);
   const addTrackToPlaylist = useLibraryStore((state) => state.addTrackToPlaylist);
   const selectPlaylist = useLibraryStore((state) => state.selectPlaylist);
+  const initialTab = useLibraryStore((state) => state.importModalInitialTab);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Reset inputs when switching tabs
   const handleTabChange = (tab: ImportSourceTab) => {
@@ -101,6 +119,10 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
     setOtofyData(null);
     setRemoteData(null);
     setSpotifyData(null);
+    setOtoData(null);
+    setOtoFileName('');
+    setIsDragOver(false);
+    setOtoProgress({ message: '', percent: 0 });
     setIsMatching(false);
     setIsImporting(false);
     setDirectImportProgress({ current: 0, total: 0, currentTrackTitle: '' });
@@ -113,10 +135,101 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
     setOtofyData(null);
     setRemoteData(null);
     setSpotifyData(null);
+    setOtoData(null);
+    setOtoFileName('');
+    setIsDragOver(false);
+    setOtoProgress({ message: '', percent: 0 });
     setIsMatching(false);
     setIsImporting(false);
     setDirectImportProgress({ current: 0, total: 0, currentTrackTitle: '' });
     onClose();
+  };
+
+  const processOtoContent = (text: string, filename: string) => {
+    try {
+      const parsed = parseOtofyBackupFile(text);
+      setOtoData(parsed);
+      setOtoFileName(filename);
+      setError('');
+    } catch (err: any) {
+      setOtoData(null);
+      setOtoFileName('');
+      setError(err.message || 'Invalid .oto export file.');
+    }
+  };
+
+  const handleSelectOtoFile = async () => {
+    setError('');
+    if (window.electronAPI?.openBackupFile) {
+      try {
+        const res = await window.electronAPI.openBackupFile();
+        if (res && res.content) {
+          processOtoContent(res.content, res.filename);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to open .oto file.');
+      }
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      processOtoContent(text, file.name);
+    };
+    reader.onerror = () => {
+      setError('Failed to read file from disk.');
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
+  };
+
+  const handleDropOtoFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      processOtoContent(text, file.name);
+    };
+    reader.onerror = () => {
+      setError('Failed to read dropped file.');
+    };
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const handleImportOto = async () => {
+    if (!otoData) return;
+    setIsImporting(true);
+    setError('');
+    try {
+      const summary = await importOtofyBackup(otoData, (p) => {
+        setOtoProgress(p);
+      });
+      setSuccess(true);
+      setSuccessMessage(
+        `Restored ${summary.playlistsCount} playlists and ${summary.likedTracksCount} liked tracks!`
+      );
+      useToastStore.getState().success(
+        'Otofy Import Complete',
+        `Restored ${summary.playlistsCount} playlists and ${summary.likedTracksCount} liked tracks`
+      );
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
+    } catch (err: any) {
+      console.error('Failed to import .oto file:', err);
+      setError(err.message || 'Failed to import .oto file.');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -427,17 +540,16 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/80 dark:border-white/10 rounded-3xl w-full max-w-xl flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
-        {/* Modal Header */}
+      <div className="bg-white/95 dark:bg-[#0C0C10] backdrop-blur-3xl border border-white/80 dark:border-white/10 rounded-3xl w-full max-w-2xl flex flex-col p-6 m-4 relative shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-[#142347] dark:bg-white text-white dark:text-black rounded-2xl shadow-md">
               <Download size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">Import Playlist</h2>
+              <h2 className="text-2xl font-bold text-[#142347] dark:text-white leading-tight">Otofy Import</h2>
               <p className="text-xs text-[#64748B] dark:text-white/60">
-                Universal hub: Spotify, YouTube Music, SoundCloud & Otofy Share
+                Import playlists from Spotify, YouTube Music, SoundCloud, .oto exports & share codes
               </p>
             </div>
           </div>
@@ -449,104 +561,272 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
           </button>
         </div>
 
-        {/* Segmented Source Tabs */}
-        <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100/90 dark:bg-white/[0.06] rounded-2xl mb-5 border border-slate-200/80 dark:border-white/10">
+        <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-100/90 dark:bg-white/[0.06] rounded-2xl mb-5 border border-slate-200/80 dark:border-white/10">
           <button
             onClick={() => handleTabChange('spotify')}
-            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'spotify'
                 ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
                 : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-[#142347] dark:bg-white shrink-0" />
-            <span className="truncate">Spotify</span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="text-[#1DB954] shrink-0"
+            >
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.495 17.306c-.215.352-.674.463-1.026.248-2.809-1.716-6.345-2.104-10.509-1.153-.403.092-.806-.16-.898-.562-.092-.403.16-.806.562-.898 4.542-1.038 8.448-.597 11.623 1.34.352.214.463.673.248 1.025zm1.467-3.262c-.27.441-.851.58-1.292.31-3.216-1.977-8.118-2.548-11.922-1.393-.497.151-1.026-.135-1.177-.633-.151-.497.135-1.026.633-1.177 4.348-1.32 9.755-.682 13.448 1.59.441.27.58.851.31 1.303zm.126-3.41c-3.856-2.29-10.217-2.502-13.882-1.39-.59.18-1.222-.16-1.402-.751-.18-.59.16-1.222.751-1.402 4.217-1.28 11.238-1.033 15.68 1.604.532.316.707 1.004.391 1.536-.316.533-1.004.708-1.538.403z" />
+            </svg>
+            <span>Spotify</span>
           </button>
 
           <button
             onClick={() => handleTabChange('yt')}
-            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'yt'
                 ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
                 : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Youtube size={14} className="text-rose-500 shrink-0" />
-            <span className="truncate">YT Music</span>
+            <span>YT Music</span>
           </button>
 
           <button
             onClick={() => handleTabChange('sc')}
-            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'sc'
                 ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
                 : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Cloud size={14} className="text-amber-500 shrink-0" />
-            <span className="truncate">SoundCloud</span>
+            <span>SoundCloud</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('oto')}
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'oto'
+                ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
+                : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
+            }`}
+          >
+            <FolderArchive size={14} className="text-[#142347] dark:text-white shrink-0" />
+            <span>.oto Export</span>
           </button>
 
           <button
             onClick={() => handleTabChange('otofy')}
-            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'otofy'
                 ? 'bg-white dark:bg-white/20 text-[#142347] dark:text-white shadow-xs'
                 : 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white'
             }`}
           >
             <Share2 size={14} className="text-slate-500 shrink-0" />
-            <span className="truncate">Otofy Code</span>
+            <span>Share Code</span>
           </button>
         </div>
 
-        {/* Input & Inspect Area */}
         <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#64748B] dark:text-white/60 uppercase tracking-wider mb-1.5 ml-1">
-              {activeTab === 'spotify'
-                ? 'Spotify Playlist Link'
-                : activeTab === 'yt'
-                ? 'YouTube / YouTube Music Link'
-                : activeTab === 'sc'
-                ? 'SoundCloud Playlist / Set Link'
-                : 'Otofy Share Code'}
-            </label>
-            <div className="flex gap-2">
+          {activeTab === 'oto' ? (
+            <div className="space-y-4">
               <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleInspect()}
-                disabled={isMatching || isImporting}
-                placeholder={
-                  activeTab === 'spotify'
-                    ? 'https://open.spotify.com/playlist/...'
-                    : activeTab === 'yt'
-                    ? 'https://music.youtube.com/playlist?list=...'
-                    : activeTab === 'sc'
-                    ? 'https://soundcloud.com/.../sets/...'
-                    : 'OTO-xxxx-xxxx'
-                }
-                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-slate-400 dark:focus:border-white/30 rounded-xl focus:outline-none text-xs font-sans text-[#142347] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all disabled:opacity-50"
-                autoFocus
+                type="file"
+                ref={fileInputRef}
+                accept=".oto,.json"
+                className="hidden"
+                onChange={handleFileInputChange}
               />
-              <button
-                onClick={handleInspect}
-                disabled={isInspecting || isMatching || isImporting || !inputValue.trim()}
-                className="px-5 py-3 bg-[#142347] dark:bg-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-              >
-                {isInspecting ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>Loading...</span>
-                  </>
-                ) : (
-                  <span>Inspect</span>
-                )}
-              </button>
+
+              {!otoData ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(true);
+                  }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={handleDropOtoFile}
+                  onClick={handleSelectOtoFile}
+                  className={`p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer ${
+                    isDragOver
+                      ? 'border-[#142347] dark:border-white bg-[#142347]/5 dark:bg-white/10 scale-[1.01]'
+                      : 'border-slate-300 dark:border-white/15 bg-slate-50 dark:bg-white/[0.04] hover:border-[#142347]/40 dark:hover:border-white/30 hover:bg-slate-100/70 dark:hover:bg-white/[0.07]'
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-[#142347]/10 dark:bg-white/10 text-[#142347] dark:text-white flex items-center justify-center mb-3">
+                    <FolderArchive size={28} />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#142347] dark:text-white mb-1">
+                    Choose or Drop .oto File
+                  </h3>
+                  <p className="text-xs text-[#64748B] dark:text-white/60 max-w-sm mb-4 leading-relaxed">
+                    Select your exported Otofy file (.oto) to import all playlists and liked tracks in one click.
+                  </p>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-[#142347] dark:bg-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                  >
+                    Browse .oto File
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-xl bg-[#142347] dark:bg-white text-white dark:text-black shrink-0">
+                        <FolderArchive size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-[#142347] dark:text-white truncate">
+                          {otoFileName || 'Otofy-Export.oto'}
+                        </h4>
+                        <p className="text-[11px] text-[#64748B] dark:text-white/60">
+                          Exported: {new Date(otoData.exportedAt).toLocaleDateString()} • v{otoData.appVersion}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtoData(null);
+                        setOtoFileName('');
+                      }}
+                      disabled={isImporting}
+                      className="text-xs text-[#64748B] dark:text-white/60 hover:text-rose-500 transition-colors cursor-pointer"
+                    >
+                      Change file
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 text-center">
+                      <span className="block text-base font-black text-[#142347] dark:text-white">
+                        {otoData.stats.playlistsCount}
+                      </span>
+                      <span className="text-[10px] text-[#64748B] dark:text-white/60 uppercase tracking-wider font-semibold">
+                        Playlists
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 text-center">
+                      <span className="block text-base font-black text-[#142347] dark:text-white">
+                        {otoData.stats.likedTracksCount}
+                      </span>
+                      <span className="text-[10px] text-[#64748B] dark:text-white/60 uppercase tracking-wider font-semibold">
+                        Liked Tracks
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 text-center">
+                      <span className="block text-base font-black text-[#142347] dark:text-white">
+                        {otoData.stats.totalTracksCount}
+                      </span>
+                      <span className="text-[10px] text-[#64748B] dark:text-white/60 uppercase tracking-wider font-semibold">
+                        Total Tracks
+                      </span>
+                    </div>
+                  </div>
+
+                  {otoData.playlists.length > 0 && (
+                    <div className="pt-1">
+                      <p className="text-[11px] font-semibold text-[#64748B] dark:text-white/60 uppercase tracking-wider mb-1 px-1">
+                        Playlists included:
+                      </p>
+                      <div className="max-h-24 overflow-y-auto space-y-1 pr-1">
+                        {otoData.playlists.map((pl, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/60 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5"
+                          >
+                            <span className="font-semibold text-[#142347] dark:text-white truncate max-w-[280px]">
+                              {pl.title}
+                            </span>
+                            <span className="text-[10px] text-[#64748B] dark:text-white/60 shrink-0 font-mono">
+                              {pl.tracks.length} tracks
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isImporting && (
+                    <div className="space-y-1.5 pt-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-[#142347] dark:text-white">
+                        <span className="truncate">{otoProgress.message || 'Restoring library...'}</span>
+                        <span className="font-mono text-xs">{otoProgress.percent}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#142347] dark:bg-white rounded-full transition-all duration-150"
+                          style={{ width: `${otoProgress.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {!isImporting && (
+                    <button
+                      type="button"
+                      onClick={handleImportOto}
+                      className="w-full py-3 bg-[#142347] hover:bg-[#101b38] dark:bg-white dark:text-black dark:hover:bg-white/90 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2 mt-2"
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>Restore Library (1-Click)</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold text-[#64748B] dark:text-white/60 uppercase tracking-wider mb-1.5 ml-1">
+                {activeTab === 'spotify'
+                  ? 'Spotify Playlist Link'
+                  : activeTab === 'yt'
+                  ? 'YouTube / YouTube Music Link'
+                  : activeTab === 'sc'
+                  ? 'SoundCloud Playlist / Set Link'
+                  : 'Otofy Share Code'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInspect()}
+                  disabled={isMatching || isImporting}
+                  placeholder={
+                    activeTab === 'spotify'
+                      ? 'https://open.spotify.com/playlist/...'
+                      : activeTab === 'yt'
+                      ? 'https://music.youtube.com/playlist?list=...'
+                      : activeTab === 'sc'
+                      ? 'https://soundcloud.com/.../sets/...'
+                      : 'OTO-xxxx-xxxx'
+                  }
+                  className="flex-1 px-4 py-3 bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 focus:bg-white dark:focus:bg-white/[0.1] focus:border-slate-400 dark:focus:border-white/30 rounded-xl focus:outline-none text-xs font-sans text-[#142347] dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 shadow-xs transition-all disabled:opacity-50"
+                  autoFocus
+                />
+                <button
+                  onClick={handleInspect}
+                  disabled={isInspecting || isMatching || isImporting || !inputValue.trim()}
+                  className="px-5 py-3 bg-[#142347] dark:bg-white dark:text-black hover:bg-[#101b38] dark:hover:bg-white/90 text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                >
+                  {isInspecting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <span>Inspect</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 p-3 rounded-xl text-xs font-medium">

@@ -122,6 +122,7 @@ interface LibraryState {
   isEqModalOpen: boolean;
   isShareModalOpen: boolean;
   isImportModalOpen: boolean;
+  importModalInitialTab: 'oto' | 'spotify' | 'yt' | 'sc' | 'otofy' | null;
   isCreatePlaylistModalOpen: boolean;
   createPlaylistInitialTracks: Track[] | null;
   isSyncModalOpen: boolean;
@@ -204,6 +205,8 @@ interface LibraryActions {
   toggleEqModal: () => void;
   toggleShareModal: () => void;
   toggleImportModal: () => void;
+  openImportModal: (initialTab?: 'oto' | 'spotify' | 'yt' | 'sc' | 'otofy') => void;
+  closeImportModal: () => void;
   toggleCreatePlaylistModal: () => void;
   openCreatePlaylistModal: (initialTracks?: Track[]) => void;
   closeCreatePlaylistModal: () => void;
@@ -257,6 +260,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   isEqModalOpen: false,
   isShareModalOpen: false,
   isImportModalOpen: false,
+  importModalInitialTab: null,
   isCreatePlaylistModalOpen: false,
   createPlaylistInitialTracks: null,
   isSyncModalOpen: false,
@@ -1561,6 +1565,10 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   toggleEqModal: () => set((s) => ({ isEqModalOpen: !s.isEqModalOpen })),
   toggleShareModal: () => set((s) => ({ isShareModalOpen: !s.isShareModalOpen })),
   toggleImportModal: () => set((s) => ({ isImportModalOpen: !s.isImportModalOpen })),
+  openImportModal: (initialTab) =>
+    set({ isImportModalOpen: true, importModalInitialTab: initialTab || null }),
+  closeImportModal: () =>
+    set({ isImportModalOpen: false, importModalInitialTab: null }),
   toggleCreatePlaylistModal: () =>
     set((s) => ({
       isCreatePlaylistModalOpen: !s.isCreatePlaylistModalOpen,

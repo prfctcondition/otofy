@@ -206,4 +206,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('download:batch-progress', handler);
     return () => ipcRenderer.removeListener('download:batch-progress', handler);
   },
+  saveBackupFile: (defaultFilename: string, content: string) =>
+    ipcRenderer.invoke('backup:save-file', defaultFilename, content),
+  openBackupFile: () =>
+    ipcRenderer.invoke('backup:open-file'),
 });
