@@ -32,6 +32,7 @@ interface PlayerState {
 
 interface PlayerActions {
   playTrack: (track: Track, queue?: Track[], source?: 'playlist' | 'album' | 'artist' | 'radio' | 'single') => Promise<void>;
+  replayCurrentTrack: () => Promise<void>;
   setActiveTrackOnly: (track: Track) => void;
   play: () => Promise<void>;
   pause: () => void;
@@ -584,6 +585,18 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     });
   },
 
+  replayCurrentTrack: async () => {
+    const { activeTrack } = get();
+    if (!activeTrack) return;
+
+    resetTrackHistoryState(null);
+    lastDiscordSync = 0;
+    lastPositionSync = 0;
+    set({ currentTime: 0, isPlaying: true, isBuffering: true, playbackError: null });
+
+    await get().playTrack(activeTrack);
+  },
+
   playTrack: async (track, queue, queueSource) => {
     // Stop any existing audio immediately to prevent old track from continuing in background
     try {
@@ -1016,8 +1029,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     const isAtEnd = queueIndex >= queue.length - 1;
     if (isAtEnd) {
       if (repeatMode === 'one') {
-        audioEngine.seek(0);
-        await audioEngine.play();
+        await get().replayCurrentTrack();
         return;
       }
 
@@ -1235,6 +1247,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
       if (
         crossfadeEnabled &&
+        repeatMode !== 'one' &&
         dur > crossfadeDuration + crossfadeDuration &&
         timeRemaining <= crossfadeDuration &&
         timeRemaining > 0 &&
@@ -1361,7 +1374,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
     };
 
-    const onEnded = (e: Event) => {
+    const onEnded = async (e: Event) => {
       const target = e.target as HTMLAudioElement;
       if (target !== audioEngine.activeAudioElement) return;
 
@@ -1374,14 +1387,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
 
       if (repeatMode === 'one') {
-        resetTrackHistoryState(active?.id);
-        audioEngine.seek(0);
-        audioEngine.play();
-        commitTrackToHistory(active);
-        lastDiscordSync = 0;
-        syncDiscordPresence(get().activeTrack, true, 0, get().duration);
+        await get().replayCurrentTrack();
       } else {
-        get().nextTrack();
+        await get().nextTrack();
       }
     };
 
