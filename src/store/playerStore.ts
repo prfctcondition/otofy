@@ -434,6 +434,15 @@ export const getInitialSavedVolume = (): number => {
   return 0.5; // Safe default (50%), strictly not 1.0
 };
 
+const sanitizeTrackForStorage = (t: Track): Track => {
+  if (!t || !t.streamUrl || t.streamUrl.startsWith('atom:') || t.streamUrl.startsWith('blob:')) {
+    return t;
+  }
+  const copy = { ...t };
+  delete copy.streamUrl;
+  return copy;
+};
+
 export const getInitialLastActiveTrack = (): Track | null => {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
@@ -441,7 +450,7 @@ export const getInitialLastActiveTrack = (): Track | null => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object' && parsed.id && parsed.title) {
-          return parsed as Track;
+          return sanitizeTrackForStorage(parsed as Track);
         }
       }
     } catch {}
@@ -456,7 +465,7 @@ export const getInitialLastQueue = (): Track[] => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed as Track[];
+          return parsed.map((t: Track) => sanitizeTrackForStorage(t));
         }
       }
     } catch {}
@@ -494,14 +503,15 @@ export const getInitialLastQueueSource = (): 'playlist' | 'album' | 'artist' | '
 const persistLastActiveTrack = (track: Track | null) => {
   if (!track || typeof window === 'undefined' || !window.localStorage) return;
   try {
-    localStorage.setItem(STORAGE_KEY_LAST_TRACK, JSON.stringify(track));
+    localStorage.setItem(STORAGE_KEY_LAST_TRACK, JSON.stringify(sanitizeTrackForStorage(track)));
   } catch {}
 };
 
 const persistLastQueue = (queue: Track[], queueIndex: number, queueSource?: string) => {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
-    localStorage.setItem(STORAGE_KEY_LAST_QUEUE, JSON.stringify(queue));
+    const cleanQueue = queue.map((t) => sanitizeTrackForStorage(t));
+    localStorage.setItem(STORAGE_KEY_LAST_QUEUE, JSON.stringify(cleanQueue));
     localStorage.setItem(STORAGE_KEY_LAST_QUEUE_INDEX, String(queueIndex));
     if (queueSource) {
       localStorage.setItem(STORAGE_KEY_LAST_QUEUE_SOURCE, queueSource);
@@ -606,6 +616,11 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     persistLastActiveTrack(track);
 
     const state = get();
+    if (state.activeTrack && state.activeTrack.id !== track.id) {
+      const nextHistory = [...state.playbackHistory, state.activeTrack];
+      if (nextHistory.length > 100) nextHistory.shift();
+      set({ playbackHistory: nextHistory });
+    }
     const newQueue = queue || state.queue;
     const resolvedSource = queueSource || (queue ? 'playlist' : state.queueSource || 'single');
     let resolvedIndex = 0;
@@ -691,27 +706,21 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
         const recovered = await attemptStreamFallback(track, set, get);
         if (!recovered) {
           consecutiveErrorsCount++;
-          const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
-          const isBot = Boolean(
-            error?.includes('YOUTUBE_BOT_CHALLENGE') ||
-            error?.includes('Sign in to confirm') ||
-            (error && /bot/i.test(error))
-          );
-
-          if (isBot || consecutiveErrorsCount >= 2) {
-            notifyBotChallengeOrRepeatedErrors();
-            set({
-              isPlaying: false,
-              isBuffering: false,
-              playbackError: netMsg,
-            });
-          } else {
-            set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
-            useToastStore.getState().error(
-              `${errTitle}: "${track.title}"`,
-              netMsg
-            );
+          const currentQueue = get().queue;
+          if (consecutiveErrorsCount < 3 && currentQueue.length > 1) {
+            console.warn(`[Player] Track "${track.title}" unavailable, advancing to next track...`);
+            await get().nextTrack();
+            return;
           }
+
+          const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
+          notifyBotChallengeOrRepeatedErrors();
+          set({
+            isPlaying: false,
+            isBuffering: false,
+            playbackError: netMsg,
+          });
+          return;
         }
       }
     } catch (err: any) {
@@ -719,27 +728,21 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const recovered = await attemptStreamFallback(track, set, get);
       if (!recovered) {
         consecutiveErrorsCount++;
-        const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
-        const isBot = Boolean(
-          err?.message?.includes('YOUTUBE_BOT_CHALLENGE') ||
-          err?.message?.includes('Sign in to confirm') ||
-          (err?.message && /bot/i.test(err.message))
-        );
-
-        if (isBot || consecutiveErrorsCount >= 2) {
-          notifyBotChallengeOrRepeatedErrors();
-          set({
-            isPlaying: false,
-            isBuffering: false,
-            playbackError: netMsg,
-          });
-        } else {
-          set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
-          useToastStore.getState().error(
-            `${errTitle}: "${track.title}"`,
-            netMsg
-          );
+        const currentQueue = get().queue;
+        if (consecutiveErrorsCount < 3 && currentQueue.length > 1) {
+          console.warn(`[Player] Playback failed for "${track.title}", advancing to next track...`);
+          await get().nextTrack();
+          return;
         }
+
+        const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
+        notifyBotChallengeOrRepeatedErrors();
+        set({
+          isPlaying: false,
+          isBuffering: false,
+          playbackError: netMsg,
+        });
+        return;
       }
     }
 
@@ -1068,23 +1071,24 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   prevTrack: async () => {
-    const { queue, queueIndex, currentTime, playbackHistory } = get();
+    const { queue, queueIndex, currentTime, playbackHistory, isShuffle, repeatMode } = get();
     if (queue.length === 0) return;
 
     const now = Date.now();
 
-    // Case 1 (Seek past 10s without double-click): restart current track
-    if (currentTime > 10 && now - lastPrevClickTime > 2000) {
+    // Standard player behavior (Spotify/Apple Music):
+    // If playing past 3s and not double-clicked within 1.5s: restart current track from beginning
+    if (currentTime > 3 && now - lastPrevClickTime > 1500) {
       audioEngine.seek(0);
       set({ currentTime: 0 });
       lastPrevClickTime = now;
       return;
     }
 
-    // Case 2 (Within first 10s OR double-click within 2s):
     lastPrevClickTime = 0;
 
-    if (playbackHistory.length > 0) {
+    // In Shuffle mode: return through playback history
+    if (isShuffle && playbackHistory.length > 0) {
       const nextHistory = [...playbackHistory];
       const previousTrack = nextHistory.pop()!;
       set({ playbackHistory: nextHistory });
@@ -1098,8 +1102,22 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       return;
     }
 
-    const prevIdx = queueIndex === 0 ? queue.length - 1 : queueIndex - 1;
-    await get().jumpToQueueIndex(prevIdx);
+    // In normal (linear) mode: move backward in queue if not at the start
+    if (queueIndex > 0) {
+      await get().jumpToQueueIndex(queueIndex - 1);
+      return;
+    }
+
+    // At the beginning of the queue (queueIndex === 0):
+    // Only wrap around to end of queue if repeatMode === 'all'
+    if (repeatMode === 'all' && queue.length > 1) {
+      await get().jumpToQueueIndex(queue.length - 1);
+      return;
+    }
+
+    // Otherwise, restart the current track from 0:00
+    audioEngine.seek(0);
+    set({ currentTime: 0 });
   },
 
   seek: (time: number) => {
@@ -1447,23 +1465,20 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       }
 
       consecutiveErrorsCount++;
-      const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
-      if (consecutiveErrorsCount >= 2) {
-        notifyBotChallengeOrRepeatedErrors();
-        set({
-          isPlaying: false,
-          isBuffering: false,
-          playbackError: netMsg,
-        });
+      const currentQueue = get().queue;
+      if (consecutiveErrorsCount < 3 && currentQueue.length > 1) {
+        console.warn(`[Player] Audio error on "${currentTrack?.title}", advancing to next track...`);
+        await get().nextTrack();
         return;
       }
 
-      const trackTitle = currentTrack ? `"${currentTrack.title}"` : '';
-      set({ isPlaying: false, isBuffering: false, playbackError: netMsg });
-      useToastStore.getState().error(
-        trackTitle ? `${errTitle}: ${trackTitle}` : errTitle,
-        netMsg
-      );
+      const { title: errTitle, message: netMsg } = getPlaybackFailureCopy();
+      notifyBotChallengeOrRepeatedErrors();
+      set({
+        isPlaying: false,
+        isBuffering: false,
+        playbackError: netMsg,
+      });
     };
 
     audioEngine.addEventListener('timeupdate', onTimeUpdate);

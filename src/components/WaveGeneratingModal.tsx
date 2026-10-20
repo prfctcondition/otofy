@@ -18,7 +18,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const settingsStore = useSettingsStore();
-  const playerStore = usePlayerStore();
+  const playTrack = usePlayerStore((s) => s.playTrack);
   const libraryStore = useLibraryStore();
   const toastStore = useToastStore();
 
@@ -67,7 +67,7 @@ export const WaveGeneratingModal: React.FC<WaveGeneratingModalProps> = ({
             gradientFrom: '#1E293B',
             gradientTo: '#142347',
           });
-          await playerStore.playTrack(tracks[0], tracks);
+          await playTrack(tracks[0], tracks);
           toastStore.success(stationTitle, `${waveName} (${tracks.length})`);
         }
       })

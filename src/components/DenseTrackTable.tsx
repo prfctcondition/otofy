@@ -239,7 +239,6 @@ const TrackRow = React.memo<TrackRowProps>(({
   onRowMouseDown,
 }) => {
   const { t } = useTranslation();
-  const [isHovered, setIsHovered] = useState(false);
   const dlStatus = useDownloadStore((s) => s.downloads[track.id] || IDLE_DOWNLOAD);
   const startDownload = useDownloadStore((s) => s.startDownload);
   const openDownloadedFile = useDownloadStore((s) => s.openDownloadedFile);
@@ -253,9 +252,7 @@ const TrackRow = React.memo<TrackRowProps>(({
       onClick={(e) => onRowClick(e, track, index)}
       onDoubleClick={() => onDoubleClick(track)}
       onContextMenu={(e) => onOpenContextMenu(e, track)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-150 relative border select-none ${
+      className={`group grid grid-cols-[36px_minmax(0,1fr)_120px] md:grid-cols-[36px_minmax(0,1fr)_minmax(120px,220px)_120px] lg:grid-cols-[36px_minmax(0,4fr)_minmax(140px,2.5fr)_140px_130px] items-center gap-3 px-3 py-2 rounded-xl text-xs transition-colors duration-100 relative border select-none ${
         isReorderable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       } ${
         isDragged ? 'opacity-40 scale-[0.99] border-dashed border-[#142347]/40 bg-[#142347]/5 dark:border-white/40 dark:bg-white/5' : ''
@@ -280,56 +277,60 @@ const TrackRow = React.memo<TrackRowProps>(({
       }`}
     >
       {/* 1. Track Number / Play Button Column */}
-      <div className="w-9 shrink-0 flex items-center justify-center">
-        {isHovered ? (
-          <button
-            draggable={false}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isCurrent) {
-                onPlayToggle();
-              } else {
-                onDoubleClick(track);
-              }
-            }}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[#142347] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-            title={isCurrent && isPlaying ? t.player.pause : t.player.play}
-          >
-            {isCurrent && isPlaying ? (
-              <Pause size={14} fill="currentColor" />
-            ) : (
-              <Play size={14} fill="currentColor" />
-            )}
-          </button>
-        ) : isCurrent && isBuffering ? (
-          <Loader2 size={14} className="animate-spin text-[#142347] dark:text-white" title="Loading audio..." />
-        ) : isCurrent && isPlaying ? (
-          <div className="flex items-end gap-0.5 h-3.5" title="Playing">
-            <span className="w-0.5 bg-[#142347] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
-            <span className="w-0.5 bg-[#142347]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
-            <span className="w-0.5 bg-[#142347]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
-          </div>
-        ) : (
-          !hideTrackNumber && (
-            <div className="flex items-center justify-center gap-0.5">
-              {isReorderable && (
-                <GripVertical
-                  size={12}
-                  className="text-[#94A3B8] dark:text-white/40 group-hover:text-[#142347] dark:group-hover:text-white transition-colors shrink-0 -ml-1 mr-0.5"
-                  title="Drag to reorder"
-                />
-              )}
-              <span
-                className={`text-xs ${
-                  isCurrent ? 'text-[#142347] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
-                }`}
-              >
-                {index + 1}
-              </span>
+      <div className="w-9 shrink-0 flex items-center justify-center relative">
+        <button
+          draggable={false}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isCurrent) {
+              onPlayToggle();
+            } else {
+              onDoubleClick(track);
+            }
+          }}
+          className={`w-7 h-7 rounded-full items-center justify-center text-[#142347] dark:text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer ${
+            isCurrent && isBuffering ? 'hidden' : 'hidden group-hover:flex'
+          }`}
+          title={isCurrent && isPlaying ? t.player.pause : t.player.play}
+        >
+          {isCurrent && isPlaying ? (
+            <Pause size={14} fill="currentColor" />
+          ) : (
+            <Play size={14} fill="currentColor" />
+          )}
+        </button>
+
+        <div className={`items-center justify-center ${isCurrent && isBuffering ? 'flex' : 'flex group-hover:hidden'}`}>
+          {isCurrent && isBuffering ? (
+            <Loader2 size={14} className="animate-spin text-[#142347] dark:text-white" title="Loading audio..." />
+          ) : isCurrent && isPlaying ? (
+            <div className="flex items-end gap-0.5 h-3.5" title="Playing">
+              <span className="w-0.5 bg-[#142347] dark:bg-white animate-[bounce_0.8s_infinite] h-full rounded-full" />
+              <span className="w-0.5 bg-[#142347]/80 dark:bg-white/80 animate-[bounce_0.6s_infinite] h-2/3 rounded-full" />
+              <span className="w-0.5 bg-[#142347]/90 dark:bg-white/90 animate-[bounce_1.0s_infinite] h-5/6 rounded-full" />
             </div>
-          )
-        )}
+          ) : (
+            !hideTrackNumber && (
+              <div className="flex items-center justify-center gap-0.5">
+                {isReorderable && (
+                  <GripVertical
+                    size={12}
+                    className="text-[#94A3B8] dark:text-white/40 group-hover:text-[#142347] dark:group-hover:text-white transition-colors shrink-0 -ml-1 mr-0.5"
+                    title="Drag to reorder"
+                  />
+                )}
+                <span
+                  className={`text-xs ${
+                    isCurrent ? 'text-[#142347] dark:text-white font-bold' : 'text-[#94A3B8] dark:text-white/70'
+                  }`}
+                >
+                  {index + 1}
+                </span>
+              </div>
+            )
+          )}
+        </div>
       </div>
 
       <div className="min-w-0 flex items-center gap-3">
@@ -403,10 +404,8 @@ const TrackRow = React.memo<TrackRowProps>(({
           }}
           className={`p-1 rounded-full transition-colors shrink-0 ${
             track.isLiked
-              ? 'text-rose-500 hover:text-rose-600'
-              : isHovered
-              ? 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white'
-              : 'opacity-0'
+              ? 'text-rose-500 hover:text-rose-600 opacity-100'
+              : 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white opacity-0 group-hover:opacity-100'
           }`}
           title={track.isLiked ? t.player.unlike : t.player.like}
         >
@@ -496,9 +495,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             className={`p-1 rounded-full transition-colors cursor-pointer shrink-0 ${
               dlStatus.status === 'error'
                 ? 'text-rose-500 hover:text-rose-400 opacity-100'
-                : isHovered
-                ? 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white opacity-100'
-                : 'opacity-0'
+                : 'text-[#94A3B8] hover:text-[#142347] dark:hover:text-white opacity-0 group-hover:opacity-100'
             }`}
             title={dlStatus.status === 'error' ? `Download error: ${dlStatus.error}. Click to retry` : 'Download track (MP3 320kbps)'}
           >
@@ -517,9 +514,7 @@ const TrackRow = React.memo<TrackRowProps>(({
             e.stopPropagation();
             onOpenContextMenu(e, track);
           }}
-          className={`p-1 rounded-full text-[#94A3B8] hover:text-[#142347] dark:hover:text-white transition-colors shrink-0 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="p-1 rounded-full text-[#94A3B8] hover:text-[#142347] dark:hover:text-white transition-colors shrink-0 opacity-0 group-hover:opacity-100"
           title="More actions"
         >
           <MoreHorizontal size={15} />

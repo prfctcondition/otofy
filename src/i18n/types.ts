@@ -371,6 +371,39 @@ export interface TranslationSchema {
     queueAddedToast: string;
     queueAddedToastDesc: string;
   };
+  stats?: {
+    title: string;
+    subtitle: string;
+    thisWeek: string;
+    thisMonth: string;
+    thisYear: string;
+    allTime: string;
+    musicTime: string;
+    musicTimeDesc: string;
+    tracksPlayed: string;
+    uniqueSongs: string;
+    topArtist: string;
+    plays: string;
+    peakRhythm: string;
+    topTracks: string;
+    topTracksDesc: string;
+    topArtists: string;
+    topArtistsDesc: string;
+    hourlyRhythm: string;
+    peakHourPrefix: string;
+    dailyActivity: string;
+    favoriteDayPrefix: string;
+    nightOwl: string;
+    eveningVibe: string;
+    dayListener: string;
+    morningListener: string;
+    noDataTitle: string;
+    noDataDesc: string;
+    playsSingle: string;
+    playsMultiple: string;
+    hours: string;
+    minutes: string;
+  };
 }
 
 export interface GenreTranslation {

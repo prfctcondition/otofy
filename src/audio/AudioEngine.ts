@@ -266,11 +266,12 @@ export class AudioEngine {
       currentNode = this.eqFilters[i];
     }
 
-    // EQ -> Master Gain -> Limiter -> Analyser -> Destination
+    // EQ -> Master Gain -> Limiter -> Destination
+    // Tap unattenuated audio signal into Analyser directly for beat visualizer
     currentNode.connect(this.masterGainNode);
+    currentNode.connect(this.analyserNode);
     this.masterGainNode.connect(this.limiterNode);
-    this.limiterNode.connect(this.analyserNode);
-    this.analyserNode.connect(ctx.destination);
+    this.limiterNode.connect(ctx.destination);
 
     this.isInitialized = true;
   }
@@ -535,6 +536,34 @@ export class AudioEngine {
     const data = new Uint8Array(this.analyserNode.frequencyBinCount);
     this.analyserNode.getByteTimeDomainData(data);
     return data;
+  }
+
+  get isPlaying(): boolean {
+    return !this.activeAudioElement.paused && !this.activeAudioElement.ended && this.activeAudioElement.readyState > 1;
+  }
+
+  // Multi-band audio energy analysis for dynamic living ambient background
+  getAudioEnergy(): { bass: number; mid: number; high: number; overall: number } {
+    if (!this.analyserNode || this.activeAudioElement.paused) {
+      return { bass: 0, mid: 0, high: 0, overall: 0 };
+    }
+    const data = new Uint8Array(16);
+    this.analyserNode.getByteFrequencyData(data);
+
+    // Sub-bass & kick (bins 0, 1: 0-680Hz)
+    const bass = (data[0] + data[1]) / 510;
+    // Low mids & vocal presence & snare (bins 2, 3, 4, 5: 680-2000Hz)
+    const mid = (data[2] + data[3] + data[4] + data[5]) / 1020;
+    // Highs & hi-hats (bins 6, 7, 8, 9: 2000-4500Hz)
+    const high = (data[6] + data[7] + data[8] + data[9]) / 1020;
+    const overall = (bass + bass + mid + high) / 4;
+
+    return { bass, mid, high, overall };
+  }
+
+  // Bass kick energy normalized 0.0 to 1.0 (sub-bass 30-150Hz)
+  getBassEnergy(): number {
+    return this.getAudioEnergy().bass;
   }
 
   get currentTime(): number {

@@ -130,7 +130,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
 
-  const playerStore = usePlayerStore();
+  const playTrack = usePlayerStore((s) => s.playTrack);
   const toastStore = useToastStore();
 
   const sections = useMemo(() => {
@@ -147,7 +147,7 @@ export const MoodsAndGenresView: React.FC<MoodsAndGenresViewProps> = ({ onBack }
       const tracks = await apiGetGenreTracks(item.title);
       if (tracks && tracks.length > 0) {
         toastStore.success(stationTitle, `${item.title} (${tracks.length})`);
-        playerStore.playTrack(tracks[0], tracks);
+        playTrack(tracks[0], tracks);
       } else {
         toastStore.error(errorTitle, `${noTracksPrefix} «${item.title}»`);
       }

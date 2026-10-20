@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -239,3 +239,70 @@ button:active,
 [type="submit"]:active {
   outline: none !important;
 }
+
+
+/* Responsive layout for Listening Stats using CSS Container Queries */
+.stats-cq-container {
+  container-type: inline-size;
+  container-name: statsContainer;
+}
+
+.stats-cq-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stats-cq-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+@container statsContainer (min-width: 820px) {
+  .stats-cq-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .stats-cq-split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@keyframes floatOrbA {
+  0% { transform: translate3d(-50%, -50%, 0) scale(1); }
+  50% { transform: translate3d(calc(-50% + 50px), calc(-50% - 40px), 0) scale(1.06); }
+  100% { transform: translate3d(calc(-50% - 35px), calc(-50% + 45px), 0) scale(0.96); }
+}
+
+@keyframes floatOrbB {
+  0% { transform: translate3d(-50%, -50%, 0) scale(1); }
+  50% { transform: translate3d(calc(-50% - 55px), calc(-50% + 35px), 0) scale(0.94); }
+  100% { transform: translate3d(calc(-50% + 40px), calc(-50% - 50px), 0) scale(1.08); }
+}
+
+@keyframes floatOrbC {
+  0% { transform: translate3d(-50%, -50%, 0) scale(1); }
+  50% { transform: translate3d(calc(-50% + 40px), calc(-50% + 50px), 0) scale(1.07); }
+  100% { transform: translate3d(calc(-50% - 45px), calc(-50% - 30px), 0) scale(0.95); }
+}
+
+@keyframes floatOrbD {
+  0% { transform: translate3d(-50%, -50%, 0) scale(1); }
+  50% { transform: translate3d(calc(-50% - 40px), calc(-50% - 45px), 0) scale(0.95); }
+  100% { transform: translate3d(calc(-50% + 45px), calc(-50% + 35px), 0) scale(1.05); }
+}
+
+.animate-float-orb-0 {
+  animation: floatOrbA 24s ease-in-out infinite alternate;
+}
+.animate-float-orb-1 {
+  animation: floatOrbB 30s ease-in-out infinite alternate;
+}
+.animate-float-orb-2 {
+  animation: floatOrbC 27s ease-in-out infinite alternate;
+}
+.animate-float-orb-3 {
+  animation: floatOrbD 33s ease-in-out infinite alternate;
+}
+

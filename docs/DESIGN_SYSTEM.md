@@ -10,8 +10,7 @@ This document defines the strict visual guidelines and color palette for Zen Mus
 1. **Light Theme**:
    - **Base**: Clean whites, frosted glass, light slates (`#F8FAFC`, `#F1F5F9`).
    - **Text**: Deep slate / charcoal (`#0F172A`, `#334155`, `#475569`).
-   - **Accent Color**: `#0F172A` (Obsidian Slate).
-   - **Active Elements**: `#0F172A` background with crisp white `#FFFFFF` text.
+   - **Accent Color**: `#1C3061`
    - **Interactive Highlights**: Slate glass hover states (`hover:bg-black/[0.04]`).
 
 2. **Dark Theme**:

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Disc,
   Music,
@@ -30,8 +30,6 @@ interface PlaceholderArtworkProps {
   className?: string;
   specularBorder?: boolean;
 }
-
-const failedImageUrls = new Set<string>();
 
 const extractYtVideoId = (str?: string): string | undefined => {
   if (!str || typeof str !== 'string') return undefined;
@@ -65,8 +63,7 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
     const vId = extractYtVideoId(sourceId) || extractYtVideoId(imageUrl);
     const isYtSource = source === 'YT' || source?.toLowerCase().includes('youtube') || Boolean(vId);
     if (vId && isYtSource) {
-      const url = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
-      return failedImageUrls.has(url) ? undefined : url;
+      return `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
     }
     return undefined;
   }, [source, sourceId, imageUrl]);
@@ -77,7 +74,7 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
     if (clean.startsWith('//')) {
       clean = `https:${clean}`;
     }
-    return failedImageUrls.has(clean) ? undefined : clean;
+    return clean;
   }, [imageUrl]);
 
   const [currentImgUrl, setCurrentImgUrl] = React.useState<string | undefined>(
@@ -90,9 +87,6 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
   }, [normalizedImgUrl, ytFallbackUrl]);
 
   const handleImageError = () => {
-    if (currentImgUrl) {
-      failedImageUrls.add(currentImgUrl);
-    }
     if (currentImgUrl !== ytFallbackUrl && ytFallbackUrl) {
       setCurrentImgUrl(ytFallbackUrl);
     } else {
@@ -101,7 +95,8 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
   };
 
   const computedSize = typeof size === 'number' ? `${size}px` : size;
-  const computedIconSize = iconSize ?? (typeof size === 'number' ? Math.round(size * 0.44) : 20);
+  const computedIconSize =
+    iconSize ?? (typeof size === 'number' ? Math.round(size / (1 / 0.44)) : 20);
 
   const hasImage = Boolean(currentImgUrl && !imageError);
 
@@ -154,7 +149,6 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
         background: hasImage ? '#142347' : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
       }}
     >
-      {/* Real Image Artwork */}
       {hasImage && (
         <img
           src={currentImgUrl}
@@ -168,15 +162,12 @@ export const PlaceholderArtwork: React.FC<PlaceholderArtworkProps> = React.memo(
         />
       )}
 
-      {/* Subtle Specular Sheen Diagonal Reflection */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.18] via-transparent to-black/30 z-10" />
 
-      {/* Hair-thin 0.5px Specular Border */}
       {specularBorder && (
         <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-white/[0.15] z-10" />
       )}
 
-      {/* Minimal Monochrome Icon Fallback */}
       {!hasImage && <div className="relative z-10">{renderIcon()}</div>}
     </div>
   );

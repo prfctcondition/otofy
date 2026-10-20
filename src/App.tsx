@@ -1,3 +1,4 @@
+import { useAudioReactive } from './audio/useAudioReactive';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ViewportMode, Track, Playlist, ArtistDetails, SourceType, IconType } from './types';
 import { TopNavbar } from './components/TopNavbar';
@@ -14,6 +15,8 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { WaveGeneratingModal } from './components/WaveGeneratingModal';
 import { SuggestedTracksSection } from './components/SuggestedTracksSection';
 import { SettingsScreen } from './components/SettingsScreen';
+import { StatsScreen } from './components/StatsScreen';
+import { initAnalyticsTracker } from './services/analyticsService';
 import { StationItem, MadeForYouItem, QuickAccessItem } from './data/homeData';
 import { apiGetGenreTracks } from './services/musicApiService';
 
@@ -57,8 +60,19 @@ import {
 
 export default function App() {
   const libraryStore = useLibraryStore();
-  const playerStore = usePlayerStore();
   const searchStore = useSearchStore();
+  const mainAmbientRef = useRef<HTMLDivElement | null>(null);
+  useAudioReactive(mainAmbientRef);
+
+  const activeTrack = usePlayerStore((s) => s.activeTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const isShuffle = usePlayerStore((s) => s.isShuffle);
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const playerNextTrack = usePlayerStore((s) => s.nextTrack);
+  const playerPrevTrack = usePlayerStore((s) => s.prevTrack);
+  const initAudioListeners = usePlayerStore((s) => s.initAudioListeners);
 
   const {
     playlists,
@@ -82,8 +96,6 @@ export default function App() {
     isQueueOpen,
     isFullscreenLyrics,
   } = libraryStore;
-
-  const { activeTrack, isPlaying, isShuffle } = playerStore;
   const [activeQueuePlaylistId, setActiveQueuePlaylistId] = useState<string | null>(null);
   const activeQueuePlaylistIdRef = useRef<string | null>(null);
 
@@ -153,6 +165,7 @@ export default function App() {
       await seedDatabaseIfEmpty();
       await libraryStore.loadLibrary();
       await useSettingsStore.getState().initFromSystem();
+      initAnalyticsTracker();
 
       // Check / Generate 24-hour Daily Dynamic Mixes
       try {
@@ -174,7 +187,7 @@ export default function App() {
     };
 
     initApp();
-    const cleanupAudio = playerStore.initAudioListeners();
+    const cleanupAudio = initAudioListeners();
     const cleanupDl = useDownloadStore.getState().initListeners();
     const cleanupNet = useNetworkStore.getState().initNetworkListeners();
 
@@ -506,12 +519,12 @@ export default function App() {
 
   const handleTogglePlaylistPlay = () => {
     if (isCurrentPlaylistActive) {
-      playerStore.togglePlay();
+      togglePlay();
     } else if (sortedTracks.length > 0) {
       updateActiveQueuePlaylistId(currentPlaylist.id);
       recordCurrentEntityPlayed();
       const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
-      playerStore.playTrack(sortedTracks[0], sortedTracks, qSource);
+      playTrack(sortedTracks[0], sortedTracks, qSource);
       if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
         handleLoadMoreArtistTracks();
       }
@@ -519,13 +532,13 @@ export default function App() {
   };
 
   const handleTogglePlaylistShuffle = () => {
-    playerStore.toggleShuffle();
+    toggleShuffle();
     if (sortedTracks.length > 0) {
       updateActiveQueuePlaylistId(currentPlaylist.id);
       recordCurrentEntityPlayed();
       const randomIdx = Math.floor(Math.random() / (1 / Math.max(1, sortedTracks.length)));
       const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
-      playerStore.playTrack(sortedTracks[randomIdx], sortedTracks, qSource);
+      playTrack(sortedTracks[randomIdx], sortedTracks, qSource);
       if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
         handleLoadMoreArtistTracks();
       }
@@ -536,18 +549,18 @@ export default function App() {
     updateActiveQueuePlaylistId(currentPlaylist.id);
     recordCurrentEntityPlayed();
     const qSource = currentPlaylist.type === 'Artist' ? 'artist' : currentPlaylist.type === 'Album' ? 'album' : 'playlist';
-    playerStore.playTrack(track, queue, qSource);
+    playTrack(track, queue, qSource);
     if (currentPlaylist.type === 'Artist' && hasMoreTracks) {
       handleLoadMoreArtistTracks();
     }
   };
 
   const handleNextTrack = () => {
-    playerStore.nextTrack();
+    playerNextTrack();
   };
 
   const handlePreviousTrack = () => {
-    playerStore.prevTrack();
+    playerPrevTrack();
   };
 
   const handleNavigateHome = () => {
@@ -706,7 +719,7 @@ export default function App() {
         if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
           document.activeElement.blur();
         }
-        playerStore.togglePlay();
+        togglePlay();
       }
     };
 
@@ -775,7 +788,7 @@ export default function App() {
           gradientTo: '#142347',
         });
         updateActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
-        await playerStore.playTrack(stationTracks[0], stationTracks);
+        await playTrack(stationTracks[0], stationTracks);
       }
     } catch (e) {
       console.warn('[App] Play station error:', e);
@@ -833,7 +846,7 @@ export default function App() {
             gradientTo: '#09090B',
           });
           updateActiveQueuePlaylistId(useLibraryStore.getState().selectedPlaylistId);
-          await playerStore.playTrack(mixTracks[0], mixTracks);
+          await playTrack(mixTracks[0], mixTracks);
         }
       }
     } catch (e) {
@@ -847,7 +860,7 @@ export default function App() {
     const freshId = useLibraryStore.getState().selectedPlaylistId;
     if (freshTracks.length > 0) {
       updateActiveQueuePlaylistId(freshId);
-      await playerStore.playTrack(freshTracks[0], freshTracks);
+      await playTrack(freshTracks[0], freshTracks);
     }
   };
 
@@ -1315,8 +1328,8 @@ export default function App() {
 
   return (
     <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-[#E2E8F0] dark:bg-[#000000] text-[#142347] dark:text-white font-sans antialiased select-none">
-      {/* Background Ambient Lighting (Static, 0% GPU load) */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+      {/* Background Ambient Lighting (Audio-reactive, 0% CPU load) */}
+      <div ref={mainAmbientRef} className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div
           className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full pointer-events-none opacity-80 dark:opacity-20"
           style={{
@@ -1346,6 +1359,7 @@ export default function App() {
         currentView={currentView}
         onNavigateHome={handleNavigateHome}
         onNavigateCatalog={libraryStore.openCatalog}
+        onNavigateStats={libraryStore.openStats}
         onNavigateBack={libraryStore.navigateBack}
         canGoBack={libraryStore.historyIndex > 0}
         canGoForward={libraryStore.historyIndex < libraryStore.history.length - 1}
@@ -1403,6 +1417,8 @@ export default function App() {
                 />
               ) : currentView === 'settings' ? (
                 <SettingsScreen />
+              ) : currentView === 'stats' ? (
+                <StatsScreen />
               ) : (
                 <div
                   ref={mainScrollRef}
@@ -1444,7 +1460,7 @@ export default function App() {
                       isLoadingMoreTracks={isLoadingMoreTracks}
                       onLoadMoreTracks={handleLoadMoreArtistTracks}
                       onTrackSelect={handleSelectTrack}
-                      onPlayToggle={playerStore.togglePlay}
+                      onPlayToggle={togglePlay}
                       onToggleLike={libraryStore.toggleLike}
                       onSelectArtist={handleOpenArtistView}
                       onSelectAlbum={handleOpenAlbumView}
@@ -1483,6 +1499,8 @@ export default function App() {
               />
             ) : currentView === 'settings' ? (
               <SettingsScreen />
+            ) : currentView === 'stats' ? (
+              <StatsScreen />
             ) : mobileActiveTab === 'home' ? (
               <HomeScreen
                 onSelectCollection={handleSelectCollection}
@@ -1533,7 +1551,7 @@ export default function App() {
                     isLoadingMoreTracks={isLoadingMoreTracks}
                     onLoadMoreTracks={handleLoadMoreArtistTracks}
                     onTrackSelect={handleSelectTrack}
-                    onPlayToggle={playerStore.togglePlay}
+                    onPlayToggle={togglePlay}
                     onToggleLike={libraryStore.toggleLike}
                     onSelectArtist={handleOpenArtistView}
                     onSelectAlbum={handleOpenAlbumView}
@@ -1560,7 +1578,7 @@ export default function App() {
             <MobileBottomNav
               currentTrack={activeTrack || ({} as Track)}
               isPlaying={isPlaying}
-              onPlayToggle={playerStore.togglePlay}
+              onPlayToggle={togglePlay}
               onToggleLike={() => activeTrack && libraryStore.toggleLike(activeTrack.id, activeTrack)}
               activeTab={mobileActiveTab}
               onSelectTab={(tab) => {

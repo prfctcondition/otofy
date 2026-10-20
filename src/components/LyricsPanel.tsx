@@ -1,3 +1,4 @@
+import { LiquidWordLine } from './LiquidWordLine';
 import React, { useEffect, useState, useRef } from 'react';
 import { Mic2, X, Music, Search, Sparkles, RefreshCw, Check, ArrowLeft, Pencil, RotateCcw } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
@@ -222,12 +223,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-[#142347] dark:text-white shrink-0">Lyrics</span>
-              {lyricsData?.syncedLyrics && !isSearching && (
-                <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white flex items-center gap-0.5">
-                  <Sparkles size={9} /> Synced
-                </span>
-              )}
+              <span className="text-xs font-bold text-[#142347] dark:text-white shrink-0">Otofy Lyrics</span>
               {lyricsData?.isCustom && !isSearching && (
                 <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#1C3061] text-white dark:bg-white dark:text-[#1C3061] flex items-center gap-0.5 shadow-2xs">
                   <Check size={9} strokeWidth={2.5} /> Saved
@@ -412,15 +408,19 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                   ref={isActive ? activeLineRef : null}
                   onClick={() => seek(line.time)}
                   style={{ contentVisibility: 'auto', containIntrinsicSize: '0 36px' }}
-                  className={`cursor-pointer transition-all duration-200 rounded-xl px-3 py-1.5 ${
+                  className={`cursor-pointer transition-[background-color,border-color,opacity] duration-200 rounded-xl px-3 py-1.5 text-xs font-bold ${
                     isActive
-                      ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#142347] dark:border-white text-[#142347] dark:text-white font-extrabold text-base scale-[1.01] shadow-2xs'
+                      ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#142347] dark:border-white text-[#142347] dark:text-white shadow-2xs'
                       : isPast
-                      ? 'text-[#64748B] dark:text-white/60 font-medium text-xs hover:text-[#142347] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
-                      : 'text-[#94A3B8] dark:text-white/40 font-medium text-xs hover:text-[#142347] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
+                      ? 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
+                      : 'text-[#94A3B8] dark:text-white/40 hover:text-[#142347] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
                   }`}
                 >
-                  <span>{line.text}</span>
+                  <LiquidWordLine
+                    line={line}
+                    isActive={isActive}
+                    themeMode={typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+                  />
                 </div>
               );
             })}

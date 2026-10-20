@@ -1,3 +1,4 @@
+import { LiquidWordLine } from './LiquidWordLine';
 import React, { useEffect, useState, useRef } from 'react';
 import { Mic2, X, Music, Search, Sparkles, RefreshCw, Check, RotateCcw } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
@@ -242,15 +243,19 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({ isOpen, onClose }) => 
                     ref={isActive ? activeLineRef : null}
                     onClick={() => seek(line.time)}
                     style={{ contentVisibility: 'auto', containIntrinsicSize: '0 48px' }}
-                    className={`cursor-pointer transition-all duration-200 rounded-xl px-4 py-2 ${
+                    className={`cursor-pointer transition-[background-color,border-color,opacity] duration-200 rounded-xl px-4 py-2 text-base font-bold ${
                       isActive
-                        ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#142347] dark:border-white text-[#142347] dark:text-white font-black text-xl scale-[1.01] shadow-xs'
+                        ? 'bg-black/[0.08] dark:bg-white/[0.14] border-l-4 border-[#142347] dark:border-white text-[#142347] dark:text-white shadow-xs'
                         : isPast
-                        ? 'text-[#64748B] dark:text-white/60 font-medium text-base hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
-                        : 'text-[#94A3B8] dark:text-white/40 font-medium text-base hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
+                        ? 'text-[#64748B] dark:text-white/60 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
+                        : 'text-[#94A3B8] dark:text-white/40 hover:text-[#142347] dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/[0.06]'
                     }`}
                   >
-                    <span>{line.text}</span>
+                    <LiquidWordLine
+                      line={line}
+                      isActive={isActive}
+                      themeMode={typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+                    />
                   </div>
                 );
               })}

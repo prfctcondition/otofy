@@ -52,7 +52,7 @@ export const DEFAULT_INITIAL_PLAYLISTS: Playlist[] = [
 ];
 
 export interface NavigationSnapshot {
-  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings' | 'stats';
   selectedPlaylistId: string;
   viewingPlaylist: Playlist | null;
   currentPlaylistTracks: Track[];
@@ -90,7 +90,7 @@ interface LibraryState {
   selectedPlaylistId: string;
   currentPlaylistTracks: Track[];
   viewingPlaylist: Playlist | null;
-  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings';
+  currentView: 'home' | 'playlist' | 'search' | 'catalog' | 'settings' | 'stats';
   viewportMode: 'desktop' | 'mobile';
   isSidebarCollapsed: boolean;
   isRightPanelOpen: boolean;
@@ -144,7 +144,8 @@ interface LibraryActions {
   resolveTrack: (trackId: string, alternative: import('../types').TrackAlternative) => Promise<void>;
   keepCurrentTrackMatch: (trackId: string) => Promise<void>;
   updatePlaylistTracks: (playlistId: string, updatedTracks: Track[]) => Promise<void>;
-  setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings') => void;
+  setCurrentView: (view: 'home' | 'playlist' | 'search' | 'catalog' | 'settings' | 'stats') => void;
+  openStats: () => void;
   openCatalog: () => void;
   openSettings: () => void;
   navigateBack: () => void;
@@ -1420,7 +1421,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
   setCurrentView: (view) => {
     const state = get();
     if (state.currentView === view && (view === 'home' || view === 'catalog')) return;
-    const isSpecialView = view === 'home' || view === 'catalog';
+    const isSpecialView = view === 'home' || view === 'catalog' || view === 'settings' || view === 'stats';
     const snapshot: NavigationSnapshot = {
       currentView: view,
       selectedPlaylistId: state.selectedPlaylistId,
@@ -1451,6 +1452,26 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()((set, get
     const historyUpdate = pushHistoryEntry(state, snapshot);
     set({
       currentView: 'catalog',
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
+      ...historyUpdate,
+    });
+  },
+
+  openStats: () => {
+    const state = get();
+    if (state.currentView === 'stats') return;
+    const snapshot: NavigationSnapshot = {
+      currentView: 'stats',
+      selectedPlaylistId: state.selectedPlaylistId,
+      viewingPlaylist: null,
+      currentPlaylistTracks: [],
+      currentArtistDetails: null,
+    };
+    const historyUpdate = pushHistoryEntry(state, snapshot);
+    set({
+      currentView: 'stats',
       viewingPlaylist: null,
       currentPlaylistTracks: [],
       currentArtistDetails: null,

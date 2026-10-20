@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
   Plus,
@@ -36,13 +36,12 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
   const [anchorTrackName, setAnchorTrackName] = useState<string>('');
 
   const { t, language } = useTranslation();
-  const playerStore = usePlayerStore();
+  const activeTrack = usePlayerStore((s) => s.activeTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const playTrack = usePlayerStore((s) => s.playTrack);
   const libraryStore = useLibraryStore();
   const settingsStore = useSettingsStore();
   const toastStore = useToastStore();
-
-  const activeTrack = playerStore.activeTrack;
-  const isPlaying = playerStore.isPlaying;
 
   const loadSuggestions = useCallback(async () => {
     if (!tracks || tracks.length === 0) {
@@ -214,7 +213,7 @@ export const SuggestedTracksSection: React.FC<SuggestedTracksSectionProps> = ({
   };
 
   const handlePlaySuggestedTrack = (track: Track) => {
-    playerStore.playTrack(track, [track, ...suggestedTracks]);
+    playTrack(track, [track, ...suggestedTracks]);
   };
 
   const visibleTracks = useMemo(() => {

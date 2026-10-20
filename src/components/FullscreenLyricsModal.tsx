@@ -1,3 +1,5 @@
+import { LiquidWordLine } from './LiquidWordLine';
+import { useAudioReactive } from '../audio/useAudioReactive';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
@@ -14,7 +16,6 @@ import {
   Volume2,
   VolumeX,
   Volume1,
-  Sparkles,
   RefreshCw,
   Search,
   Check,
@@ -23,6 +24,11 @@ import {
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useToastStore } from '../store/toastStore';
+import {
+  extractColorsFromImage,
+  getFallbackColors,
+  type ExtractedColors,
+} from '../utils/colorExtractor';
 import {
   getTrackLyrics,
   parseLrc,
@@ -33,6 +39,101 @@ import {
   type LrcLine,
 } from '../services/lyricsService';
 import { PlaceholderArtwork } from './PlaceholderArtwork';
+
+interface AmbientOrb {
+  id: string;
+  leftPercent: number;
+  topPercent: number;
+  sizePx: number;
+  color: string;
+  opacity: number;
+}
+
+interface OrbSet {
+  key: string;
+  orbs: AmbientOrb[];
+}
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function generateRandomOrbs(trackKey: string, colors: ExtractedColors): AmbientOrb[] {
+  const seed = hashString(trackKey);
+  const archetype = seed % 5;
+
+  const archetypes = [
+    // 0: Deep Center Pulsar + Satellite Lights
+    [
+      { minX: 30, maxX: 60, minY: 25, maxY: 55, baseSize: 840, baseOpacity: 0.45 },
+      { minX: -15, maxX: 20, minY: -10, maxY: 25, baseSize: 580, baseOpacity: 0.36 },
+      { minX: 65, maxX: 105, minY: 65, maxY: 100, baseSize: 640, baseOpacity: 0.34 },
+      { minX: 75, maxX: 110, minY: 10, maxY: 45, baseSize: 520, baseOpacity: 0.30 },
+    ],
+    // 1: Diagonal Energy River (Top-Left to Bottom-Right)
+    [
+      { minX: -20, maxX: 15, minY: -20, maxY: 20, baseSize: 800, baseOpacity: 0.44 },
+      { minX: 15, maxX: 45, minY: 25, maxY: 55, baseSize: 680, baseOpacity: 0.38 },
+      { minX: 45, maxX: 75, minY: 40, maxY: 75, baseSize: 720, baseOpacity: 0.36 },
+      { minX: 70, maxX: 110, minY: 65, maxY: 105, baseSize: 840, baseOpacity: 0.40 },
+    ],
+    // 2: Counter-Diagonal River (Top-Right to Bottom-Left)
+    [
+      { minX: 65, maxX: 105, minY: -15, maxY: 25, baseSize: 800, baseOpacity: 0.44 },
+      { minX: 45, maxX: 75, minY: 25, maxY: 55, baseSize: 680, baseOpacity: 0.38 },
+      { minX: 15, maxX: 45, minY: 45, maxY: 75, baseSize: 720, baseOpacity: 0.36 },
+      { minX: -20, maxX: 15, minY: 65, maxY: 105, baseSize: 840, baseOpacity: 0.40 },
+    ],
+    // 3: Asymmetric Side Bloom (Lateral Wall of Light)
+    [
+      { minX: -25, maxX: 10, minY: 15, maxY: 65, baseSize: 920, baseOpacity: 0.46 },
+      { minX: 25, maxX: 65, minY: -25, maxY: 15, baseSize: 640, baseOpacity: 0.34 },
+      { minX: 70, maxX: 105, minY: 55, maxY: 95, baseSize: 600, baseOpacity: 0.32 },
+      { minX: 30, maxX: 70, minY: 40, maxY: 75, baseSize: 680, baseOpacity: 0.36 },
+    ],
+    // 4: Dual Horizon Aurora (Top & Bottom Ambient Glow)
+    [
+      { minX: -5, maxX: 40, minY: -25, maxY: 15, baseSize: 820, baseOpacity: 0.42 },
+      { minX: 55, maxX: 100, minY: -20, maxY: 20, baseSize: 780, baseOpacity: 0.38 },
+      { minX: -15, maxX: 30, minY: 70, maxY: 115, baseSize: 760, baseOpacity: 0.36 },
+      { minX: 50, maxX: 95, minY: 65, maxY: 110, baseSize: 860, baseOpacity: 0.40 },
+    ],
+  ];
+
+  const anchors = archetypes[archetype] || archetypes[0];
+
+  const colorPool = [
+    colors.primary,
+    colors.secondary,
+    colors.accent,
+    colors.primary,
+  ];
+
+  return anchors.map((a, idx) => {
+    const subSeed = (seed + (idx / (1 / 17)) + 11) % 100;
+    const rndX = (subSeed % 31) / 30;
+    const rndY = ((subSeed + 13) % 29) / 28;
+    const rndS = ((subSeed + 23) % 23) / 22;
+    const diffX = a.maxX - a.minX;
+    const diffY = a.maxY - a.minY;
+    const left = a.minX + Math.floor(diffX / (1 / Math.max(0.01, rndX)));
+    const top = a.minY + Math.floor(diffY / (1 / Math.max(0.01, rndY)));
+    const sizeOffset = Math.floor(120 / (1 / Math.max(0.01, rndS)));
+    return {
+      id: `${trackKey}-${idx}`,
+      leftPercent: left,
+      topPercent: top,
+      sizePx: a.baseSize + sizeOffset - 60,
+      color: colorPool[idx] || colors.primary,
+      opacity: a.baseOpacity,
+    };
+  });
+}
 
 export const FullscreenLyricsModal: React.FC = () => {
   const isFullscreenLyrics = useLibraryStore((s) => s.isFullscreenLyrics);
@@ -62,10 +163,94 @@ export const FullscreenLyricsModal: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeLineIndex, setActiveLineIndex] = useState<number>(-1);
   const [customSearch, setCustomSearch] = useState<string>('');
-  const [isSearchingManual, setIsSearchingManual] = useState<boolean>(false);
+  const [extractedColors, setExtractedColors] = useState<ExtractedColors>(() =>
+    getFallbackColors(activeTrack?.gradientFrom, activeTrack?.gradientTo)
+  );
 
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const [currentOrbs, setCurrentOrbs] = useState<OrbSet | null>(null);
+  const [prevOrbs, setPrevOrbs] = useState<OrbSet | null>(null);
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentTrackIdRef = useRef<string | null>(null);
+  const ambientOrbsRef = useRef<HTMLDivElement | null>(null);
+  useAudioReactive(ambientOrbsRef, { isEnabled: isFullscreenLyrics });
+
+  useEffect(() => {
+    return () => {
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreenLyrics) return;
+    const trackKey = activeTrack ? `${activeTrack.id || activeTrack.title}` : 'none';
+
+    if (!activeTrack) {
+      setCurrentOrbs(null);
+      setPrevOrbs(null);
+      return;
+    }
+
+    if (currentTrackIdRef.current !== trackKey) {
+      currentTrackIdRef.current = trackKey;
+
+      setCurrentOrbs((prev) => {
+        if (prev) {
+          setPrevOrbs(prev);
+        }
+        return {
+          key: `${trackKey}-${Date.now()}`,
+          orbs: generateRandomOrbs(trackKey, extractedColors),
+        };
+      });
+
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+      }
+      cleanupTimeoutRef.current = setTimeout(() => {
+        setPrevOrbs(null);
+      }, 1000);
+    } else {
+      setCurrentOrbs((prev) => {
+        if (!prev) return null;
+        const colorPool = [
+          extractedColors.primary,
+          extractedColors.secondary,
+          extractedColors.accent,
+          extractedColors.primary,
+        ];
+        return {
+          ...prev,
+          orbs: prev.orbs.map((orb, i) => ({
+            ...orb,
+            color: colorPool[i % colorPool.length] || extractedColors.primary,
+          })),
+        };
+      });
+    }
+  }, [isFullscreenLyrics, activeTrack?.id, activeTrack?.title, extractedColors]);
+
+  // Extract artwork colors whenever fullscreen lyrics is open or active track changes
+  useEffect(() => {
+    if (!isFullscreenLyrics) return;
+    let isMounted = true;
+    extractColorsFromImage(
+      activeTrack?.artworkUrl,
+      activeTrack?.gradientFrom,
+      activeTrack?.gradientTo
+    ).then((colors) => {
+      if (isMounted) {
+        setExtractedColors(colors);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isFullscreenLyrics, activeTrack?.artworkUrl, activeTrack?.gradientFrom, activeTrack?.gradientTo]);
 
   // Fetch lyrics whenever fullscreen lyrics is open or active track changes
   useEffect(() => {
@@ -75,7 +260,6 @@ export const FullscreenLyricsModal: React.FC = () => {
     setIsLoading(true);
     setLyricsData(null);
     setActiveLineIndex(-1);
-    setIsSearchingManual(false);
 
     getTrackLyrics(
       activeTrack.title,
@@ -114,18 +298,36 @@ export const FullscreenLyricsModal: React.FC = () => {
     }
   }, [currentTime, lyricsData, activeLineIndex]);
 
-  // Smooth scroll active line into view (centered), muted when window is hidden or blurred to save GPU
+  // Smooth scroll active line into view (centered within lyrics container), never shifting the window
   useEffect(() => {
     if (document.hidden || !document.hasFocus()) return;
-    if (activeLineRef.current && scrollContainerRef.current) {
-      activeLineRef.current.scrollIntoView({
+    const lineEl = activeLineRef.current;
+    const containerEl = scrollContainerRef.current;
+    if (lineEl && containerEl) {
+      const containerHeight = containerEl.clientHeight;
+      const lineTop = lineEl.offsetTop;
+      const lineHeight = lineEl.clientHeight;
+      const targetScroll = lineTop - (containerHeight / 2) + (lineHeight / 2);
+
+      containerEl.scrollTo({
+        top: Math.max(0, targetScroll),
         behavior: 'smooth',
-        block: 'center',
       });
+
+      // Pin root window and document body so browser never shifts outer viewport
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+      if (document.documentElement && document.documentElement.scrollTop !== 0) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body && document.body.scrollTop !== 0) {
+        document.body.scrollTop = 0;
+      }
     }
   }, [activeLineIndex]);
 
-  // Handle ESC key to exit fullscreen lyrics
+  // Handle ESC key to exit fullscreen lyrics and reset any window offset
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreenLyrics) {
@@ -138,6 +340,13 @@ export const FullscreenLyricsModal: React.FC = () => {
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.scrollTo(0, 0);
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
     };
   }, [isFullscreenLyrics, setFullscreenLyrics]);
 
@@ -151,12 +360,12 @@ export const FullscreenLyricsModal: React.FC = () => {
   };
 
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : (activeTrack?.durationSec || 0);
-  const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (currentTime / safeDuration) * 100)) : 0;
+  const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (currentTime / safeDuration) / 0.01)) : 0;
 
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newProgress = parseFloat(e.target.value);
     if (Number.isFinite(newProgress) && safeDuration > 0) {
-      seek((newProgress / 100) * safeDuration);
+      seek((newProgress / 100) / (1 / safeDuration));
     }
   };
 
@@ -178,7 +387,6 @@ export const FullscreenLyricsModal: React.FC = () => {
       if (candidates.length > 0) {
         const best = candidates[0];
         setLyricsData(best);
-        setIsSearchingManual(false);
         if (activeTrack) {
           await saveCustomLyrics(activeTrack, best);
           useToastStore.getState().success(
@@ -217,69 +425,76 @@ export const FullscreenLyricsModal: React.FC = () => {
     });
   };
 
-  const bgFrom = activeTrack?.gradientFrom || '#1E1B4B';
-  const bgTo = activeTrack?.gradientTo || '#142347';
+  const remainingSec = safeDuration > 0 ? safeDuration - currentTime : 999;
+  const isNearEnd = safeDuration > 5 && remainingSec >= 0 && remainingSec <= 3.5;
+  const endTrackFactor = isNearEnd ? Math.max(0, Math.min(1, remainingSec / 3.5)) : 1;
 
   return (
     <div
       id="fullscreen-lyrics-overlay"
       className="fixed inset-0 z-50 flex flex-col bg-[#090D16] text-white select-none animate-in fade-in duration-200 overflow-hidden"
     >
-      {/* Dynamic Ambient Fluid Lights Background (GPU optimized with radial gradients, no expensive blur filters) */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-        <div
-          className="absolute -top-40 -left-20 w-[700px] h-[700px] rounded-full opacity-40 transition-all duration-700 pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${bgFrom} 0%, transparent 70%)` }}
-        />
-        <div
-          className="absolute -bottom-40 -right-20 w-[800px] h-[800px] rounded-full opacity-35 transition-all duration-700 pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${bgTo} 0%, transparent 70%)` }}
-        />
-        <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-20 pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${bgFrom} 0%, transparent 70%)` }}
-        />
+      <div
+        ref={ambientOrbsRef}
+        className="pointer-events-none absolute inset-0 overflow-hidden z-0 transition-opacity duration-700 ease-out"
+        style={{ opacity: endTrackFactor }}
+      >
+        {prevOrbs && (
+          <div
+            key={prevOrbs.key}
+            className="absolute inset-0 pointer-events-none transition-opacity duration-1000 ease-out opacity-0"
+          >
+            {prevOrbs.orbs.map((orb, i) => (
+              <div
+                key={orb.id}
+                className={`absolute rounded-full pointer-events-none transform-gpu animate-float-orb-${i % 4}`}
+                style={{
+                  left: `${orb.leftPercent}%`,
+                  top: `${orb.topPercent}%`,
+                  width: `${orb.sizePx}px`,
+                  height: `${orb.sizePx}px`,
+                  background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
+                  opacity: orb.opacity,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {currentOrbs && (
+          <div
+            key={currentOrbs.key}
+            className="absolute inset-0 pointer-events-none transition-opacity duration-1000 ease-out opacity-100"
+          >
+            {currentOrbs.orbs.map((orb, i) => (
+              <div
+                key={orb.id}
+                className={`absolute rounded-full pointer-events-none transform-gpu animate-float-orb-${i % 4}`}
+                style={{
+                  left: `${orb.leftPercent}%`,
+                  top: `${orb.topPercent}%`,
+                  width: `${orb.sizePx}px`,
+                  height: `${orb.sizePx}px`,
+                  background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
+                  opacity: orb.opacity,
+                  willChange: 'transform',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Top Bar Header */}
       <header className="relative z-20 h-20 px-8 flex items-center justify-between border-b border-white/10 bg-black/20 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-4 min-w-0">
-          {activeTrack && (
-            <PlaceholderArtwork
-              icon={activeTrack.iconName}
-              imageUrl={activeTrack.artworkUrl}
-              gradientFrom={activeTrack.gradientFrom}
-              gradientTo={activeTrack.gradientTo}
-              size={52}
-              rounded="rounded-xl"
-              className="shadow-md border border-white/20 shrink-0"
-            />
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-base font-semibold tracking-wide text-white/80 select-none">
+            Otofy Lyrics
+          </span>
+          {lyricsData?.isCustom && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[#1C3061] bg-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-2xs">
+              <Check size={11} strokeWidth={2.5} /> Saved
+            </span>
           )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-white truncate drop-shadow-sm">
-                {activeTrack?.title || 'No active track'}
-              </h2>
-              {activeTrack?.sourceLabel && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/80 border border-white/15">
-                  {activeTrack.sourceLabel}
-                </span>
-              )}
-            </div>
-            <p className="text-xs sm:text-sm text-white/60 truncate flex items-center gap-2 mt-0.5">
-              <span>{activeTrack?.artist || 'Unknown Artist'}</span>
-              {lyricsData?.syncedLyrics && (
-                <span className="inline-flex items-center gap-1 text-slate-300 font-semibold text-xs">
-                  <Sparkles size={12} /> Synced Lyrics
-                </span>
-              )}
-              {lyricsData?.isCustom && (
-                <span className="inline-flex items-center gap-1 text-[#1C3061] bg-white font-bold text-xs px-2 py-0.5 rounded-full shadow-2xs">
-                  <Check size={11} strokeWidth={2.5} /> Saved
-                </span>
-              )}
-            </p>
-          </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -293,14 +508,6 @@ export const FullscreenLyricsModal: React.FC = () => {
               <RotateCcw size={20} />
             </button>
           )}
-          <button
-            onClick={() => setIsSearchingManual((v) => !v)}
-            className="p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-            title="Search different lyrics"
-            aria-label="Search"
-          >
-            <Search size={20} />
-          </button>
           <button
             id="close-fullscreen-lyrics-btn"
             onClick={toggleFullscreenLyrics}
@@ -316,34 +523,9 @@ export const FullscreenLyricsModal: React.FC = () => {
         </div>
       </header>
 
-      {/* Manual Search Dropdown Bar (if toggled) */}
-      {isSearchingManual && (
-        <div className="relative z-20 px-8 py-3 bg-black/40 border-b border-white/10 backdrop-blur-xl shrink-0 flex items-center justify-center">
-          <form onSubmit={handleManualSearch} className="flex gap-2 w-full max-w-xl">
-            <input
-              type="text"
-              value={customSearch}
-              onChange={(e) => setCustomSearch(e.target.value)}
-              placeholder="Search lyrics by song title or artist..."
-              className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 focus:bg-white/15"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-5 py-2 bg-white text-black font-bold rounded-xl text-sm hover:bg-white/90 transition-all flex items-center gap-2"
-            >
-              {isLoading ? <RefreshCw size={14} className="animate-spin" /> : <Search size={14} />}
-              <span>Search</span>
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Main Lyrics Container */}
       <main
         ref={scrollContainerRef}
-        className="relative z-10 flex-1 overflow-y-auto px-6 sm:px-12 md:px-20 lg:px-32 py-16 scroll-smooth select-text"
+        className="relative z-10 flex-1 overflow-y-auto px-6 sm:px-12 md:px-20 lg:px-32 py-16 select-text overscroll-contain"
       >
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4 text-white/60 py-24">
@@ -366,7 +548,6 @@ export const FullscreenLyricsModal: React.FC = () => {
             </p>
           </div>
         ) : lyricsData?.parsedLines && lyricsData.parsedLines.length > 0 ? (
-          /* Spotify-Style Karaoke Typography */
           <div className="max-w-4xl mx-auto space-y-5 sm:space-y-7 md:space-y-8 py-20">
             {lyricsData.parsedLines.map((line: LrcLine, idx: number) => {
               const isActive = idx === activeLineIndex;
@@ -377,23 +558,21 @@ export const FullscreenLyricsModal: React.FC = () => {
                   key={idx}
                   ref={isActive ? activeLineRef : null}
                   onClick={() => seek(line.time)}
-                  style={{ contentVisibility: 'auto', containIntrinsicSize: '0 48px' }}
-                  className={`cursor-pointer transition-all duration-300 rounded-2xl px-4 py-2 origin-left select-text ${
+                  className={`cursor-pointer transition-all duration-300 rounded-2xl px-4 py-2 origin-left select-text leading-tight ${
                     isActive
-                      ? 'text-white font-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight scale-[1.03] text-shadow-sm'
+                      ? 'text-white font-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-shadow-sm'
                       : isPast
-                      ? 'text-white/40 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight hover:scale-[1.01]'
-                      : 'text-white/35 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight hover:scale-[1.01]'
+                      ? 'text-white/40 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl'
+                      : 'text-white/35 hover:text-white/80 font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl'
                   }`}
                   title={`Jump to ${formatTime(line.time)}`}
                 >
-                  <span>{line.text}</span>
+                  <LiquidWordLine line={line} isActive={isActive} themeMode="dark" />
                 </div>
               );
             })}
           </div>
         ) : lyricsData?.plainLyrics ? (
-          /* Plain Lyrics (Unsynced) */
           <div className="max-w-3xl mx-auto space-y-4 py-16 text-center sm:text-left">
             {lyricsData.plainLyrics.split('\n').map((line, idx) => (
               <p
@@ -405,7 +584,6 @@ export const FullscreenLyricsModal: React.FC = () => {
             ))}
           </div>
         ) : (
-          /* Lyrics Not Found */
           <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto py-24">
             <Mic2 size={48} className="opacity-30 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">No lyrics found for this song</h3>
@@ -433,14 +611,15 @@ export const FullscreenLyricsModal: React.FC = () => {
         )}
       </main>
 
-      {/* Bottom Floating Playback Bar */}
       <footer className="relative z-20 h-24 px-8 flex items-center justify-between border-t border-white/10 bg-black/40 backdrop-blur-xl shrink-0 gap-6">
-        {/* Track info on left */}
         <div className="flex items-center gap-3.5 w-1/4 min-w-[200px]">
           {activeTrack && (
             <PlaceholderArtwork
+              key={activeTrack.id || activeTrack.title}
               icon={activeTrack.iconName}
               imageUrl={activeTrack.artworkUrl}
+              source={activeTrack.source}
+              sourceId={activeTrack.sourceId}
               gradientFrom={activeTrack.gradientFrom}
               gradientTo={activeTrack.gradientTo}
               size={48}
@@ -454,7 +633,6 @@ export const FullscreenLyricsModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Center player controls + timeline */}
         <div className="flex flex-col items-center gap-2 w-2/4 max-w-xl">
           <div className="flex items-center gap-5">
             <button
@@ -536,7 +714,6 @@ export const FullscreenLyricsModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Volume & Exit Fullscreen on right */}
         <div className="flex items-center justify-end gap-3 w-1/4 min-w-[200px] text-white/70">
           <div className="flex items-center gap-2">
             <button
@@ -556,7 +733,7 @@ export const FullscreenLyricsModal: React.FC = () => {
               <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden group-hover:h-1.5 transition-all">
                 <div
                   className="h-full bg-white rounded-full transition-colors"
-                  style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+                  style={{ width: `${isMuted ? 0 : volume / 0.01}%` }}
                 />
               </div>
               <input

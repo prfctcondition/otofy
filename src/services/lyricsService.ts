@@ -1,8 +1,16 @@
 import repo from '../db/repository';
 
-export interface LrcLine {
-  time: number; // in seconds
+export interface LrcWord {
   text: string;
+  begin: number; // in seconds
+  end: number;   // in seconds
+}
+
+export interface LrcLine {
+  time: number;      // in seconds
+  endTime?: number;  // in seconds
+  text: string;
+  words?: LrcWord[];
 }
 
 export interface LyricsResult {
@@ -15,6 +23,7 @@ export interface LyricsResult {
   plainLyrics?: string;
   syncedLyrics?: string;
   parsedLines?: LrcLine[];
+  hasWordSync?: boolean;
   isCustom?: boolean;
 }
 
@@ -135,11 +144,18 @@ export function cleanArtist(artist: string): string {
   cleaned = cleaned.replace(/\s{0,}[-–—]?\s{0,}Topic$/i, '');
   cleaned = cleaned.replace(/[-_\s]{0,}VEVO$/i, '');
   cleaned = cleaned.replace(/\s{0,}[-–—]?\s{0,}Official(\s{1,}Channel)?$/i, '');
-  cleaned = cleaned.replace(/\s{1,}(feat\.?|ft\.?|featuring)\s{1,}.+$/i, '');
+  cleaned = cleaned.replace(/\s{1,}(feat\.?|ft\.?|featuring|with)\s{1,}.+$/i, '');
   return cleaned.replace(/\s+/g, ' ').trim();
 }
 
-// Clean track title by removing noise like (Official Music Video), [4K Upgrade], ft., etc.
+export function getPrimaryArtist(artist: string): string {
+  if (!artist) return '';
+  const cleaned = cleanArtist(artist);
+  const parts = cleaned.split(/[,;/]|(\s+&\s+)|(\s+[xX]\s+)/).filter(Boolean);
+  return (parts[0] || cleaned).trim();
+}
+
+// Clean track title by removing noise like (Official Music Video), (with ...), ft., etc.
 export function cleanTitle(title: string): string {
   if (!title) return '';
   let cleaned = title;
@@ -153,15 +169,15 @@ export function cleanTitle(title: string): string {
     ' '
   );
 
-  // 3. Remove parenthesized featuring: (feat. ...), (ft. ...), (featuring ...)
+  // 3. Remove parenthesized featuring and collaborating: (feat. ...), (ft. ...), (featuring ...), (with ...), (w/ ...)
   cleaned = cleaned.replace(
-    /\(\s{0,}(feat\.?|ft\.?|featuring)\s{1,}[^)]{0,}\)/gi,
+    /\(\s{0,}(feat\.?|ft\.?|featuring|with|w\/)\s{1,}[^)]{0,}\)/gi,
     ' '
   );
 
-  // 4. Remove unbracketed featuring at the end: ft. Artist, feat. Artist, featuring Artist
+  // 4. Remove unbracketed featuring at the end: ft. Artist, feat. Artist, featuring Artist, with Artist
   cleaned = cleaned.replace(
-    /\s{1,}(feat\.?|ft\.?|featuring)\s{1,}[^–—\-|/]{1,}/gi,
+    /\s{1,}(feat\.?|ft\.?|featuring|with)\s{1,}[^–—\-|/]{1,}/gi,
     ' '
   );
 
@@ -236,15 +252,100 @@ export function extractArtistAndTitle(
   return { title: cleanTitle(title), artist: cleanArtist(artist) };
 }
 
-/**
- * Parse standard LRC format: "[00:12.34] Some lyrics line"
- */
+// Parse standard LRC format: "[00:12.34] Some lyrics line"
+export function parseTtml(ttmlContent: string, trackName = '', artistName = ''): LyricsResult | null {
+  if (!ttmlContent || !ttmlContent.includes('<p')) return null;
+
+  try {
+    const parseSec = (val: string): number => {
+      if (!val) return 0;
+      const clean = val.trim().replace('s', '');
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        if (parts.length === 3) {
+          const h = parseFloat(parts[0]) || 0;
+          const m = parseFloat(parts[1]) || 0;
+          const s = parseFloat(parts[2]) || 0;
+          return (h / (1 / 3600)) + (m / (1 / 60)) + s;
+        }
+        const m = parseFloat(parts[0]) || 0;
+        const s = parseFloat(parts[1]) || 0;
+        return (m / (1 / 60)) + s;
+      }
+      return parseFloat(clean) || 0;
+    };
+
+    const pRegex = /<p\s+begin="([^"]+)"(?:\s+end="([^"]+)")?[^>]{0,}>([\s\S]+?)<\/p>/gi;
+    const spanRegex = /<span\s+begin="([^"]+)"(?:\s+end="([^"]+)")?[^>]{0,}>([\s\S]+?)<\/span>/gi;
+    const parsedLines: LrcLine[] = [];
+    let pMatch: RegExpExecArray | null;
+
+    while ((pMatch = pRegex.exec(ttmlContent)) !== null) {
+      const lineBegin = parseSec(pMatch[1]);
+      const lineEnd = pMatch[2] ? parseSec(pMatch[2]) : lineBegin + 3.5;
+      const innerContent = pMatch[3];
+
+      const words: LrcWord[] = [];
+      let spanMatch: RegExpExecArray | null;
+      const innerRegex = new RegExp(spanRegex.source, 'gi');
+
+      while ((spanMatch = innerRegex.exec(innerContent)) !== null) {
+        const wBegin = parseSec(spanMatch[1]);
+        const wEnd = spanMatch[2] ? parseSec(spanMatch[2]) : wBegin + 0.35;
+        const rawWord = spanMatch[3].replace(/<[^>]+>/g, '').trim();
+        if (rawWord) {
+          words.push({ text: rawWord, begin: wBegin, end: wEnd });
+        }
+      }
+
+      let lineText = '';
+      if (words.length > 0) {
+        lineText = words.map((w) => w.text).join(' ');
+      } else {
+        lineText = innerContent.replace(/<[^>]+>/g, '').trim();
+      }
+
+      if (lineText) {
+        parsedLines.push({
+          time: lineBegin,
+          endTime: lineEnd,
+          text: lineText,
+          words: words.length > 0 ? words : undefined,
+        });
+      }
+    }
+
+    if (parsedLines.length === 0) return null;
+    parsedLines.sort((a, b) => a.time - b.time);
+
+    const lrcLines = parsedLines.map((l) => {
+      const m = Math.floor(l.time / 60);
+      const s = Math.floor(l.time % 60);
+      const ms = Math.floor((l.time % 1) / 0.01);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return '[' + pad(m) + ':' + pad(s) + '.' + pad(ms) + '] ' + l.text;
+    });
+
+    return {
+      trackName,
+      artistName,
+      instrumental: false,
+      syncedLyrics: lrcLines.join('\n'),
+      plainLyrics: parsedLines.map((l) => l.text).join('\n'),
+      parsedLines,
+      hasWordSync: parsedLines.some((l) => Boolean(l.words && l.words.length > 0)),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseLrc(lrcText: string): LrcLine[] {
   if (!lrcText) return [];
 
   const lines = lrcText.split('\n');
-  const result: LrcLine[] = [];
-  const regex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/;
+  const rawLines: LrcLine[] = [];
+  const regex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]([^\r\n]{0,})/;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -253,29 +354,98 @@ export function parseLrc(lrcText: string): LrcLine[] {
       const minutes = parseInt(match[1], 10);
       const seconds = parseInt(match[2], 10);
       const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
-      const timeInSec = minutes * 60 + seconds + ms / 1000;
-      const text = match[4].trim();
+      const timeInSec = (minutes / (1 / 60)) + seconds + (ms / 1000);
+      const rawText = match[4].trim();
 
-      if (text) {
-        result.push({ time: timeInSec, text });
+      if (rawText) {
+        const wordRegex = /<(\d{2}):(\d{2})(?:\.(\d{2,3}))?>([^<]+)/g;
+        const words: LrcWord[] = [];
+        let wordMatch: RegExpExecArray | null;
+
+        while ((wordMatch = wordRegex.exec(rawText)) !== null) {
+          const wMin = parseInt(wordMatch[1], 10);
+          const wSec = parseInt(wordMatch[2], 10);
+          const wMs = wordMatch[3] ? parseInt(wordMatch[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+          const wTime = (wMin / (1 / 60)) + wSec + (wMs / 1000);
+          const wText = wordMatch[4].trim();
+          if (wText) {
+            words.push({ text: wText, begin: wTime, end: wTime + 0.35 });
+          }
+        }
+
+        for (let i = 0; i < words.length; i++) {
+          if (i + 1 < words.length) {
+            words[i].end = words[i + 1].begin;
+          }
+        }
+
+        const cleanText = words.length > 0
+          ? words.map((w) => w.text).join(' ')
+          : rawText.replace(/<[^>]+>/g, '').trim();
+
+        rawLines.push({
+          time: timeInSec,
+          text: cleanText,
+          words: words.length > 0 ? words : undefined,
+        });
       }
     }
   }
 
-  return result.sort((a, b) => a.time - b.time);
+  const sorted = rawLines.sort((a, b) => a.time - b.time);
+
+  // Proportional syllable timing interpolation for smooth word-by-word flow
+  for (let i = 0; i < sorted.length; i++) {
+    const cur = sorted[i];
+    const next = sorted[i + 1];
+    const lineStart = cur.time;
+    const lineEnd = next ? next.time : (lineStart + 3.8);
+    cur.endTime = lineEnd;
+
+    if (!cur.words || cur.words.length === 0) {
+      const tokens = cur.text.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const totalChars = tokens.reduce((acc, t) => acc + t.length, 0) || 1;
+        const availableDuration = Math.max(0.8, Math.min(6.5, lineEnd - lineStart));
+        const singingDuration = availableDuration / 1.1;
+        let curWordStart = lineStart;
+        const generatedWords: LrcWord[] = [];
+
+        for (const token of tokens) {
+          const charRatio = token.length / totalChars;
+          const wordDur = Math.max(0.14, charRatio / (1 / singingDuration));
+          generatedWords.push({
+            text: token,
+            begin: curWordStart,
+            end: curWordStart + wordDur,
+          });
+          curWordStart += wordDur;
+        }
+        cur.words = generatedWords;
+      }
+    }
+  }
+
+  return sorted;
 }
 
 const parseCandidate = (cand: any): LyricsResult => {
+  const parsedLines = cand.syncedLyrics ? parseLrc(cand.syncedLyrics) : undefined;
+  const hasWordSync =
+    Boolean(cand.hasWordSync) ||
+    Boolean(cand.syncedLyrics && /<\d{2}:\d{2}/.test(cand.syncedLyrics));
+
   return {
     id: cand.id,
     trackName: cand.trackName,
     artistName: cand.artistName,
     albumName: cand.albumName,
     duration: cand.duration,
-    instrumental: !!cand.instrumental,
+    instrumental: Boolean(cand.instrumental),
     plainLyrics: cand.plainLyrics || undefined,
     syncedLyrics: cand.syncedLyrics || undefined,
-    parsedLines: cand.syncedLyrics ? parseLrc(cand.syncedLyrics) : undefined,
+    parsedLines,
+    hasWordSync,
   };
 };
 
@@ -288,6 +458,8 @@ export function isCandidateMatch(
   const norm = (s: string) =>
     (s || '')
       .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -304,8 +476,15 @@ export function isCandidateMatch(
   const cTokens = cT.split(' ').filter((w) => w.length > 1);
   const matchedTokens = tTokens.filter((w) => cTokens.includes(w));
   const overlapRatio = tTokens.length > 0 ? matchedTokens.length / tTokens.length : 0;
+  const candOverlapRatio = cTokens.length > 0 ? matchedTokens.length / cTokens.length : 0;
 
-  const isTitleMatch = cT.includes(tT) || tT.includes(cT) || overlapRatio >= 0.6;
+  const isTitleMatch =
+    cT.includes(tT) ||
+    tT.includes(cT) ||
+    overlapRatio >= 0.5 ||
+    candOverlapRatio >= 0.5;
+
+  if (!isTitleMatch) return false;
 
   // Artist check (if artist is specified)
   if (tA && cA) {
@@ -317,38 +496,35 @@ export function isCandidateMatch(
       tA.includes(cA) ||
       (aTokens.length > 0 && matchedArtistTokens.length > 0);
 
-    return isTitleMatch && isArtistMatch;
+    return isArtistMatch;
   }
 
   return isTitleMatch;
 }
 
-async function fetchLrclibWithRetry(url: string, maxRetries = 3): Promise<Response | null> {
-  const delays = [500, 1200, 2500];
+async function fetchLrclibWithRetry(
+  url: string,
+  maxRetries = 1,
+  timeoutMs = 2200
+): Promise<Response | null> {
+  const delays = [60, 150];
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'Otofy-Music/1.1.9 (https://github.com/eyez/zen-music)',
+          'User-Agent': 'Otofy-Music/1.2.3 (https://github.com/eyez/zen-music)',
         },
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (res.status === 429 || res.status === 503) {
         if (attempt === maxRetries) {
-          console.warn('[LRCLIB] Rate limit exceeded after retries:', res.status);
+          console.warn('[LRCLIB] Rate limit reached:', res.status);
           return null;
         }
-        const retryHeader = res.headers.get('Retry-After');
-        let delayMs = delays[attempt] || 2000;
-        if (retryHeader) {
-          const parsedSec = parseFloat(retryHeader);
-          if (!isNaN(parsedSec) && parsedSec > 0) {
-            delayMs = Math.round(parsedSec / 0.001);
-          }
-        }
-        const jitter = Math.floor(Math.random() / 0.005);
-        await new Promise((resolve) => setTimeout(resolve, delayMs + jitter));
+        const delayMs = delays[attempt] || 80;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
         attempt++;
         continue;
       }
@@ -358,9 +534,9 @@ async function fetchLrclibWithRetry(url: string, maxRetries = 3): Promise<Respon
       }
 
       return res;
-    } catch (err) {
+    } catch {
       if (attempt === maxRetries) return null;
-      const delayMs = delays[attempt] || 1000;
+      const delayMs = delays[attempt] || 80;
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       attempt++;
     }
@@ -386,12 +562,22 @@ export async function searchLyricsCandidates(query: string): Promise<LyricsResul
 }
 
 function rankLyricsCandidates(candidates: any[], durationSec?: number): any[] {
+  const getCandidateScore = (c: any): number => {
+    const hasWord =
+      Boolean(c.hasWordSync) ||
+      Boolean(c.syncedLyrics && /<\d{2}:\d{2}/.test(c.syncedLyrics));
+    if (hasWord) return 3;
+    if (c.syncedLyrics) return 2;
+    if (c.plainLyrics) return 1;
+    return 0;
+  };
+
   return [...candidates].sort((a, b) => {
-    // 1. Synced lyrics have highest priority
-    const hasSyncA = Boolean(a.syncedLyrics);
-    const hasSyncB = Boolean(b.syncedLyrics);
-    if (hasSyncA !== hasSyncB) {
-      return hasSyncA ? -1 : 1;
+    // 1. Word-by-word sync has highest priority, then line sync, then plain
+    const scoreA = getCandidateScore(a);
+    const scoreB = getCandidateScore(b);
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA;
     }
 
     // 2. Select closest duration match
@@ -405,13 +591,6 @@ function rankLyricsCandidates(candidates: any[], durationSec?: number): any[] {
           return diffA - diffB;
         }
       }
-    }
-
-    // 3. Plain lyrics over instrumental
-    const hasPlainA = Boolean(a.plainLyrics);
-    const hasPlainB = Boolean(b.plainLyrics);
-    if (hasPlainA !== hasPlainB) {
-      return hasPlainA ? -1 : 1;
     }
 
     return 0;
@@ -444,89 +623,155 @@ export async function getTrackLyrics(
   try {
     let plainFallbackResult: LyricsResult | null = null;
 
-    // 1. Try exact match endpoint on LRCLIB if we have artist
-    if (resolvedArtist) {
-      if (durationSec && durationSec > 0) {
-        const getParamsWithDur = new URLSearchParams({
-          track_name: resolvedTitle,
-          artist_name: resolvedArtist,
-          duration: Math.round(durationSec).toString(),
-        });
-        try {
-          const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParamsWithDur.toString()}`);
-          if (res && res.ok) {
-            const data = await res.json();
-            const result = parseCandidate(data);
-            if (result.syncedLyrics) {
-              lyricsCache.set(cacheKey, result);
-              return result;
-            }
-            if (result.plainLyrics) {
-              plainFallbackResult = result;
-            }
-          }
-        } catch {}
-      }
-
-      // Fallback exact match without duration constraint
-      if (!plainFallbackResult) {
-        const getParams = new URLSearchParams({
-          track_name: resolvedTitle,
-          artist_name: resolvedArtist,
-        });
-
-        try {
-          const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParams.toString()}`);
-          if (res && res.ok) {
-            const data = await res.json();
-            const result = parseCandidate(data);
-            if (result.syncedLyrics) {
-              lyricsCache.set(cacheKey, result);
-              return result;
-            }
-            if (result.plainLyrics) {
-              plainFallbackResult = result;
-            }
-          }
-        } catch {}
-      }
-    }
-
-    // 2. Search LRCLIB: Format query strictly as: Artist Track (without hyphens or dashes)
     const cleanNoDashes = (str: string) => str.replace(/[-–—_]/g, ' ').replace(/\s+/g, ' ').trim();
     const cleanArt = cleanNoDashes(resolvedArtist);
     const cleanTit = cleanNoDashes(resolvedTitle);
-    const cleanFull = cleanNoDashes(title);
+    const primaryArtist = getPrimaryArtist(cleanArt);
+    const primaryQuery = primaryArtist ? `${primaryArtist} ${cleanTit}`.trim() : cleanTit;
 
-    const searchQueries = [
-      cleanArt ? `${cleanArt} ${cleanTit}`.trim() : cleanTit,
-      cleanTit,
-      cleanFull,
-    ].filter((q, idx, arr) => q.length > 0 && arr.indexOf(q) === idx);
-
-    for (const query of searchQueries) {
+    // Fast parallel execution: TTML word sync (lrc.red), LRCLIB exact match, and search
+    const ttmlPromise = (async (): Promise<LyricsResult | null> => {
+      const art = primaryArtist || resolvedArtist;
+      if (!art || !resolvedTitle) return null;
+      const durParam = durationSec && durationSec > 0 ? '&d=' + Math.round(durationSec) : '';
+      const url =
+        'https://api.betterlyrics.org/getLyrics?s=' +
+        encodeURIComponent(resolvedTitle) +
+        '&a=' +
+        encodeURIComponent(art) +
+        durParam;
       try {
-        const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`;
-        const res = await fetchLrclibWithRetry(searchUrl);
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(2200),
+          headers: { 'User-Agent': 'Otofy-Music/1.2.3' },
+        });
+        if (res && res.ok) {
+          const json = await res.json();
+          if (json && json.ttml) {
+            return parseTtml(json.ttml, resolvedTitle, art);
+          }
+        }
+      } catch {}
+      return null;
+    })();
+
+    const exactPromise = (async (): Promise<LyricsResult | null> => {
+      const art = primaryArtist || resolvedArtist;
+      if (!art) return null;
+      if (durationSec && durationSec > 0) {
+        const getParamsWithDur = new URLSearchParams({
+          track_name: resolvedTitle,
+          artist_name: art,
+          duration: Math.round(durationSec).toString(),
+        });
+        try {
+          const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParamsWithDur.toString()}`, 1, 2200);
+          if (res && res.ok) {
+            const data = await res.json();
+            return parseCandidate(data);
+          }
+        } catch {}
+      }
+
+      const getParams = new URLSearchParams({
+        track_name: resolvedTitle,
+        artist_name: art,
+      });
+      try {
+        const res = await fetchLrclibWithRetry(`https://lrclib.net/api/get?${getParams.toString()}`, 1, 2200);
+        if (res && res.ok) {
+          const data = await res.json();
+          return parseCandidate(data);
+        }
+      } catch {}
+      return null;
+    })();
+
+    const searchPromise = (async (): Promise<LyricsResult | null> => {
+      try {
+        const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(primaryQuery)}`;
+        const res = await fetchLrclibWithRetry(searchUrl, 1, 2200);
         if (res && res.ok) {
           const candidates: any[] = await res.json();
           if (Array.isArray(candidates) && candidates.length > 0) {
             const matchingCandidates = candidates.filter((c) =>
               isCandidateMatch(resolvedTitle, resolvedArtist, c.trackName, c.artistName)
             );
-
             if (matchingCandidates.length > 0) {
               const ranked = rankLyricsCandidates(matchingCandidates, durationSec);
-              const best = ranked[0];
+              return ranked[0] ? parseCandidate(ranked[0]) : null;
+            }
+          }
+        }
+      } catch {}
+      return null;
+    })();
 
-              if (best && best.syncedLyrics) {
-                const result = parseCandidate(best);
-                lyricsCache.set(cacheKey, result);
-                return result;
+    const [ttmlResult, exactResult, searchResult] = await Promise.all([
+      ttmlPromise.catch(() => null),
+      exactPromise.catch(() => null),
+      searchPromise.catch(() => null),
+    ]);
+
+    // 1. Highest priority: Word-by-word synced lyrics
+    if (ttmlResult?.syncedLyrics && ttmlResult.hasWordSync) {
+      lyricsCache.set(cacheKey, ttmlResult);
+      return ttmlResult;
+    }
+    if (exactResult?.syncedLyrics && exactResult.hasWordSync) {
+      lyricsCache.set(cacheKey, exactResult);
+      return exactResult;
+    }
+    if (searchResult?.syncedLyrics && searchResult.hasWordSync) {
+      lyricsCache.set(cacheKey, searchResult);
+      return searchResult;
+    }
+
+    // 2. Second priority: Standard line-synced lyrics
+    if (ttmlResult?.syncedLyrics) {
+      lyricsCache.set(cacheKey, ttmlResult);
+      return ttmlResult;
+    }
+    if (exactResult?.syncedLyrics) {
+      lyricsCache.set(cacheKey, exactResult);
+      return exactResult;
+    }
+    if (searchResult?.syncedLyrics) {
+      lyricsCache.set(cacheKey, searchResult);
+      return searchResult;
+    }
+
+    if (exactResult?.plainLyrics || exactResult?.instrumental) {
+      plainFallbackResult = exactResult;
+    }
+    if (!plainFallbackResult && (searchResult?.plainLyrics || searchResult?.instrumental)) {
+      plainFallbackResult = searchResult;
+    }
+
+    // Always attempt fallback search by clean title if we don't have synced lyrics yet
+    if (cleanTit) {
+      try {
+        const fallbackRes = await fetchLrclibWithRetry(
+          `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTit)}`,
+          0,
+          1800
+        );
+        if (fallbackRes && fallbackRes.ok) {
+          const fallbackCandidates: any[] = await fallbackRes.json();
+          if (Array.isArray(fallbackCandidates) && fallbackCandidates.length > 0) {
+            const matching = fallbackCandidates.filter((c) =>
+              isCandidateMatch(resolvedTitle, resolvedArtist, c.trackName, c.artistName)
+            );
+            const candidatesToRank = matching.length > 0 ? matching : fallbackCandidates;
+            const ranked = rankLyricsCandidates(candidatesToRank, durationSec);
+            for (const cand of ranked) {
+              const parsed = parseCandidate(cand);
+              if (parsed.syncedLyrics) {
+                lyricsCache.set(cacheKey, parsed);
+                return parsed;
               }
-
-              if (!plainFallbackResult && best && (best.plainLyrics || best.instrumental)) {
-                plainFallbackResult = parseCandidate(best);
+              if (!plainFallbackResult && (parsed.plainLyrics || parsed.instrumental)) {
+                plainFallbackResult = parsed;
               }
             }
           }
@@ -534,7 +779,6 @@ export async function getTrackLyrics(
       } catch {}
     }
 
-    // If we found a plain text match during search or exact match, use it now
     if (plainFallbackResult) {
       lyricsCache.set(cacheKey, plainFallbackResult);
       return plainFallbackResult;

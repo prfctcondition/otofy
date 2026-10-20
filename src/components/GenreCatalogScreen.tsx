@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Flame,
   Coffee,
@@ -273,7 +273,8 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   const [isLoadingTracks, setIsLoadingTracks] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  const playerStore = usePlayerStore();
+  const playTrack = usePlayerStore((s) => s.playTrack);
+  const activeTrack = usePlayerStore((s) => s.activeTrack);
   const libraryStore = useLibraryStore();
   const toastStore = useToastStore();
 
@@ -376,7 +377,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
 
   const handlePlayAll = () => {
     if (genreTracks.length === 0) return;
-    playerStore.playTrack(genreTracks[0], genreTracks);
+    playTrack(genreTracks[0], genreTracks);
     toastStore.info(
       t.catalog.playingToast.replace('{genre}', activeGenre?.name || 'Genre'),
       t.catalog.queuedToast.replace('{count}', String(genreTracks.length))
@@ -386,7 +387,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   const handleShufflePlay = () => {
     if (genreTracks.length === 0) return;
     const shuffled = [...genreTracks].sort(() => Math.random() - 0.5);
-    playerStore.playTrack(shuffled[0], shuffled);
+    playTrack(shuffled[0], shuffled);
     toastStore.info(
       t.catalog.shufflingToast.replace('{genre}', activeGenre?.name || 'Genre'),
       t.catalog.randomOrderToast
@@ -394,7 +395,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
   };
 
   const handlePlayTrack = (track: Track) => {
-    playerStore.playTrack(track, genreTracks);
+    playTrack(track, genreTracks);
   };
 
   const handleQuickPlayGenre = async (genre: GenreDef, e: React.MouseEvent) => {
@@ -403,7 +404,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
       if (genreTracksCache.has(genre.id)) {
         const cached = genreTracksCache.get(genre.id)!;
         if (cached.length > 0) {
-          playerStore.playTrack(cached[0], cached);
+          playTrack(cached[0], cached);
           toastStore.success(
             t.catalog.playingToast.replace('{genre}', genre.name),
             t.catalog.queuedToast.replace('{count}', String(cached.length))
@@ -442,7 +443,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
           isLiked: false,
         }));
         genreTracksCache.set(genre.id, mapped);
-        playerStore.playTrack(mapped[0], mapped);
+        playTrack(mapped[0], mapped);
         toastStore.success(
           t.catalog.playingToast.replace('{genre}', genre.name),
           t.catalog.queuedToast.replace('{count}', String(mapped.length))
@@ -690,7 +691,7 @@ export const GenreCatalogScreen: React.FC<GenreCatalogScreenProps> = ({ onBack }
             ) : (
               <div className="flex flex-col rounded-2xl bg-white/50 dark:bg-white/[0.04] border border-white/80 dark:border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
                 {genreTracks.map((track, idx) => {
-                  const isCurrent = playerStore.activeTrack?.id === track.id;
+                  const isCurrent = activeTrack?.id === track.id;
                   return (
                     <div
                       key={track.id}
