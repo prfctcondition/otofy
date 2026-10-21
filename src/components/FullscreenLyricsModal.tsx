@@ -567,7 +567,12 @@ export const FullscreenLyricsModal: React.FC = () => {
                   }`}
                   title={`Jump to ${formatTime(line.time)}`}
                 >
-                  <LiquidWordLine line={line} isActive={isActive} themeMode="dark" />
+                  <LiquidWordLine
+                    line={line}
+                    isActive={isActive}
+                    themeMode="dark"
+                    hasWordSync={Boolean(lyricsData?.hasWordSync)}
+                  />
                 </div>
               );
             })}

@@ -180,7 +180,12 @@ export function cleanTitle(title: string): string {
     ''
   );
 
-  // 6. Remove Topic and Vevo suffixes from title if present
+  // 6. Remove trailing remaster, live, mix, and edition phrases
+  cleaned = cleaned.replace(/\s{0,}[-–—|/]?\s{0,}(\d{4}\s+)?remaster(ed)?(\s+(version|edition|mix))?\s{0,}$/gi, '');
+  cleaned = cleaned.replace(/\s{0,}[-–—|/]?\s{0,}(radio\s+edit|club\s+mix|extended\s+mix|acoustic\s+version|deluxe\s+edition)\s{0,}$/gi, '');
+  cleaned = cleaned.replace(/\s{0,}[-–—|/]?\s{0,}live(\s+at\s+[^–—|/]+)?\s{0,}$/gi, '');
+
+  // 7. Remove Topic and Vevo suffixes from title if present
   cleaned = cleaned.replace(/\s{0,}[-–—|/]?\s{0,}(Topic|Vevo)\b/gi, '');
 
   return cleaned.replace(/\s+/g, ' ').trim();
@@ -215,7 +220,7 @@ export function extractArtistAndTitle(
     artist = '';
   }
 
-  // If title has "Artist - Song Title", split them
+  // If title has "Artist - Song Title" or "Song Title - Remaster", handle intelligently
   const separators = [' - ', ' – ', ' — '];
   for (const sep of separators) {
     if (title.includes(sep)) {
@@ -223,9 +228,19 @@ export function extractArtistAndTitle(
       if (parts.length >= 2) {
         if (!artist) {
           artist = cleanArtist(parts[0]);
+          title = cleanTitle(parts.slice(1).join(sep));
+          break;
+        } else {
+          const p0 = cleanArtist(parts[0]).toLowerCase();
+          const art = artist.toLowerCase();
+          if (p0 === art || art.includes(p0) || p0.includes(art)) {
+            title = cleanTitle(parts.slice(1).join(sep));
+          } else {
+            // Artist is already known and p0 is not artist: parts[0] is the song title!
+            title = cleanTitle(parts[0]);
+          }
+          break;
         }
-        title = cleanTitle(parts.slice(1).join(sep));
-        break;
       }
     }
   }
@@ -243,40 +258,6 @@ export function extractArtistAndTitle(
   }
 
   return { title: cleanTitle(title), artist: cleanArtist(artist) };
-}
-
-// Proportional syllable timing interpolation for smooth word-by-word flow
-export function interpolateLineWords(lines: LrcLine[]): void {
-  for (let i = 0; i < lines.length; i++) {
-    const cur = lines[i];
-    const next = lines[i + 1];
-    const lineStart = cur.time;
-    const lineEnd = next ? next.time : (cur.endTime || lineStart + 3.8);
-    cur.endTime = lineEnd;
-
-    if (!cur.words || cur.words.length === 0) {
-      const tokens = cur.text.trim().split(/\s+/).filter(Boolean);
-      if (tokens.length > 0) {
-        const totalChars = tokens.reduce((acc, t) => acc + t.length, 0) || 1;
-        const availableDuration = Math.max(0.8, Math.min(6.5, lineEnd - lineStart));
-        const singingDuration = availableDuration / 1.1;
-        let curWordStart = lineStart;
-        const generatedWords: LrcWord[] = [];
-
-        for (const token of tokens) {
-          const charRatio = token.length / totalChars;
-          const wordDur = Math.max(0.14, charRatio / (1 / singingDuration));
-          generatedWords.push({
-            text: token,
-            begin: curWordStart,
-            end: curWordStart + wordDur,
-          });
-          curWordStart += wordDur;
-        }
-        cur.words = generatedWords;
-      }
-    }
-  }
 }
 
 export function parseLrc(lrcText: string): LrcLine[] {
@@ -332,7 +313,10 @@ export function parseLrc(lrcText: string): LrcLine[] {
   }
 
   const sorted = rawLines.sort((a, b) => a.time - b.time);
-  interpolateLineWords(sorted);
+  for (let i = 0; i < sorted.length; i++) {
+    const next = sorted[i + 1];
+    sorted[i].endTime = next ? next.time : sorted[i].time + 3.8;
+  }
   return sorted;
 }
 
@@ -531,17 +515,44 @@ export async function fetchLrcRedLyrics(
   const matchUrl = `https://lrc.red/match.json?title=${encodeURIComponent(cleanT)}&artist=${encodeURIComponent(cleanA)}`;
 
   try {
-    const res = await fetch(matchUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(2800),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !Array.isArray(data.hits) || data.hits.length === 0) return null;
+    let matchingHits: any[] = [];
 
-    const matchingHits = data.hits.filter((h: any) =>
-      isCandidateMatch(cleanT, cleanA, h.title || '', h.artist || '')
-    );
+    // 1. Try exact match.json first
+    try {
+      const res = await fetch(matchUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(2400),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.hits)) {
+          matchingHits = data.hits.filter((h: any) =>
+            isCandidateMatch(cleanT, cleanA, h.title || '', h.artist || '')
+          );
+        }
+      }
+    } catch {}
+
+    // 2. If match.json returned nothing, try search.json with Artist Title query
+    if (matchingHits.length === 0) {
+      try {
+        const query = cleanA ? `${cleanA} ${cleanT}`.trim() : cleanT;
+        const searchUrl = `https://lrc.red/search.json?q=${encodeURIComponent(query)}`;
+        const res = await fetch(searchUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+          signal: AbortSignal.timeout(2400),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.hits)) {
+            matchingHits = data.hits.filter((h: any) =>
+              isCandidateMatch(cleanT, cleanA, h.title || '', h.artist || '')
+            );
+          }
+        }
+      } catch {}
+    }
+
     if (matchingHits.length === 0) return null;
 
     let bestHit = matchingHits[0];

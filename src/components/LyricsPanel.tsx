@@ -426,6 +426,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                     line={line}
                     isActive={isActive}
                     themeMode={typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+                    hasWordSync={Boolean(lyricsData?.hasWordSync)}
                   />
                 </div>
               );

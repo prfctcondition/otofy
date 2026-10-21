@@ -6,12 +6,14 @@ interface LiquidWordLineProps {
   line: LrcLine;
   isActive: boolean;
   themeMode?: 'dark' | 'light';
+  hasWordSync?: boolean;
 }
 
 export const LiquidWordLine: React.FC<LiquidWordLineProps> = ({
   line,
   isActive,
   themeMode = 'dark',
+  hasWordSync = true,
 }) => {
   const [smoothTime, setSmoothTime] = useState<number>(() => audioEngine.currentTime);
   const [isLingerActive, setIsLingerActive] = useState<boolean>(false);
@@ -43,7 +45,7 @@ export const LiquidWordLine: React.FC<LiquidWordLineProps> = ({
     return () => cancelAnimationFrame(rafId);
   }, [isActive, isLingerActive]);
 
-  if (!line.words || line.words.length === 0 || (!isActive && !isLingerActive)) {
+  if (!hasWordSync || !line.words || line.words.length === 0 || (!isActive && !isLingerActive)) {
     return <span>{line.text}</span>;
   }
 
