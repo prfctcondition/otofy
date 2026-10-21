@@ -36,11 +36,21 @@
     --font-sans: 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC', Inter, system-ui, -apple-system, sans-serif;
   }
   
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #0B0F19;
     color: #F1F5F9;
-    overflow: hidden;
   }
 }
 

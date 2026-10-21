@@ -120,6 +120,25 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, [libraryStore.isLyricsModalOpen]);
 
+  // Guard root window from ever scrolling or displacing out of view
+  useEffect(() => {
+    const lockWindowScroll = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+      if (document.documentElement && (document.documentElement.scrollTop !== 0 || document.documentElement.scrollLeft !== 0)) {
+        document.documentElement.scrollTop = 0;
+        document.documentElement.scrollLeft = 0;
+      }
+      if (document.body && (document.body.scrollTop !== 0 || document.body.scrollLeft !== 0)) {
+        document.body.scrollTop = 0;
+        document.body.scrollLeft = 0;
+      }
+    };
+    window.addEventListener('scroll', lockWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', lockWindowScroll);
+  }, []);
+
   const isCompactLayout = windowWidth < 1100;
   const currentLanguage = useSettingsStore((s) => s.language);
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);

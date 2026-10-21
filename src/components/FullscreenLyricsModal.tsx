@@ -304,10 +304,10 @@ export const FullscreenLyricsModal: React.FC = () => {
     const lineEl = activeLineRef.current;
     const containerEl = scrollContainerRef.current;
     if (lineEl && containerEl) {
-      const containerHeight = containerEl.clientHeight;
-      const lineTop = lineEl.offsetTop;
-      const lineHeight = lineEl.clientHeight;
-      const targetScroll = lineTop - (containerHeight / 2) + (lineHeight / 2);
+      const containerRect = containerEl.getBoundingClientRect();
+      const lineRect = lineEl.getBoundingClientRect();
+      const relativeTop = lineRect.top - containerRect.top + containerEl.scrollTop;
+      const targetScroll = relativeTop - (containerEl.clientHeight / 2) + (lineEl.clientHeight / 2);
 
       containerEl.scrollTo({
         top: Math.max(0, targetScroll),

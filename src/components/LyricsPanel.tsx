@@ -96,10 +96,16 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
 
   useEffect(() => {
     if (document.hidden || !document.hasFocus()) return;
-    if (activeLineRef.current && scrollContainerRef.current) {
-      activeLineRef.current.scrollIntoView({
+    const container = scrollContainerRef.current;
+    const activeEl = activeLineRef.current;
+    if (container && activeEl) {
+      const containerRect = container.getBoundingClientRect();
+      const lineRect = activeEl.getBoundingClientRect();
+      const relativeTop = lineRect.top - containerRect.top + container.scrollTop;
+      const targetScrollTop = relativeTop - (container.clientHeight / 2) + (activeEl.clientHeight / 2);
+      container.scrollTo({
+        top: Math.max(0, targetScrollTop),
         behavior: 'smooth',
-        block: 'center',
       });
     }
   }, [activeLineIndex]);

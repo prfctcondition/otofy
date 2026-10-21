@@ -161,7 +161,7 @@ export async function exportOtofyBackup(): Promise<OtofyBackupData> {
 
   const followedArtists = useLibraryStore.getState().followedArtists || [];
   const savedAlbums = useLibraryStore.getState().savedAlbums || [];
-  const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.3';
+  const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.4';
 
   const backupData: OtofyBackupData = {
     format: 'otofy-backup',
