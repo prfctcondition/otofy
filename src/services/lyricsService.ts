@@ -421,7 +421,7 @@ async function fetchLrclibWithRetry(
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'Otofy-Music/1.2.4 (https://github.com/eyez/zen-music)',
+          'User-Agent': 'Otofy-Music/1.2.5 (https://github.com/eyez/zen-music)',
         },
         signal: AbortSignal.timeout(timeoutMs),
       });
@@ -587,12 +587,24 @@ export async function fetchLrcRedLyrics(
 
       if (isWordSync && Array.isArray(line.words)) {
         for (const group of line.words) {
-          const item = Array.isArray(group) ? group[0] : group;
-          if (item && item.text && typeof item.begin === 'number') {
-            const wBegin = item.begin;
-            const wEnd = typeof item.end === 'number' ? item.end : wBegin + 0.35;
+          if (Array.isArray(group)) {
+            const syllables = group.filter((s: any) => s && typeof s.text === 'string' && typeof s.begin === 'number');
+            if (syllables.length === 0) continue;
+            const fullWordText = syllables.map((s: any) => s.text).join('').trim();
+            if (!fullWordText) continue;
+            const wBegin = syllables[0].begin;
+            const lastSyl = syllables[syllables.length - 1];
+            const wEnd = typeof lastSyl.end === 'number' ? lastSyl.end : (typeof syllables[0].end === 'number' ? syllables[0].end : wBegin + 0.35);
             lineWords.push({
-              text: item.text.trim(),
+              text: fullWordText,
+              begin: wBegin,
+              end: Math.max(wBegin + 0.05, wEnd),
+            });
+          } else if (group && group.text && typeof group.begin === 'number') {
+            const wBegin = group.begin;
+            const wEnd = typeof group.end === 'number' ? group.end : wBegin + 0.35;
+            lineWords.push({
+              text: group.text.trim(),
               begin: wBegin,
               end: Math.max(wBegin + 0.05, wEnd),
             });
@@ -610,10 +622,6 @@ export async function fetchLrcRedLyrics(
 
     if (parsedLines.length === 0) return null;
     parsedLines.sort((a, b) => a.time - b.time);
-
-    if (!isWordSync || !parsedLines.some((l) => Boolean(l.words && l.words.length > 0))) {
-      interpolateLineWords(parsedLines);
-    }
 
     const lrcLines = parsedLines.map((l) => {
       const m = Math.floor(l.time / 60);
