@@ -8,6 +8,7 @@ import {
   parseLrc,
   extractArtistAndTitle,
   searchLyricsCandidates,
+  parseLrcRedSongData,
   saveCustomLyrics,
   removeCustomLyrics,
   type LyricsResult,
@@ -117,37 +118,40 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
     setIsLoading(true);
     try {
       const results = await searchLyricsCandidates(customSearch.trim());
-      if (results.length === 1) {
-        const best = results[0];
-        setLyricsData(best);
-        setCandidates([]);
-        setIsSearching(false);
-        setIsPastingCustom(false);
-        if (activeTrack) {
-          await saveCustomLyrics(activeTrack, best);
-          useToastStore.getState().success(
-            'Lyrics Saved',
-            `Saved lyrics for "${activeTrack.title}"`
-          );
-        }
-      } else {
-        setCandidates(results);
-        setIsSearching(true);
-      }
+      setCandidates(results);
+      setIsSearching(true);
     } catch {
       setCandidates([]);
+      setIsSearching(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSelectCandidate = async (cand: LyricsResult) => {
-    setLyricsData(cand);
+    let resolved = cand;
+    if (cand.source === 'lrcred' && cand.isrc && (!cand.syncedLyrics || !cand.parsedLines)) {
+      setIsLoading(true);
+      try {
+        const sRes = await fetch(`https://lrc.red/s/${encodeURIComponent(cand.isrc)}.song.json`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+          signal: AbortSignal.timeout(3200),
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const parsed = parseLrcRedSongData(sData, cand.trackName, cand.artistName, cand.duration, cand.isrc);
+          if (parsed) resolved = parsed;
+        }
+      } catch {}
+      setIsLoading(false);
+    }
+
+    setLyricsData(resolved);
     setCandidates([]);
     setIsSearching(false);
     setIsPastingCustom(false);
     if (activeTrack) {
-      await saveCustomLyrics(activeTrack, cand);
+      await saveCustomLyrics(activeTrack, resolved);
       useToastStore.getState().success(
         'Lyrics Saved',
         `Saved selected lyrics for "${activeTrack.title}"`
@@ -375,18 +379,36 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({ onClose }) => {
                   <p className="text-[11px] text-[#64748B] dark:text-white/60 truncate">{cand.artistName}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {cand.syncedLyrics ? (
+                  {cand.source === 'lrcred' ? (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-400/20 dark:text-emerald-300 border border-emerald-500/20">
+                      {cand.hasWordSync ? 'Synced, LRC.RED' : 'Synced, LRC.RED'}
+                    </span>
+                  ) : cand.syncedLyrics ? (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#142347] dark:text-white">
-                      Synced
+                      Synced, LRCLIB
                     </span>
                   ) : (
                     <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70">
-                      Plain
+                      Plain, LRCLIB
                     </span>
                   )}
                 </div>
               </button>
             ))}
+          </div>
+        ) : isSearching ? (
+          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/60 py-12 px-4 gap-2">
+            <Mic2 size={28} className="text-slate-300 dark:text-white/20 mb-1" />
+            <p className="text-xs font-bold text-[#142347] dark:text-white">No lyrics candidates found</p>
+            <p className="text-[11px] text-[#64748B] dark:text-white/60">
+              Try searching with different song title or artist keywords.
+            </p>
+            <button
+              onClick={() => handleManualSearch()}
+              className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#142347] text-white hover:bg-[#101b38] dark:bg-white dark:text-black transition-all cursor-pointer shadow-2xs"
+            >
+              Retry search
+            </button>
           </div>
         ) : !activeTrack ? (
           <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] dark:text-white/60 py-16">

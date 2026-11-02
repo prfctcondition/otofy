@@ -393,6 +393,10 @@ export const en: TranslationSchema = {
       outputDevice: 'Audio output device',
       outputDeviceDesc: 'Select specific speakers, headphones, or external audio interfaces.',
       defaultDevice: 'Default System Output',
+      discordRpc: 'Discord Rich Presence',
+      discordRpcDesc: 'Choose how your playback activity is displayed in Discord.',
+      discordModeListening: 'Music Mode (Listening status with progress bar)',
+      discordModePlaying: 'Game Mode (App icon in voice channels)',
     },
     startup: {
       sectionTitle: 'Startup and Window Behaviour',

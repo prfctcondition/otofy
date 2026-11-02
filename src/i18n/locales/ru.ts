@@ -393,6 +393,10 @@ export const ru: TranslationSchema = {
       outputDevice: 'Устройство вывода звука',
       outputDeviceDesc: 'Выберите нужные динамики, наушники или внешнюю звуковую карту.',
       defaultDevice: 'Системное устройство по умолчанию',
+      discordRpc: 'Интеграция с Discord (Rich Presence)',
+      discordRpcDesc: 'Выберите, как активность воспроизведения отображается в Discord.',
+      discordModeListening: 'Музыкальный режим (Статус «Слушает» со строкой прослушивания)',
+      discordModePlaying: 'Игровой режим (Иконка приложения в голосовых каналах)',
     },
     startup: {
       sectionTitle: 'Запуск и поведение окна',

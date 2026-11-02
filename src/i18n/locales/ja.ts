@@ -390,6 +390,10 @@ export const ja: TranslationSchema = {
       outputDevice: '出力オーディオデバイス',
       outputDeviceDesc: 'スピーカー、ヘッドフォン、オーディオインターフェースを選択します。',
       defaultDevice: 'システム既定の出力',
+      discordRpc: 'Discord Rich Presence',
+      discordRpcDesc: 'Discordでの再生ステータスの表示方法を選択します。',
+      discordModeListening: '音楽モード (プログレスバー付き「再生中」ステータス)',
+      discordModePlaying: 'ゲームモード (ボイスチャンネルにアプリアイコンを表示)',
     },
     startup: {
       sectionTitle: '起動とウィンドウ動作',

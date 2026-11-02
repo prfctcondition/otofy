@@ -296,6 +296,10 @@ export interface TranslationSchema {
       outputDevice: string;
       outputDeviceDesc: string;
       defaultDevice: string;
+      discordRpc?: string;
+      discordRpcDesc?: string;
+      discordModeListening?: string;
+      discordModePlaying?: string;
     };
     startup: {
       sectionTitle: string;

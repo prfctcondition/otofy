@@ -31,7 +31,7 @@ interface PlayerState {
 }
 
 interface PlayerActions {
-  playTrack: (track: Track, queue?: Track[], source?: 'playlist' | 'album' | 'artist' | 'radio' | 'single') => Promise<void>;
+  playTrack: (track: Track, queue?: Track[], source?: 'playlist' | 'album' | 'artist' | 'radio' | 'single', isBackwardNavigation?: boolean) => Promise<void>;
   replayCurrentTrack: () => Promise<void>;
   setActiveTrackOnly: (track: Track) => void;
   play: () => Promise<void>;
@@ -51,7 +51,7 @@ interface PlayerActions {
   setIsBuffering: (buffering: boolean) => void;
   clearPlaybackError: () => void;
   toggleActiveTrackLike: (isLiked?: boolean) => void;
-  jumpToQueueIndex: (index: number) => Promise<void>;
+  jumpToQueueIndex: (index: number, isBackwardNavigation?: boolean) => Promise<void>;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
   initAudioListeners: () => () => void;
@@ -226,6 +226,7 @@ const syncDiscordPresence = (
         currentSec,
         isPlaying: true,
         artworkUrl: track.artworkUrl || track.thumbnail,
+        activityType: useSettingsStore.getState().discordPresenceMode === 'listening' ? 2 : 0,
       }).catch(() => {});
     }
   }
@@ -607,7 +608,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     await get().playTrack(activeTrack);
   },
 
-  playTrack: async (track, queue, queueSource) => {
+  playTrack: async (track, queue, queueSource, isBackwardNavigation = false) => {
     // Stop any existing audio immediately to prevent old track from continuing in background
     try {
       audioEngine.pause();
@@ -616,7 +617,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
     persistLastActiveTrack(track);
 
     const state = get();
-    if (state.activeTrack && state.activeTrack.id !== track.id) {
+    if (!isBackwardNavigation && state.activeTrack && state.activeTrack.id !== track.id) {
       const nextHistory = [...state.playbackHistory, state.activeTrack];
       if (nextHistory.length > 100) nextHistory.shift();
       set({ playbackHistory: nextHistory });
@@ -1019,7 +1020,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   },
 
   nextTrack: async () => {
-    const { queue, queueIndex, isShuffle, repeatMode, activeTrack, playbackHistory, queueSource } = get();
+    const { queue, queueIndex, isShuffle, repeatMode, activeTrack, playbackHistory } = get();
     if (queue.length === 0) return;
 
     if (activeTrack) {
@@ -1028,19 +1029,23 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       set({ playbackHistory: nextHistory });
     }
 
-    const isPlaylistQueue = queueSource === 'playlist' || queueSource === 'album' || queueSource === 'artist';
-    const isAtEnd = queueIndex >= queue.length - 1;
+    const isAtEnd = isShuffle
+      ? shufflePlayedIndices.length >= queue.length
+      : queueIndex >= queue.length - 1;
     if (isAtEnd) {
       if (repeatMode === 'one') {
         await get().replayCurrentTrack();
         return;
       }
 
-      if (repeatMode === 'off' && useSettingsStore.getState().autoplay && !isPlaylistQueue) {
+      if (repeatMode === 'off' && useSettingsStore.getState().autoplay) {
         await get().appendAutoplayTracks();
         const updatedQueue = get().queue;
         if (updatedQueue.length > queue.length) {
-          await get().jumpToQueueIndex(queueIndex + 1);
+          const nextIdx = isShuffle
+            ? consumeNextShuffleQueueIndex(updatedQueue.length, queueIndex)
+            : queueIndex + 1;
+          await get().jumpToQueueIndex(nextIdx);
           return;
         }
         // If autoplay could not load any tracks, stop cleanly at end of playlist
@@ -1095,23 +1100,23 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
 
       const qIdx = queue.findIndex((t) => t.id === previousTrack.id);
       if (qIdx !== -1) {
-        await get().jumpToQueueIndex(qIdx);
+        await get().jumpToQueueIndex(qIdx, true);
       } else {
-        await get().playTrack(previousTrack);
+        await get().playTrack(previousTrack, undefined, undefined, true);
       }
       return;
     }
 
     // In normal (linear) mode: move backward in queue if not at the start
     if (queueIndex > 0) {
-      await get().jumpToQueueIndex(queueIndex - 1);
+      await get().jumpToQueueIndex(queueIndex - 1, true);
       return;
     }
 
     // At the beginning of the queue (queueIndex === 0):
     // Only wrap around to end of queue if repeatMode === 'all'
     if (repeatMode === 'all' && queue.length > 1) {
-      await get().jumpToQueueIndex(queue.length - 1);
+      await get().jumpToQueueIndex(queue.length - 1, true);
       return;
     }
 
@@ -1170,11 +1175,11 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
   setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
   setIsBuffering: (buffering: boolean) => set({ isBuffering: buffering }),
 
-  jumpToQueueIndex: async (index: number) => {
+  jumpToQueueIndex: async (index: number, isBackwardNavigation = false) => {
     const { queue, queueSource } = get();
     if (index >= 0 && index < queue.length) {
       persistLastQueue(queue, index, queueSource);
-      await get().playTrack(queue[index]);
+      await get().playTrack(queue[index], undefined, undefined, isBackwardNavigation);
     }
   },
 
@@ -1248,14 +1253,15 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
       const timeRemaining = dur - current;
       const { isCrossfading, queue, queueIndex, isShuffle, repeatMode, isAutoplayLoading } = get();
 
-      const isPlaylistQueue = get().queueSource === 'playlist' || get().queueSource === 'album' || get().queueSource === 'artist';
+      // Proactive Autoplay Prefetch when approaching the end of queue
+      const isQueueNearlyFinished = isShuffle
+        ? shufflePlayedIndices.length >= queue.length
+        : queueIndex >= queue.length - 1;
 
-      // Proactive Autoplay Prefetch: only when playing single track or radio, NOT user playlists
       if (
         settings.autoplay &&
-        !isPlaylistQueue &&
         repeatMode === 'off' &&
-        queueIndex >= queue.length - 1 &&
+        isQueueNearlyFinished &&
         dur > 20 &&
         timeRemaining <= crossfadeDuration + 12 &&
         !isAutoplayLoading
@@ -1279,7 +1285,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()((set, get) =
           nextIdx = queueIndex + 1;
         } else if (repeatMode === 'all') {
           nextIdx = 0;
-        } else if (repeatMode === 'off' && settings.autoplay && !isPlaylistQueue) {
+        } else if (repeatMode === 'off' && settings.autoplay) {
           if (queueIndex + 1 < queue.length) {
             nextIdx = queueIndex + 1;
           }

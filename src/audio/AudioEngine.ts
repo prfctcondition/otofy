@@ -224,11 +224,31 @@ export class AudioEngine {
     this.limiterNode.attack.value = 0.003;
     this.limiterNode.release.value = 0.25;
 
-    // 4. Initialize 10-band EQ filters
+    // 4. Initialize 10-band EQ filters with persisted storage
+    let savedEqBands: number[] | null = null;
+    let savedEqEnabled = true;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = localStorage.getItem('otofy-eq-storage');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.state) {
+            if (Array.isArray(parsed.state.bands)) savedEqBands = parsed.state.bands;
+            if (typeof parsed.state.isEnabled === 'boolean') savedEqEnabled = parsed.state.isEnabled;
+          }
+        }
+      }
+    } catch {}
+
     this.eqFilters = EQ_BANDS.map((band, index) => {
       const filter = ctx.createBiquadFilter();
       filter.frequency.value = band.frequency;
-      filter.gain.value = 0;
+
+      let initGain = 0;
+      if (savedEqEnabled && savedEqBands && typeof savedEqBands[index] === 'number') {
+        initGain = Math.max(-12, Math.min(12, savedEqBands[index]));
+      }
+      filter.gain.value = initGain;
 
       if (index === 0) {
         filter.type = 'lowshelf';

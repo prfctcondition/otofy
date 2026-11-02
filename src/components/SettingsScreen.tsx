@@ -27,6 +27,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useSettingsStore, StreamingQuality, AutoLaunchMode } from '../store/settingsStore';
+import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { useThemeStore } from '../store/themeStore';
 import useToastStore from '../store/toastStore';
@@ -56,7 +57,7 @@ export const SettingsScreen: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState<boolean>(false);
   const [updateProgress, setUpdateProgress] = useState<{ percent: number; transferred: number; total: number } | null>(null);
   const [appVersion, setAppVersion] = useState<string>(
-    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.5'
+    typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.2.6'
   );
   const [isExportingBackup, setIsExportingBackup] = useState<boolean>(false);
 
@@ -642,6 +643,37 @@ export const SettingsScreen: React.FC = () => {
                     {dev.label}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 pt-4 border-t border-black/5 dark:border-white/5">
+              <div className="max-w-xl">
+                <span className="text-sm font-semibold block">
+                  {t.settings?.playback?.discordRpc || 'Discord Rich Presence'}
+                </span>
+                <p className="text-xs text-[#64748B] dark:text-white/60 mt-0.5">
+                  {t.settings?.playback?.discordRpcDesc || 'Choose how your playback activity is displayed in Discord.'}
+                </p>
+              </div>
+              <select
+                id="select-discord-presence-mode"
+                value={settings.discordPresenceMode || 'listening'}
+                onChange={(e) => {
+                  const mode = e.target.value as 'playing' | 'listening';
+                  settings.setDiscordPresenceMode(mode);
+                  const playerState = usePlayerStore.getState();
+                  if (playerState.activeTrack) {
+                    playerState.seek(playerState.currentTime);
+                  }
+                }}
+                className="bg-white/80 dark:bg-[#181820] border border-black/10 dark:border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-black/30 dark:focus:border-white/40 cursor-pointer shadow-xs"
+              >
+                <option value="listening">
+                  {t.settings?.playback?.discordModeListening || 'Music Mode (Listening status with progress bar)'}
+                </option>
+                <option value="playing">
+                  {t.settings?.playback?.discordModePlaying || 'Game Mode (App icon in voice channels)'}
+                </option>
               </select>
             </div>
           </div>

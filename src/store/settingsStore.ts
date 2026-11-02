@@ -40,6 +40,7 @@ export interface SettingsState {
 
   // 6. System / Performance
   hardwareAcceleration: boolean;
+  discordPresenceMode: 'listening' | 'listening';
 
   // 7. Localization
   language: SupportedLanguage;
@@ -64,6 +65,7 @@ export interface SettingsState {
   setCloseToTray: (closeToTray: boolean) => Promise<void>;
   setDownloadsPath: (downloadsPath: string) => void;
   setHardwareAcceleration: (hardwareAcceleration: boolean) => Promise<void>;
+  setDiscordPresenceMode: (discordPresenceMode: 'listening' | 'listening') => void;
   setLanguage: (language: SupportedLanguage) => void;
   setOnboardingCompleted: (completed: boolean) => void;
   setFavoriteArtists: (artists: string[], avatars?: Record<string, string>) => void;
@@ -89,6 +91,7 @@ export const useSettingsStore = create<SettingsState>()(
       closeToTray: true,
       downloadsPath: '',
       hardwareAcceleration: true,
+      discordPresenceMode: 'listening',
       language: getInitialLanguage(),
       onboardingCompleted: false,
       favoriteArtists: [],
@@ -167,6 +170,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       setDownloadsPath: (downloadsPath) => set({ downloadsPath }),
+      setDiscordPresenceMode: (discordPresenceMode) => set({ discordPresenceMode }),
 
       setHardwareAcceleration: async (hardwareAcceleration) => {
         set({ hardwareAcceleration });

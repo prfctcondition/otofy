@@ -25,6 +25,8 @@ export interface LyricsResult {
   parsedLines?: LrcLine[];
   hasWordSync?: boolean;
   isCustom?: boolean;
+  source?: 'lrclib' | 'lrcred';
+  isrc?: string;
 }
 
 // In-memory cache for fast repeated lookups
@@ -337,6 +339,8 @@ const parseCandidate = (cand: any): LyricsResult => {
     syncedLyrics: cand.syncedLyrics || undefined,
     parsedLines,
     hasWordSync,
+    source: cand.source || 'lrclib',
+    isrc: cand.isrc,
   };
 };
 
@@ -412,16 +416,16 @@ export function isCandidateMatch(
 
 async function fetchLrclibWithRetry(
   url: string,
-  maxRetries = 1,
-  timeoutMs = 2400
+  maxRetries = 2,
+  timeoutMs = 3600
 ): Promise<Response | null> {
-  const delays = [60, 150];
+  const delays = [120, 350];
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'Otofy-Music/1.2.5 (https://github.com/eyez/zen-music)',
+          'User-Agent': 'Otofy-Music/1.2.6 (https://github.com/eyez/zen-music)',
         },
         signal: AbortSignal.timeout(timeoutMs),
       });
@@ -431,7 +435,7 @@ async function fetchLrclibWithRetry(
           console.warn('[LRCLIB] Rate limit reached:', res.status);
           return null;
         }
-        const delayMs = delays[attempt] || 80;
+        const delayMs = delays[attempt] || 150;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         attempt++;
         continue;
@@ -444,7 +448,7 @@ async function fetchLrclibWithRetry(
       return res;
     } catch {
       if (attempt === maxRetries) return null;
-      const delayMs = delays[attempt] || 80;
+      const delayMs = delays[attempt] || 150;
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       attempt++;
     }
@@ -452,21 +456,153 @@ async function fetchLrclibWithRetry(
   return null;
 }
 
+export function parseLrcRedSongData(
+  songData: any,
+  defaultTitle = '',
+  defaultArtist = '',
+  defaultDuration?: number,
+  isrc?: string
+): LyricsResult | null {
+  if (!songData || !songData.lyrics || !Array.isArray(songData.lyrics.lines)) return null;
+
+  const rawLines = songData.lyrics.lines;
+  const isWordSync = songData.lyrics.sync === 'word';
+  const parsedLines: LrcLine[] = [];
+
+  for (const line of rawLines) {
+    if (typeof line.begin !== 'number' || !line.text) continue;
+    const lineWords: LrcWord[] = [];
+
+    if (isWordSync && Array.isArray(line.words)) {
+      for (const group of line.words) {
+        if (Array.isArray(group)) {
+          const syllables = group.filter((s: any) => s && typeof s.text === 'string' && typeof s.begin === 'number');
+          if (syllables.length === 0) continue;
+          const fullWordText = syllables.map((s: any) => s.text).join('').trim();
+          if (!fullWordText) continue;
+          const wBegin = syllables[0].begin;
+          const lastSyl = syllables[syllables.length - 1];
+          const wEnd = typeof lastSyl.end === 'number' ? lastSyl.end : (typeof syllables[0].end === 'number' ? syllables[0].end : wBegin + 0.35);
+          lineWords.push({
+            text: fullWordText,
+            begin: wBegin,
+            end: Math.max(wBegin + 0.05, wEnd),
+          });
+        } else if (group && group.text && typeof group.begin === 'number') {
+          const wBegin = group.begin;
+          const wEnd = typeof group.end === 'number' ? group.end : wBegin + 0.35;
+          lineWords.push({
+            text: group.text.trim(),
+            begin: wBegin,
+            end: Math.max(wBegin + 0.05, wEnd),
+          });
+        }
+      }
+    }
+
+    parsedLines.push({
+      time: line.begin,
+      endTime: typeof line.end === 'number' ? line.end : line.begin + 3.5,
+      text: line.text.trim(),
+      words: lineWords.length > 0 ? lineWords : undefined,
+    });
+  }
+
+  if (parsedLines.length === 0) return null;
+  parsedLines.sort((a, b) => a.time - b.time);
+
+  const lrcLines = parsedLines.map((l) => {
+    const m = Math.floor(l.time / 60);
+    const s = Math.floor(l.time % 60);
+    const ms = Math.floor((l.time % 1) / 0.01);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return '[' + pad(m) + ':' + pad(s) + '.' + pad(ms) + '] ' + l.text;
+  });
+
+  return {
+    trackName: songData.title || defaultTitle,
+    artistName: songData.artist || defaultArtist,
+    duration: songData.duration || defaultDuration,
+    instrumental: false,
+    syncedLyrics: lrcLines.join('\n'),
+    plainLyrics: parsedLines.map((l) => l.text).join('\n'),
+    parsedLines,
+    hasWordSync: isWordSync,
+    source: 'lrcred',
+    isrc,
+  };
+}
+
 export async function searchLyricsCandidates(query: string): Promise<LyricsResult[]> {
   const q = query.trim();
   if (!q) return [];
-  try {
-    const res = await fetchLrclibWithRetry(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`);
-    if (res && res.ok) {
-      const candidates: any[] = await res.json();
-      if (Array.isArray(candidates)) {
-        return candidates
-          .filter((c) => c && (c.syncedLyrics || c.plainLyrics || c.instrumental))
-          .map(parseCandidate);
+
+  const lrclibPromise = (async (): Promise<LyricsResult[]> => {
+    try {
+      const res = await fetchLrclibWithRetry(
+        `https://lrclib.net/api/search?q=${encodeURIComponent(q)}`,
+        2,
+        3600
+      );
+      if (res && res.ok) {
+        const candidates: any[] = await res.json();
+        if (Array.isArray(candidates)) {
+          return candidates
+            .filter((c) => c && (c.syncedLyrics || c.plainLyrics || c.instrumental))
+            .map((c) => parseCandidate({ ...c, source: 'lrclib' }));
+        }
       }
-    }
-  } catch {}
-  return [];
+    } catch {}
+    return [];
+  })();
+
+  const lrcRedPromise = (async (): Promise<LyricsResult[]> => {
+    try {
+      const res = await fetch(`https://lrc.red/search.json?q=${encodeURIComponent(q)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(3200),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data || !Array.isArray(data.hits)) return [];
+
+      const topHits = data.hits.slice(0, 4);
+      const songResults = await Promise.all(
+        topHits.map(async (hit: any): Promise<LyricsResult | null> => {
+          if (!hit || !hit.isrc) return null;
+          try {
+            const sRes = await fetch(`https://lrc.red/s/${encodeURIComponent(hit.isrc)}.song.json`, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+              signal: AbortSignal.timeout(2800),
+            });
+            if (sRes.ok) {
+              const sData = await sRes.json();
+              return parseLrcRedSongData(sData, hit.title, hit.artist, hit.duration, hit.isrc);
+            }
+          } catch {}
+          return {
+            trackName: hit.title || q,
+            artistName: hit.artist || '',
+            albumName: hit.album || '',
+            duration: hit.duration,
+            instrumental: false,
+            source: 'lrcred',
+            isrc: hit.isrc,
+            hasWordSync: true,
+          };
+        })
+      );
+      return songResults.filter((r): r is LyricsResult => Boolean(r));
+    } catch {}
+    return [];
+  })();
+
+  const [lrclibResults, lrcRedResults] = await Promise.all([
+    lrclibPromise.catch(() => []),
+    lrcRedPromise.catch(() => []),
+  ]);
+
+  return [...lrcRedResults, ...lrclibResults];
 }
 
 function rankLyricsCandidates(candidates: any[], durationSec?: number): any[] {
@@ -575,72 +711,13 @@ export async function fetchLrcRedLyrics(
     });
     if (!songRes.ok) return null;
     const songData = await songRes.json();
-    if (!songData || !songData.lyrics || !Array.isArray(songData.lyrics.lines)) return null;
-
-    const rawLines = songData.lyrics.lines;
-    const isWordSync = songData.lyrics.sync === 'word';
-    const parsedLines: LrcLine[] = [];
-
-    for (const line of rawLines) {
-      if (typeof line.begin !== 'number' || !line.text) continue;
-      const lineWords: LrcWord[] = [];
-
-      if (isWordSync && Array.isArray(line.words)) {
-        for (const group of line.words) {
-          if (Array.isArray(group)) {
-            const syllables = group.filter((s: any) => s && typeof s.text === 'string' && typeof s.begin === 'number');
-            if (syllables.length === 0) continue;
-            const fullWordText = syllables.map((s: any) => s.text).join('').trim();
-            if (!fullWordText) continue;
-            const wBegin = syllables[0].begin;
-            const lastSyl = syllables[syllables.length - 1];
-            const wEnd = typeof lastSyl.end === 'number' ? lastSyl.end : (typeof syllables[0].end === 'number' ? syllables[0].end : wBegin + 0.35);
-            lineWords.push({
-              text: fullWordText,
-              begin: wBegin,
-              end: Math.max(wBegin + 0.05, wEnd),
-            });
-          } else if (group && group.text && typeof group.begin === 'number') {
-            const wBegin = group.begin;
-            const wEnd = typeof group.end === 'number' ? group.end : wBegin + 0.35;
-            lineWords.push({
-              text: group.text.trim(),
-              begin: wBegin,
-              end: Math.max(wBegin + 0.05, wEnd),
-            });
-          }
-        }
-      }
-
-      parsedLines.push({
-        time: line.begin,
-        endTime: typeof line.end === 'number' ? line.end : line.begin + 3.5,
-        text: line.text.trim(),
-        words: lineWords.length > 0 ? lineWords : undefined,
-      });
-    }
-
-    if (parsedLines.length === 0) return null;
-    parsedLines.sort((a, b) => a.time - b.time);
-
-    const lrcLines = parsedLines.map((l) => {
-      const m = Math.floor(l.time / 60);
-      const s = Math.floor(l.time % 60);
-      const ms = Math.floor((l.time % 1) / 0.01);
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      return '[' + pad(m) + ':' + pad(s) + '.' + pad(ms) + '] ' + l.text;
-    });
-
-    return {
-      trackName: songData.title || bestHit.title || cleanT,
-      artistName: songData.artist || bestHit.artist || cleanA,
-      duration: songData.duration || bestHit.duration,
-      instrumental: false,
-      syncedLyrics: lrcLines.join('\n'),
-      plainLyrics: parsedLines.map((l) => l.text).join('\n'),
-      parsedLines,
-      hasWordSync: isWordSync,
-    };
+    return parseLrcRedSongData(
+      songData,
+      bestHit.title || cleanT,
+      bestHit.artist || cleanA,
+      bestHit.duration,
+      bestHit.isrc
+    );
   } catch {
     return null;
   }

@@ -20,6 +20,7 @@ export interface DiscordActivityPayload {
   currentSec?: number;
   isPlaying?: boolean;
   artworkUrl?: string;
+  activityType?: number;
 }
 
 class DiscordRpcService {
@@ -222,10 +223,10 @@ class DiscordRpcService {
     const rawTitle = data.title || 'Unknown Track';
 
     const cleanTitle = rawTitle.replace(/^Listening to /i, '').trim();
-    const detailsText = cleanTitle;
-
-    // State: strictly artist name without stream source tag
-    const stateText = artistName;
+    const formattedTitle = artistName && cleanTitle
+      ? `${artistName} - ${cleanTitle}`
+      : (cleanTitle || artistName);
+    const detailsText = formattedTitle.length > 128 ? `${formattedTitle.slice(0, 125)}...` : formattedTitle;
 
     // Large image: direct HTTPS URL of album cover, fallback to 'logo'
     const rawArtwork = (data.artworkUrl || '').trim();
@@ -240,14 +241,15 @@ class DiscordRpcService {
     const durationSec = Math.max(0, Math.floor(data.durationSec || 0));
     const endTimestamp = durationSec > 0 ? startTimestamp + durationSec : startTimestamp + 180;
 
+    const isListening = (typeof data.activityType === 'number' ? data.activityType : 2) === 2;
+
     const activity: any = {
-      type: 2, // ActivityType.Listening
-      details: detailsText.length > 128 ? `${detailsText.slice(0, 125)}...` : detailsText,
-      state: stateText.length > 128 ? `${stateText.slice(0, 125)}...` : stateText,
-      timestamps: {
-        start: startTimestamp,
-        end: endTimestamp,
-      },
+      type: isListening ? 2 : 0,
+      name: 'Otofy',
+      details: detailsText,
+      timestamps: isListening
+        ? { start: startTimestamp, end: endTimestamp }
+        : { start: startTimestamp },
       assets: {
         large_image: largeImageUrl,
       },

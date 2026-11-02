@@ -390,6 +390,10 @@ export const es: TranslationSchema = {
       outputDevice: 'Dispositivo de salida de audio',
       outputDeviceDesc: 'Selecciona altavoces, auriculares o interfaz de audio externa.',
       defaultDevice: 'Salida predeterminada del sistema',
+      discordRpc: 'Discord Rich Presence',
+      discordRpcDesc: 'Elige cómo se muestra tu estado de reproducción en Discord.',
+      discordModeListening: 'Modo música (Estado «Escuchando» con barra de progreso)',
+      discordModePlaying: 'Modo juego (Icono de la app en canales de voz)',
     },
     startup: {
       sectionTitle: 'Comportamiento de inicio y ventana',

@@ -390,6 +390,10 @@ export const fr: TranslationSchema = {
       outputDevice: 'Périphérique de sortie audio',
       outputDeviceDesc: 'Sélectionnez des haut-parleurs, écouteurs ou une interface audio externe.',
       defaultDevice: 'Sortie système par défaut',
+      discordRpc: 'Discord Rich Presence',
+      discordRpcDesc: 'Choisissez comment votre statut de lecture s\'affiche dans Discord.',
+      discordModeListening: 'Mode musique (Statut «Écoute» avec barre de progression)',
+      discordModePlaying: 'Mode jeu (Icône de l\'application dans les salons vocaux)',
     },
     startup: {
       sectionTitle: 'Démarrage et comportement de la fenêtre',

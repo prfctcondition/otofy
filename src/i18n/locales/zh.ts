@@ -390,6 +390,10 @@ export const zh: TranslationSchema = {
       outputDevice: '音频输出设备',
       outputDeviceDesc: '选择指定的扬声器、耳机或外接音频接口。',
       defaultDevice: '系统默认输出设备',
+      discordRpc: 'Discord Rich Presence',
+      discordRpcDesc: '选择在 Discord 中显示播放状态的方式。',
+      discordModeListening: '音乐模式（带进度条的「正在收听」状态）',
+      discordModePlaying: '游戏模式（在语音频道显示应用图标）',
     },
     startup: {
       sectionTitle: '启动与窗口行为',
