@@ -774,6 +774,17 @@ export function mapMusicItemToTrack(
     const secs = item.duration.seconds % 60;
     durStr = `${mins}:${String(secs).padStart(2, '0')}`;
   }
+  if (!durStr || durStr === '0:00') {
+    const allCols = [...(item.flex_columns || []), ...(item.fixed_columns || [])];
+    for (const col of allCols) {
+      const colText = col?.title?.text || (col?.title?.runs ? col.title.runs.map((r: any) => r.text).join('') : '');
+      const match = colText.match(/\b\d{1,2}:\d{2}\b/);
+      if (match) {
+        durStr = match[0];
+        break;
+      }
+    }
+  }
   if (!durStr) durStr = '0:00';
 
   const durSec = typeof item.duration?.seconds === 'number' && item.duration.seconds > 0
@@ -1774,6 +1785,15 @@ export async function getArtist(artistNameOrId: string, fallbackArtistName?: str
   return result;
 }
 
+export function getArtistTrackCanonicalKey(rawTitle: string): string {
+  if (!rawTitle) return '';
+  return rawTitle
+    .toLowerCase()
+    .replace(/\s{0,}[\(\[]\s{0,}(remaster(ed)?(\s{0,}\d{4})?|digital\s{0,}remaster|\d{4}\s{0,}remaster|deluxe(\s{0,}edition)?|bonus\s{0,}track|official\s{0,}(video|audio)|visualizer)\s{0,}[\)\]]/gi, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
 export async function getArtistFullTracks(channelIdOrName: string, fallbackArtistName?: string): Promise<InnertubeTrack[]> {
   const yt = await getInnertube();
   const canonical = getCanonicalArtistMapping(channelIdOrName) || (fallbackArtistName ? getCanonicalArtistMapping(fallbackArtistName) : null);
@@ -1797,6 +1817,45 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     : (artistPage?.header?.title?.text || fallbackArtistName || channelIdOrName);
   const tracks: InnertubeTrack[] = [];
   const existingIds = new Set<string>();
+  const canonicalMap = new Map<string, number>();
+
+  const addOrEnrichTrack = (incoming: InnertubeTrack | null) => {
+    if (!incoming || !incoming.id) return;
+    if (existingIds.has(incoming.id)) return;
+
+    const cKey = getArtistTrackCanonicalKey(incoming.title);
+    if (cKey && canonicalMap.has(cKey)) {
+      const existingIdx = canonicalMap.get(cKey)!;
+      const existing = tracks[existingIdx];
+      const incomingSec = incoming.durationSec || 0;
+      const existingSec = existing.durationSec || 0;
+      const durDiff = Math.abs(incomingSec - existingSec);
+
+      if (existingSec === 0 && incomingSec > 0) {
+        existing.duration = incoming.duration;
+        existing.durationSec = incoming.durationSec;
+        if (!existing.album && incoming.album) existing.album = incoming.album;
+        if (!existing.albumBrowseId && incoming.albumBrowseId) existing.albumBrowseId = incoming.albumBrowseId;
+        existingIds.add(incoming.id);
+        return;
+      }
+
+      if (existingSec > 0 && incomingSec > 0 && durDiff <= 8) {
+        if ((incoming.views || 0) > (existing.views || 0)) {
+          existing.views = incoming.views;
+        }
+        existingIds.add(incoming.id);
+        return;
+      }
+    }
+
+    existingIds.add(incoming.id);
+    const newIdx = tracks.length;
+    tracks.push(incoming);
+    if (cKey && !canonicalMap.has(cKey)) {
+      canonicalMap.set(cKey, newIdx);
+    }
+  };
 
   if (artistPage) {
     const sections: any[] = (artistPage.sections as any[]) || [];
@@ -1808,10 +1867,7 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
     if (topSongsShelf && Array.isArray(topSongsShelf.contents)) {
       for (const item of topSongsShelf.contents) {
         const mapped = mapMusicItemToTrack(item, artistName, channelId, `${artistName} - Top Tracks`);
-        if (mapped && !existingIds.has(mapped.id)) {
-          existingIds.add(mapped.id);
-          tracks.push(mapped);
-        }
+        addOrEnrichTrack(mapped);
       }
     }
 
@@ -1846,10 +1902,7 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
 
         for (const item of sItems) {
           const mapped = mapMusicItemToTrack(item, artistName, channelId, `${artistName} - Top Tracks`);
-          if (mapped && !existingIds.has(mapped.id)) {
-            existingIds.add(mapped.id);
-            tracks.push(mapped);
-          }
+          addOrEnrichTrack(mapped);
         }
       }
     } catch (err) {
@@ -1879,9 +1932,8 @@ export async function getArtistFullTracks(channelIdOrName: string, fallbackArtis
         for (const r of results) {
           if (r.status === 'fulfilled' && r.value?.tracks) {
             for (const t of r.value.tracks) {
-              if (t.id && !existingIds.has(t.id)) {
-                existingIds.add(t.id);
-                tracks.push({
+              if (t && t.id) {
+                addOrEnrichTrack({
                   ...t,
                   artistBrowseId: t.artistBrowseId || (channelId.startsWith('UC') ? channelId : undefined),
                   artistUrl: t.artistUrl || (channelId.startsWith('UC') ? `https://music.youtube.com/channel/${channelId}` : undefined),
@@ -2741,6 +2793,7 @@ export default {
   getTracksPopularity,
   getArtist,
   getArtistFullTracks,
+  getArtistTrackCanonicalKey,
   enrichTracksWithUploadDates,
   getAlbum,
   getGenreTracks,

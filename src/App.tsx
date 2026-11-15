@@ -43,6 +43,7 @@ import { AccountSyncModal } from './components/AccountSyncModal';
 import { LyricsModal } from './components/LyricsModal';
 import { LyricsPanel } from './components/LyricsPanel';
 import { FullscreenLyricsModal } from './components/FullscreenLyricsModal';
+import { getTrackCanonicalKey } from './utils/trackUtils';
 import { UpdateAvailableModal } from './components/UpdateAvailableModal';
 import { SearchResultsOverlay } from './components/SearchResultsOverlay';
 import { BatchDownloadBanner } from './components/BatchDownloadBanner';
@@ -304,51 +305,96 @@ export default function App() {
       }
 
       if (fullResults && fullResults.length > 0) {
-        const existingIds = new Set(libraryStore.currentPlaylistTracks.map((t) => t.sourceId || t.id));
-        const newTracks: Track[] = [];
-          let curNumber = libraryStore.currentPlaylistTracks.length;
+        const currentTracks = libraryStore.currentPlaylistTracks;
+        const existingIds = new Set(currentTracks.map((t) => t.sourceId || t.id));
+        const canonicalIndexMap = new Map<string, number>();
 
-          for (const r of fullResults) {
-            if (existingIds.has(r.sourceId || r.id)) continue;
-            existingIds.add(r.sourceId || r.id);
-            curNumber++;
-            newTracks.push({
-              id: `artist-${(r.source || 'YT').toLowerCase()}-${viewing.title.replace(/\s+/g, '-').toLowerCase()}-${curNumber}-${r.id || r.sourceId}`,
-              number: curNumber,
-              title: r.title,
-              artist: r.artist || viewing.title,
-              artists: r.artists,
-              album: r.album || `${viewing.title} - Top Tracks`,
-              duration: r.duration,
-              durationSec: r.durationSec,
-              dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
-              releaseDate: r.releaseDate,
-              releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
-              artistBrowseId: r.artistBrowseId || channelId,
-              artistBrowseIds: r.artistBrowseIds,
-              artistUrl: r.artistUrl,
-              albumBrowseId: r.albumBrowseId,
-              externalUrl: r.externalUrl,
-              views: (r as any).views,
-              playbackCount: (r as any).playbackCount || (r as any).playback_count,
-              source: (r.source || 'YT') as SourceType,
-              sourceLabel: r.sourceLabel || 'YouTube Music',
-              sourceId: r.sourceId,
-              artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined),
-              iconName: 'user' as const,
-              gradientFrom: '#4338CA',
-              gradientTo: '#7C3AED',
-              isLiked: false,
-            });
+        currentTracks.forEach((t, i) => {
+          const cKey = getTrackCanonicalKey(t.title);
+          if (cKey && !canonicalIndexMap.has(cKey)) {
+            canonicalIndexMap.set(cKey, i);
+          }
+        });
+
+        const updatedCurrentTracks = [...currentTracks];
+        const newTracks: Track[] = [];
+        let curNumber = currentTracks.length;
+
+        for (const r of fullResults) {
+          const rId = r.sourceId || r.id;
+          if (existingIds.has(rId)) continue;
+
+          const cKey = getTrackCanonicalKey(r.title);
+          if (cKey && canonicalIndexMap.has(cKey)) {
+            const existingIdx = canonicalIndexMap.get(cKey)!;
+            const existing = updatedCurrentTracks[existingIdx];
+            const incomingSec = r.durationSec || 0;
+            const existingSec = existing.durationSec || 0;
+            const durDiff = Math.abs(incomingSec - existingSec);
+
+            if (existingSec === 0 && incomingSec > 0) {
+              updatedCurrentTracks[existingIdx] = {
+                ...existing,
+                duration: r.duration,
+                durationSec: r.durationSec,
+                album: existing.album || r.album,
+                albumBrowseId: existing.albumBrowseId || r.albumBrowseId,
+              };
+              existingIds.add(rId);
+              continue;
+            }
+
+            if (existingSec > 0 && incomingSec > 0 && durDiff <= 8) {
+              existingIds.add(rId);
+              continue;
+            }
           }
 
-          if (newTracks.length > 0) {
-            const combined = [...libraryStore.currentPlaylistTracks, ...newTracks];
-            await repo.putTracks(newTracks);
-            const currentDetails = libraryStore.currentArtistDetails;
-            const releaseCount = (currentDetails?.albums?.length || 0) + (currentDetails?.singles?.length || 0);
-            const subs = currentDetails?.subscribers;
-            const updatedSubtitle = `${combined.length} Official Songs${subs ? ` • ${subs}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
+          existingIds.add(rId);
+          curNumber++;
+          const newTrack: Track = {
+            id: `artist-${(r.source || 'YT').toLowerCase()}-${viewing.title.replace(/\s+/g, '-').toLowerCase()}-${curNumber}-${r.id || r.sourceId}`,
+            number: curNumber,
+            title: r.title,
+            artist: r.artist || viewing.title,
+            artists: r.artists,
+            album: r.album || `${viewing.title} - Top Tracks`,
+            duration: r.duration,
+            durationSec: r.durationSec,
+            dateAdded: r.releaseDate && !isNaN(Date.parse(r.releaseDate)) ? new Date(r.releaseDate).toISOString() : (r.releaseDate || ''),
+            releaseDate: r.releaseDate,
+            releaseYear: r.releaseYear || (r.releaseDate ? String(r.releaseDate).match(/\b(19|20)\d{2}\b/)?.[0] : undefined) || ((r as any).year ? String((r as any).year).match(/\b(19|20)\d{2}\b/)?.[0] : undefined),
+            artistBrowseId: r.artistBrowseId || channelId,
+            artistBrowseIds: r.artistBrowseIds,
+            artistUrl: r.artistUrl,
+            albumBrowseId: r.albumBrowseId,
+            externalUrl: r.externalUrl,
+            views: (r as any).views,
+            playbackCount: (r as any).playbackCount || (r as any).playback_count,
+            source: (r.source || 'YT') as SourceType,
+            sourceLabel: r.sourceLabel || 'YouTube Music',
+            sourceId: r.sourceId,
+            artworkUrl: r.artworkUrl || (r.sourceId && /^[a-zA-Z0-9_-]{11}$/.test(r.sourceId) ? `https://i.ytimg.com/vi/${r.sourceId}/hqdefault.jpg` : undefined),
+            iconName: 'user' as const,
+            gradientFrom: '#4338CA',
+            gradientTo: '#7C3AED',
+            isLiked: false,
+          };
+          if (cKey && !canonicalIndexMap.has(cKey)) {
+            canonicalIndexMap.set(cKey, updatedCurrentTracks.length + newTracks.length);
+          }
+          newTracks.push(newTrack);
+        }
+
+        const combined = [...updatedCurrentTracks, ...newTracks];
+        if (newTracks.length > 0) {
+          await repo.putTracks(newTracks);
+        }
+        await repo.putTracks(updatedCurrentTracks);
+        const currentDetails = libraryStore.currentArtistDetails;
+        const releaseCount = (currentDetails?.albums?.length || 0) + (currentDetails?.singles?.length || 0);
+        const subs = currentDetails?.subscribers;
+        const updatedSubtitle = `${combined.length} Official Songs${subs ? ` • ${subs}` : ''}${releaseCount > 0 ? ` • ${releaseCount} Releases` : ''}`;
 
             useLibraryStore.setState({
               currentPlaylistTracks: combined,
@@ -392,8 +438,7 @@ export default function App() {
               }
             }
           }
-        }
-      } catch (err) {
+        } catch (err) {
       console.error('[App] Failed to load more artist tracks:', err);
     } finally {
       setHasMoreTracks(false);

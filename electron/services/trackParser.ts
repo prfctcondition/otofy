@@ -45,8 +45,8 @@ const COMMA_PLACEHOLDER = '___COMMA_PLACEHOLDER___';
 const AMP_PLACEHOLDER = '___AMP_PLACEHOLDER___';
 const RU_AND_PLACEHOLDER = '___RU_AND_PLACEHOLDER___';
 
-function escapeRegexLiteral(str: string): string {
-  return str.replace(/[.+?^${}()|[\]\\-]/g, '\\$&');
+export function escapeRegexLiteral(str: string): string {
+  return str.replace(/[.\x2a+?^${}()|[\]\\-]/g, '\\$&');
 }
 
 export function cleanArtistAndTitle(
@@ -120,10 +120,14 @@ export function cleanArtistAndTitle(
 
   // If artist is already valid and not a generic channel:
   if (artist && !isGenericChannel(artist)) {
-    const escapedArtist = escapeRegexLiteral(artist);
-    const prefixRegex = new RegExp('^' + escapedArtist + '\\s{0,}[-–—]\\s{0,}', 'i');
-    if (prefixRegex.test(title)) {
-      title = title.replace(prefixRegex, '').trim();
+    try {
+      const escapedArtist = escapeRegexLiteral(artist);
+      const prefixRegex = new RegExp('^' + escapedArtist + '\\s{0,}[-–—]\\s{0,}', 'i');
+      if (prefixRegex.test(title)) {
+        title = title.replace(prefixRegex, '').trim();
+      }
+    } catch {
+      // Defensive fallback if regex fails
     }
   } else {
     // Artist is missing or generic channel: attempt to extract "Artist - Title" from video title
@@ -200,13 +204,17 @@ export function splitArtists(artistString?: string, explicitArtists?: string[]):
 
   let escaped = artistString;
   for (const known of KNOWN_ARTISTS_WITH_COMMA) {
-    const escapedKnown = escapeRegexLiteral(known);
-    escaped = escaped.replace(new RegExp(escapedKnown, 'gi'), (match) =>
-      match
-        .replace(/,/g, COMMA_PLACEHOLDER)
-        .replace(/&/g, AMP_PLACEHOLDER)
-        .replace(/\s+и\s+/gi, RU_AND_PLACEHOLDER)
-    );
+    try {
+      const escapedKnown = escapeRegexLiteral(known);
+      escaped = escaped.replace(new RegExp(escapedKnown, 'gi'), (match) =>
+        match
+          .replace(/,/g, COMMA_PLACEHOLDER)
+          .replace(/&/g, AMP_PLACEHOLDER)
+          .replace(/\s+и\s+/gi, RU_AND_PLACEHOLDER)
+      );
+    } catch {
+      // Defensive fallback
+    }
   }
 
   const rawParts = escaped
@@ -235,4 +243,4 @@ export function splitArtists(artistString?: string, explicitArtists?: string[]):
   return result.length > 0 ? result : [normalizeLocalizedArtistName(artistString)];
 }
 
-export default { cleanArtistAndTitle, splitArtists, normalizeLocalizedArtistName, KNOWN_ARTISTS_WITH_COMMA };
+export default { cleanArtistAndTitle, splitArtists, normalizeLocalizedArtistName, escapeRegexLiteral, KNOWN_ARTISTS_WITH_COMMA };

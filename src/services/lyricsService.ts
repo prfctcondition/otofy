@@ -425,7 +425,7 @@ async function fetchLrclibWithRetry(
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'Otofy-Music/1.2.6 (https://github.com/eyez/zen-music)',
+          'User-Agent': 'Otofy-Music/1.2.7 (https://github.com/eyez/zen-music)',
         },
         signal: AbortSignal.timeout(timeoutMs),
       });

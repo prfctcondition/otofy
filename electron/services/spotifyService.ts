@@ -1,5 +1,5 @@
 ﻿import innertubeService, { extractThumbnailUrl, parseDurationToSec } from './innertubeService.js';
-import { cleanArtistAndTitle } from './trackParser.js';
+import { cleanArtistAndTitle, escapeRegexLiteral } from './trackParser.js';
 
 export interface SpotifyTrackItem {
   title: string;
@@ -314,8 +314,10 @@ export async function matchSpotifyTracks(
 
           // If candTitle begins with redundant "candArtist - ", remove the prefix
           if (candArtist) {
-            const prefixRegex = new RegExp(`^${candArtist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[-–—]\\s*`, 'i');
-            candTitle = candTitle.replace(prefixRegex, '').trim();
+            try {
+              const prefixRegex = new RegExp(`^${escapeRegexLiteral(candArtist)}\\s{0,}[-–—]\\s{0,}`, 'i');
+              candTitle = candTitle.replace(prefixRegex, '').trim();
+            } catch {}
           }
 
           const durStr = item.duration?.text || '0:00';

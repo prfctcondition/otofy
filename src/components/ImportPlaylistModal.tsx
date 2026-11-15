@@ -4,6 +4,7 @@ import {
   X,
   AlertCircle,
   CheckCircle2,
+  Check,
   Music,
   Share2,
   Youtube,
@@ -905,11 +906,13 @@ export const ImportPlaylistModal: React.FC<ImportPlaylistModalProps> = ({ isOpen
                   Searching: {matchProgress.currentTrackTitle || 'Connecting...'}
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
-                    âœ“ {matchProgress.matched} confirmed
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-white/15 text-[#142347] dark:text-white border border-slate-300 dark:border-white/20">
+                    <Check size={11} className="shrink-0 stroke-[2.5]" />
+                    <span>{matchProgress.matched} confirmed</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                    ? {matchProgress.unresolved} need review
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                    <HelpCircle size={11} className="shrink-0" />
+                    <span>{matchProgress.unresolved} need review</span>
                   </span>
                 </div>
               </div>
